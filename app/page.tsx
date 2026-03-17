@@ -1,65 +1,65 @@
-import Image from "next/image";
+export default function Page() {
+  const snapshots = [
+    {
+      id: "2026-03-17_090000",
+      added: 2,
+      changed: 5,
+      signals: ["reward", "claim", "verify", "connect x"],
+      score: 72,
+      level: "HIGH",
+      note: "Nuevos bundles y señales de rewards.",
+    },
+    {
+      id: "2026-03-17_120000",
+      added: 1,
+      changed: 7,
+      signals: ["reward", "claim", "verify", "connect x", "account"],
+      score: 86,
+      level: "VERY HIGH",
+      note: "Activación progresiva del portal.",
+    },
+  ];
 
-export default function Home() {
+  const latest = snapshots[snapshots.length - 1];
+
+  const levelStyles: any = {
+    LOW: "bg-zinc-800 text-zinc-100",
+    MEDIUM: "bg-blue-900/60 text-blue-100",
+    HIGH: "bg-amber-900/60 text-amber-100",
+    "VERY HIGH": "bg-red-900/70 text-red-100",
+  };
+
+  const scoreWidth = `${Math.min(latest.score, 100)}%`;
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <div className="min-h-screen bg-black text-white p-6">
+      <h1 className="text-4xl font-bold mb-6">
+        🚀 Pond0x Launch Radar
+      </h1>
+
+      <div className="mb-6">
+        <p>Snapshot: {latest.id}</p>
+        <p>Score: {latest.score}</p>
+        <p className={`inline-block px-3 py-1 mt-2 ${levelStyles[latest.level]}`}>
+          {latest.level}
+        </p>
+      </div>
+
+      <div className="w-full bg-zinc-800 h-4 rounded">
+        <div
+          className="bg-green-400 h-4 rounded"
+          style={{ width: scoreWidth }}
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+      </div>
+
+      <div className="mt-6">
+        <h2 className="text-xl font-bold">Signals</h2>
+        <ul className="mt-2">
+          {latest.signals.map((s) => (
+            <li key={s}>• {s}</li>
+          ))}
+        </ul>
+      </div>
     </div>
   );
 }
