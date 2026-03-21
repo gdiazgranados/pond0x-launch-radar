@@ -1,12 +1,7 @@
-name: Pond0x Launch Radar
+name: radar
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "*/30 * * * *"
-
-permissions:
-  contents: write
 
 jobs:
   run-radar:
@@ -23,7 +18,11 @@ jobs:
 
       - name: Install watcher deps
         working-directory: ./watcher
-        run: npm ci
+        run: npm install
+
+      - name: Install Playwright browser
+        working-directory: ./watcher
+        run: npx playwright install chromium
 
       - name: Run capture
         working-directory: ./watcher
@@ -33,15 +32,13 @@ jobs:
         working-directory: ./watcher
         run: node radar.js
 
-      - name: Copy latest.json
-        run: |
-          mkdir -p public/data
-          cp watcher/output/latest.json public/data/latest.json
+      - name: Copy latest.json to public data
+        run: cp watcher/output/latest.json public/data/latest.json
 
-      - name: Commit changes
+      - name: Commit and push
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add public/data/latest.json
-          git diff --cached --quiet || git commit -m "Auto update radar data"
+          git diff --cached --quiet || git commit -m "Update radar snapshot"
           git push
