@@ -1,54 +1,87 @@
-const fs = require("fs")
-const path = require("path")
+const fs = require("fs-extra");
+const path = require("path");
 
-const outputDir = path.join(process.cwd(), "public", "data")
-const latestPath = path.join(outputDir, "latest.json")
-const historyPath = path.join(outputDir, "history.json")
+const MAX_HISTORY = 5;
 
-function ensureDir(dir) {
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true })
-  }
-}
+async function main() {
+  const watcherDir = __dirname;
+  const root = path.join(watcherDir, "..");
 
-function readJsonSafe(filePath, fallback) {
-  try {
-    if (!fs.existsSync(filePath)) return fallback
-    const raw = fs.readFileSync(filePath, "utf8")
-    return JSON.parse(raw)
-  } catch (error) {
-    console.error(`Error reading ${filePath}:`, error)
-    return fallback
-  }
-}
+  const latestPath = path.join(watcherDir, "output", "latest.json");
+  const historyPath = path.join(root, "public", "data", "history.json");
 
-function sameEntry(a, b) {
-  return (
-    a &&
-    b &&
-    a.id === b.id &&
-    a.generatedAt === b.generatedAt
-  )
-}
-
-function main() {
-  ensureDir(outputDir)
-
-  const latest = readJsonSafe(latestPath, null)
-  if (!latest) {
-    throw new Error("latest.json not found or invalid")
+  if (!(await fs.pathExists(latestPath))) {
+    throw new Error(`No existe latest.json en: ${latestPath}`);
   }
 
-  const history = readJsonSafe(historyPath, [])
-  const normalizedHistory = Array.isArray(history) ? history : []
+  const latest = await fs.readJson(latestPath);
 
-  const nextHistory = [latest, ...normalizedHistory.filter((item) => !sameEntry(item, latest))]
-    .slice(0, 5)
+  let history = [];
+  if (await fs.pathExists(historyPath)) {
+    history = await fs.readJson(historyPath);
+  }
 
-  fs.writeFileSync(historyPath, JSON.stringify(nextHistory, null, 2), "utf8")
+  const totalFiles = latest.totalFiles ?? 0;
+  const added = latest.added ?? 0;
+  const changed = latest.changed ?? 0;
+  const movementCount = latest.movementCount ?? (added + changed);
 
-  console.log("history.json updated")
-  console.log(nextHistory.map((item) => `${item.id} | score=${item.score} | level=${item.level}`).join("\n"))
+  const addedPct =
+    latest.addedPct ??
+    (totalFiles > 0 ? Number(((added / totalFiles) * 100).toFixed(2)) : 0);
+
+  const changedPct =
+    latest.changedPct ??
+    (totalFiles > 0 ? Number(((changed / totalFiles) * 100).toFixed(2)) : 0);
+
+  const movementPct =
+    latest.movementPct ??
+    (totalFiles > 0 ? Number(((movementCount / totalFiles) * 100).toFixed(2)) : 0);
+
+  const summary =
+    latest.summary ??
+    (movementCount === 0
+      ? `No se detectaron cambios en ${totalFiles} archivos analizados.`
+      : `${movementCount} de ${totalFiles} archivos muestran movimiento (${movementPct}%). ${added} nuevos (${addedPct}%) y ${changed} modificados (${changedPct}%).${
+          latest.signals?.length
+            ? ` Señales: ${latest.signals.join(", ")}.`
+            : " Sin señales relevantes."
+        }`);
+
+  const previous = history[0] || null;
+  const previousMovementPct = previous?.movementPct ?? 0;
+  const trend = Number((movementPct - previousMovementPct).toFixed(2));
+
+  let trendDirection = "FLAT";
+  if (trend > 0) trendDirection = "UP";
+  if (trend < 0) trendDirection = "DOWN";
+
+  const normalized = {
+    ...latest,
+    totalFiles,
+    movementCount,
+    addedPct,
+    changedPct,
+    movementPct,
+    summary,
+    trend,
+    trendDirection,
+  };
+
+  history = history.filter((h) => h.id !== normalized.id);
+  history.unshift(normalized);
+  history = history.slice(0, MAX_HISTORY);
+
+  await fs.ensureDir(path.dirname(historyPath));
+  await fs.writeJson(historyPath, history, { spaces: 2 });
+
+  console.log("history.json updated");
+  console.log(
+    `${normalized.id} | score=${normalized.score} | level=${normalized.level} | trend=${normalized.trend}`
+  );
 }
 
-main()
+main().catch((err) => {
+  console.error("Error:", err.message || err);
+  process.exit(1);
+});
