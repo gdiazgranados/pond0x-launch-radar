@@ -16,13 +16,15 @@ jobs:
         with:
           node-version: 20
 
-      - name: Install watcher deps
+      - name: Clean install watcher deps
         working-directory: ./watcher
-        run: npm install
+        run: |
+        rm -rf node_modules package-lock.json
+        npm install
 
       - name: Install Playwright browser
         working-directory: ./watcher
-        run: npx playwright install chromium
+        run: npm exec playwright install chromium
 
       - name: Run capture
         working-directory: ./watcher
