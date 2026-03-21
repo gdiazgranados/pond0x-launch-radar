@@ -3,10 +3,12 @@ name: radar
 on:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   run-radar:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -17,22 +19,20 @@ jobs:
           node-version: 20
 
       - name: Clean install watcher deps
+        run: npm ci
         working-directory: ./watcher
-        run: |
-          rm -rf node_modules package-lock.json
-          npm install
 
       - name: Install Playwright browser
+        run: npx playwright install chromium
         working-directory: ./watcher
-        run: npm exec playwright install chromium
 
       - name: Run capture
-        working-directory: ./watcher
         run: node capture.js
+        working-directory: ./watcher
 
       - name: Run radar
-        working-directory: ./watcher
         run: node radar.js
+        working-directory: ./watcher
 
       - name: Copy latest.json to public data
         run: cp watcher/output/latest.json public/data/latest.json
@@ -40,7 +40,7 @@ jobs:
       - name: Commit and push
         run: |
           git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
           git add public/data/latest.json
-          git diff --cached --quiet || git commit -m "Update radar snapshot"
+          git commit -m "Update radar snapshot" || echo "No changes to commit"
           git push
