@@ -45,18 +45,13 @@ function buildAlertSignature(data) {
   return `${level}__${movementPct}__${score}__${signals}`;
 }
 
-function shouldSendAlert(data) {
+function classifyAlert(data) {
   const movementPct = data.movementPct ?? 0;
   const score = data.score ?? 0;
   const level = data.level || "LOW";
   const signals = data.signals || [];
   const trend = data.trend ?? 0;
   const tags = data.tags || [];
-
-  if (level === "VERY HIGH") return true;
-  if (level === "HIGH" && trend >= 5) return true;
-  if (movementPct >= 30 && trend >= 5) return true;
-  if (score >= 60 && trend >= 5) return true;
 
   const hasRewardsCombo =
     signals.includes("claim") ||
@@ -69,20 +64,38 @@ function shouldSendAlert(data) {
   const hasAuthCombo =
     signals.includes("verify") && signals.includes("account");
 
-  if (hasRewardsCombo) return true;
-  if (hasWalletCombo && trend >= 3) return true;
-  if (hasAuthCombo && trend >= 3) return true;
-  if (tags.includes("REWARDS") && trend >= 3) return true;
-
-  // Early signal detection (pre-launch)
   const earlySignals =
     (signals.includes("connect") && signals.includes("account")) ||
     (signals.includes("verify") && signals.includes("connect")) ||
     (signals.includes("portal") && movementPct >= 10);
 
-  if (earlySignals && trend >= 2) return true;
+  if (level === "VERY HIGH") {
+    return "CRITICAL";
+  }
 
-  return false;
+  if (
+    (level === "HIGH" && trend >= 5) ||
+    (movementPct >= 30 && trend >= 5) ||
+    (score >= 60 && trend >= 5) ||
+    hasRewardsCombo
+  ) {
+    return "HIGH";
+  }
+
+  if (
+    (hasWalletCombo && trend >= 3) ||
+    (hasAuthCombo && trend >= 3) ||
+    (tags.includes("REWARDS") && trend >= 3) ||
+    (earlySignals && trend >= 2)
+  ) {
+    return "EARLY";
+  }
+
+  return null;
+}
+
+function shouldSendAlert(data) {
+  return classifyAlert(data) !== null;
 }
 
 function formatAlertMessage(data) {
@@ -95,6 +108,7 @@ function formatAlertMessage(data) {
   const tags = data.tags?.length ? data.tags.join(", ") : "none";
   const insight = data.insight || "No insight";
   const summary = data.summary || "No summary";
+  const alertType = classifyAlert(data) || "INFO";
 
   const trendText =
     trendDirection === "UP"
@@ -104,12 +118,13 @@ function formatAlertMessage(data) {
       : `${trend}%`;
 
   let header = "🟢 QUIET SURFACE";
-  if (level === "MEDIUM") header = "🟡 BUILDUP DETECTED";
-  if (level === "HIGH") header = "🟠 SYSTEM HEATING UP";
-  if (level === "VERY HIGH") header = "🚨 POND0X ACTIVATION SIGNAL";
+  if (alertType === "EARLY") header = "🟡 EARLY SIGNAL DETECTED";
+  if (alertType === "HIGH") header = "🟠 HIGH-CONFIDENCE SIGNAL";
+  if (alertType === "CRITICAL") header = "🚨 POND0X ACTIVATION SIGNAL";
 
   return `${header}
 
+🚦 Alert Type: ${alertType}
 ⚡ Level: ${level}
 📊 Score: ${score}
 📈 Movement: ${movementPct}%
