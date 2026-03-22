@@ -21,8 +21,13 @@ jobs:
         with:
           node-version: 20
 
-      - name: Install dependencies
+      - name: Install root dependencies
         run: npm install
+
+      - name: Install watcher dependencies
+        run: |
+          cd watcher
+          npm install
 
       - name: Install Playwright browser
         run: npx playwright install chromium
@@ -39,9 +44,6 @@ jobs:
       - name: Ensure public data directory exists
         run: mkdir -p public/data
 
-      - name: Copy latest radar output
-        run: cp watcher/output/latest.json public/data/latest.json
-
       - name: Update history
         run: node watcher/update-history.js
 
@@ -49,11 +51,12 @@ jobs:
         run: node watcher/notify.js
         env:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
 
       - name: Commit and push
         run: |
           git config --global user.name "radar-bot"
           git config --global user.email "bot@radar.ai"
-          git add public/data/latest.json public/data/history.json watcher/last-alert.json
+          git add public/data/latest.json public/data/history.json public/data/alerts-history.json watcher/last-alert.json
           git commit -m "Auto radar update" || echo "No changes to commit"
           git push

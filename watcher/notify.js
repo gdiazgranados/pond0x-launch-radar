@@ -1,11 +1,17 @@
+require("dotenv").config();
+
 const fs = require("fs-extra");
 const path = require("path");
 
 const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN;
-const CHAT_ID = "-1003564899779";
+const CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
 if (!TELEGRAM_TOKEN) {
   throw new Error("Missing TELEGRAM_TOKEN env variable");
+}
+
+if (!CHAT_ID) {
+  throw new Error("Missing TELEGRAM_CHAT_ID env variable");
 }
 
 async function sendTelegramMessage(text) {
@@ -36,7 +42,6 @@ function buildAlertSignature(data) {
   const movementPct = data.movementPct ?? 0;
   const score = data.score ?? 0;
   const signals = (data.signals || []).join("|");
-
   return `${level}__${movementPct}__${score}__${signals}`;
 }
 
@@ -69,6 +74,14 @@ function shouldSendAlert(data) {
   if (hasAuthCombo && trend >= 3) return true;
   if (tags.includes("REWARDS") && trend >= 3) return true;
 
+  // Early signal detection (pre-launch)
+  const earlySignals =
+    (signals.includes("connect") && signals.includes("account")) ||
+    (signals.includes("verify") && signals.includes("connect")) ||
+    (signals.includes("portal") && movementPct >= 10);
+
+  if (earlySignals && trend >= 2) return true;
+
   return false;
 }
 
@@ -92,8 +105,8 @@ function formatAlertMessage(data) {
 
   let header = "🟢 QUIET SURFACE";
   if (level === "MEDIUM") header = "🟡 BUILDUP DETECTED";
-  if (level === "HIGH") header = "🟠 HIGH ACTIVITY";
-  if (level === "VERY HIGH") header = "🚨 POND0X SIGNAL";
+  if (level === "HIGH") header = "🟠 SYSTEM HEATING UP";
+  if (level === "VERY HIGH") header = "🚨 POND0X ACTIVATION SIGNAL";
 
   return `${header}
 
@@ -113,8 +126,10 @@ ${summary}`;
 }
 
 async function main() {
-  const latestPath = path.join(__dirname, "output", "latest.json");
+  const publicDataDir = path.join(__dirname, "..", "public", "data");
+  const latestPath = path.join(publicDataDir, "latest.json");
   const lastAlertPath = path.join(__dirname, "last-alert.json");
+  const alertsHistoryPath = path.join(publicDataDir, "alerts-history.json");
 
   if (!(await fs.pathExists(latestPath))) {
     throw new Error(`No existe latest.json en: ${latestPath}`);
@@ -124,6 +139,10 @@ async function main() {
 
   if (!(await fs.pathExists(lastAlertPath))) {
     await fs.writeJson(lastAlertPath, { lastSignature: null }, { spaces: 2 });
+  }
+
+  if (!(await fs.pathExists(alertsHistoryPath))) {
+    await fs.writeJson(alertsHistoryPath, [], { spaces: 2 });
   }
 
   const lastAlertState = await fs.readJson(lastAlertPath);
@@ -148,6 +167,25 @@ async function main() {
     { lastSignature: currentSignature },
     { spaces: 2 }
   );
+
+  const alertsHistory = await fs.readJson(alertsHistoryPath);
+  alertsHistory.unshift({
+    id: data.id,
+    level: data.level,
+    score: data.score ?? 0,
+    movementPct: data.movementPct ?? 0,
+    trend: data.trend ?? 0,
+    trendDirection: data.trendDirection || "FLAT",
+    signals: data.signals || [],
+    tags: data.tags || [],
+    insight: data.insight || "No insight",
+    summary: data.summary || "No summary",
+    sentAt: new Date().toISOString(),
+  });
+
+  await fs.writeJson(alertsHistoryPath, alertsHistory.slice(0, 50), {
+    spaces: 2,
+  });
 
   console.log("Smart alert sent to Telegram channel");
 }

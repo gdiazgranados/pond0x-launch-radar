@@ -3,7 +3,12 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "radar": "node radar.js",
+    "history": "node update-history.js",
+    "alerts": "node notify.js",
+    "capture": "node capture.js",
+    "pipeline": "node capture.js && node radar.js && node update-history.js && node notify.js"
   },
   "keywords": [],
   "author": "",
@@ -11,6 +16,7 @@
   "description": "",
   "dependencies": {
     "axios": "^1.13.6",
+    "dotenv": "^17.3.1",
     "fs-extra": "^11.3.4",
     "playwright": "^1.58.2"
   }
