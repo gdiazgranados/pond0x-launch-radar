@@ -44,9 +44,16 @@ async function loadLatestSnapshots() {
     .filter((p) => fs.statSync(p).isDirectory())
     .sort();
 
-  if (dirs.length < 2) {
-    throw new Error("Necesitas al menos 2 snapshots");
-  }
+  if (dirs.length === 0) {
+  throw new Error("No hay snapshots disponibles");
+}
+
+if (dirs.length === 1) {
+  return {
+    oldDir: null,
+    newDir: dirs[0]
+  };
+}
 
   return {
     oldDir: dirs[dirs.length - 2],
@@ -92,7 +99,7 @@ async function readFileSafe(file) {
 async function main() {
   const { oldDir, newDir } = await loadLatestSnapshots();
 
-  const oldFiles = await readAssets(oldDir);
+  const oldFiles = oldDir ? await readAssets(oldDir) : [];
   const newFiles = await readAssets(newDir);
 
   const oldMap = new Map(oldFiles.map((f) => [path.basename(f), f]));
