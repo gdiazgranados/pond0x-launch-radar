@@ -94,6 +94,40 @@ function classifyAlert(data) {
   return null;
 }
 
+function detectSignalType(data) {
+  const signals = data.signals || [];
+  const tags = data.tags || [];
+
+  if (
+    signals.includes("claim") ||
+    signals.includes("reward") ||
+    tags.includes("REWARDS")
+  ) {
+    return "REWARDS";
+  }
+
+  if (
+    signals.includes("connect") &&
+    (signals.includes("ethereum") || signals.includes("solana"))
+  ) {
+    return "CHAIN";
+  }
+
+  if (
+    signals.includes("verify") ||
+    signals.includes("account") ||
+    tags.includes("AUTH")
+  ) {
+    return "AUTH";
+  }
+
+  if (signals.includes("portal")) {
+    return "SYSTEM";
+  }
+
+  return "UNKNOWN";
+}
+
 function shouldSendAlert(data) {
   return classifyAlert(data) !== null;
 }
@@ -109,6 +143,7 @@ function formatAlertMessage(data) {
   const insight = data.insight || "No insight";
   const summary = data.summary || "No summary";
   const alertType = classifyAlert(data) || "INFO";
+  const signalType = detectSignalType(data);
 
   const trendText =
     trendDirection === "UP"
@@ -125,6 +160,7 @@ function formatAlertMessage(data) {
   return `${header}
 
 🚦 Alert Type: ${alertType}
+🧬 Signal Type: ${signalType}
 ⚡ Level: ${level}
 📊 Score: ${score}
 📈 Movement: ${movementPct}%
