@@ -36,6 +36,7 @@ function buildAlertSignature(data) {
   const movementPct = data.movementPct ?? 0;
   const score = data.score ?? 0;
   const signals = (data.signals || []).join("|");
+
   return `${level}__${movementPct}__${score}__${signals}`;
 }
 
@@ -45,20 +46,28 @@ function shouldSendAlert(data) {
   const level = data.level || "LOW";
   const signals = data.signals || [];
   const trend = data.trend ?? 0;
+  const tags = data.tags || [];
 
   if (level === "VERY HIGH") return true;
-  if (level === "HIGH") return true;
-  if (movementPct >= 30) return true;
-  if (score >= 60) return true;
-  if (trend >= 10) return true;
+  if (level === "HIGH" && trend >= 5) return true;
+  if (movementPct >= 30 && trend >= 5) return true;
+  if (score >= 60 && trend >= 5) return true;
 
-  const hasStrongCombo =
-    (signals.includes("claim") && signals.includes("reward")) ||
-    (signals.includes("connect") && signals.includes("ethereum")) ||
-    (signals.includes("connect") && signals.includes("solana")) ||
-    (signals.includes("verify") && signals.includes("account"));
+  const hasRewardsCombo =
+    signals.includes("claim") ||
+    (signals.includes("reward") && signals.includes("connect"));
 
-  if (hasStrongCombo) return true;
+  const hasWalletCombo =
+    signals.includes("connect") &&
+    (signals.includes("ethereum") || signals.includes("solana"));
+
+  const hasAuthCombo =
+    signals.includes("verify") && signals.includes("account");
+
+  if (hasRewardsCombo) return true;
+  if (hasWalletCombo && trend >= 3) return true;
+  if (hasAuthCombo && trend >= 3) return true;
+  if (tags.includes("REWARDS") && trend >= 3) return true;
 
   return false;
 }
@@ -81,7 +90,12 @@ function formatAlertMessage(data) {
       ? `DOWN ${trend}%`
       : `${trend}%`;
 
-  return `🚨 POND0X RADAR SIGNAL
+  let header = "🟢 QUIET SURFACE";
+  if (level === "MEDIUM") header = "🟡 BUILDUP DETECTED";
+  if (level === "HIGH") header = "🟠 HIGH ACTIVITY";
+  if (level === "VERY HIGH") header = "🚨 POND0X SIGNAL";
+
+  return `${header}
 
 ⚡ Level: ${level}
 📊 Score: ${score}
