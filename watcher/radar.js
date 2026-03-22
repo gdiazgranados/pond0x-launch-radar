@@ -16,8 +16,15 @@ const KEY_SIGNALS = [
   "disabled",
   "launch",
   "portal",
-  "airdrop"
+  "airdrop",
 ];
+
+const SIGNAL_GROUPS = {
+  AUTH: ["verify", "account", "login"],
+  REWARDS: ["claim", "reward", "airdrop"],
+  CHAIN: ["ethereum", "solana", "connect"],
+  SYSTEM: ["enabled", "disabled", "portal", "launch"],
+};
 
 function scoreSignals(text) {
   const lower = String(text || "").toLowerCase();
@@ -33,31 +40,39 @@ function scoreSignals(text) {
 }
 
 async function loadLatestSnapshots() {
-  const snapshotsDir = path.join(process.cwd(), "snapshots");
+  const snapshotsDir = path.join(__dirname, "snapshots");
 
   if (!(await fs.pathExists(snapshotsDir))) {
     throw new Error(`No existe el directorio de snapshots: ${snapshotsDir}`);
   }
 
-  const dirs = (await fs.readdir(snapshotsDir))
-    .map((d) => path.join(snapshotsDir, d))
-    .filter((p) => fs.statSync(p).isDirectory())
-    .sort();
+  const entries = await fs.readdir(snapshotsDir);
+  const dirs = [];
+
+  for (const entry of entries) {
+    const fullPath = path.join(snapshotsDir, entry);
+    const stat = await fs.stat(fullPath);
+    if (stat.isDirectory()) {
+      dirs.push(fullPath);
+    }
+  }
+
+  dirs.sort();
 
   if (dirs.length === 0) {
-  throw new Error("No hay snapshots disponibles");
-}
+    throw new Error("No hay snapshots disponibles");
+  }
 
-if (dirs.length === 1) {
-  return {
-    oldDir: null,
-    newDir: dirs[0]
-  };
-}
+  if (dirs.length === 1) {
+    return {
+      oldDir: null,
+      newDir: dirs[0],
+    };
+  }
 
   return {
     oldDir: dirs[dirs.length - 2],
-    newDir: dirs[dirs.length - 1]
+    newDir: dirs[dirs.length - 1],
   };
 }
 
@@ -96,14 +111,47 @@ async function readFileSafe(file) {
   }
 }
 
+function detectGroups(signals) {
+  const detectedGroups = [];
+
+  for (const [group, keywords] of Object.entries(SIGNAL_GROUPS)) {
+    if (signals.some((signal) => keywords.includes(signal))) {
+      detectedGroups.push(group);
+    }
+  }
+
+  return detectedGroups;
+}
+
+function buildInsight(movementPct, signals, detectedGroups) {
+  let insight = "No significant activity detected";
+  let confidence = 0.2;
+
+  if (movementPct > 30 && signals.includes("claim")) {
+    insight = "Strong indicators of claim or reward activation";
+    confidence = 0.9;
+  } else if (movementPct > 20 && detectedGroups.includes("AUTH")) {
+    insight = "Authentication-related changes detected, possible gated feature";
+    confidence = 0.75;
+  } else if (movementPct > 20 && detectedGroups.includes("CHAIN")) {
+    insight = "Blockchain connection flow evolving (wallet or network activity)";
+    confidence = 0.7;
+  } else if (movementPct > 10) {
+    insight = "Moderate frontend activity detected";
+    confidence = 0.55;
+  }
+
+  return { insight, confidence };
+}
+
 async function main() {
   const { oldDir, newDir } = await loadLatestSnapshots();
 
   const oldFiles = oldDir ? await readAssets(oldDir) : [];
   const newFiles = await readAssets(newDir);
 
-  const oldMap = new Map(oldFiles.map((f) => [path.basename(f), f]));
-  const newMap = new Map(newFiles.map((f) => [path.basename(f), f]));
+  const oldMap = new Map(oldFiles.map((file) => [path.basename(file), file]));
+  const newMap = new Map(newFiles.map((file) => [path.basename(file), file]));
 
   let added = 0;
   let changed = 0;
@@ -113,20 +161,22 @@ async function main() {
     if (!oldMap.has(name)) {
       added++;
       const content = await readFileSafe(newFile);
-      scoreSignals(content).forEach((s) => allSignals.add(s));
-    } else {
-      const oldContent = await readFileSafe(oldMap.get(name));
-      const newContent = await readFileSafe(newFile);
+      scoreSignals(content).forEach((signal) => allSignals.add(signal));
+      continue;
+    }
 
-      if (oldContent !== newContent) {
-        changed++;
-        scoreSignals(newContent).forEach((s) => allSignals.add(s));
-      }
+    const oldContent = await readFileSafe(oldMap.get(name));
+    const newContent = await readFileSafe(newFile);
+
+    if (oldContent !== newContent) {
+      changed++;
+      scoreSignals(newContent).forEach((signal) => allSignals.add(signal));
     }
   }
 
   const totalFiles = newFiles.length;
   const movementCount = added + changed;
+
   const movementPct =
     totalFiles > 0 ? Number(((movementCount / totalFiles) * 100).toFixed(2)) : 0;
   const addedPct =
@@ -139,7 +189,10 @@ async function main() {
   score += changed * 5;
   score += allSignals.size * 7;
 
-  if (added === 0 && changed === 0) score -= 20;
+  if (added === 0 && changed === 0) {
+    score -= 20;
+  }
+
   if (score < 0) score = 0;
   if (score > 100) score = 100;
 
@@ -149,85 +202,55 @@ async function main() {
   if (score > 80) level = "VERY HIGH";
 
   const signals = [...allSignals];
-  // 🧠 SIGNAL GROUPING
-const SIGNAL_GROUPS = {
-  AUTH: ["verify", "account", "login"],
-  REWARDS: ["claim", "reward", "airdrop"],
-  CHAIN: ["ethereum", "solana", "connect"],
-  SYSTEM: ["enabled", "disabled", "portal", "launch"]
-};
+  const detectedGroups = detectGroups(signals);
+  const { insight, confidence } = buildInsight(movementPct, signals, detectedGroups);
 
-// Detect groups
-const detectedGroups = [];
+  const summary = !oldDir
+    ? `Primera captura base generada con ${totalFiles} archivos. Aún no hay comparación histórica.`
+    : movementCount === 0
+    ? `No se detectaron cambios en ${totalFiles} archivos analizados.`
+    : `${movementCount} de ${totalFiles} archivos muestran movimiento (${movementPct}%). ${added} nuevos (${addedPct}%) y ${changed} modificados (${changedPct}%).${
+        signals.length ? ` Señales: ${signals.join(", ")}.` : " Sin señales relevantes."
+      }`;
 
-for (const [group, keywords] of Object.entries(SIGNAL_GROUPS)) {
-  if (signals.some((s) => keywords.includes(s))) {
-    detectedGroups.push(group);
-  }
-}
-
-// 🧠 INSIGHT ENGINE
-let insight = "No significant activity detected";
-let confidence = 0.2;
-
-if (movementPct > 30 && signals.includes("claim")) {
-  insight = "Strong indicators of claim or reward activation";
-  confidence = 0.9;
-} else if (movementPct > 20 && detectedGroups.includes("AUTH")) {
-  insight = "Authentication-related changes detected, possible gated feature";
-  confidence = 0.75;
-} else if (movementPct > 20 && detectedGroups.includes("CHAIN")) {
-  insight = "Blockchain connection flow evolving (wallet or network activity)";
-  confidence = 0.7;
-} else if (movementPct > 10) {
-  insight = "Moderate frontend activity detected";
-  confidence = 0.55;
-}
-
-  const summary =
-    movementCount === 0
-      ? `No se detectaron cambios en ${totalFiles} archivos analizados.`
-      : `${movementCount} de ${totalFiles} archivos muestran movimiento (${movementPct}%). ${added} nuevos (${addedPct}%) y ${changed} modificados (${changedPct}%).${
-          signals.length ? ` Señales: ${signals.join(", ")}.` : " Sin señales relevantes."
-        }`;
-
-  const note =
-  level === "VERY HIGH"
+  const note = !oldDir
+    ? "Primera corrida base. El siguiente snapshot permitirá detectar cambios."
+    : level === "VERY HIGH"
     ? "Señales fuertes de activación o pre-launch."
     : level === "HIGH"
-    ? "Cambios importantes en frontend y signals relevantes."
+    ? "Cambios importantes en frontend y señales relevantes."
     : level === "MEDIUM"
     ? "Actividad de desarrollo visible."
     : "Sin señales fuertes por ahora.";
 
-const result = {
-  id: path.basename(newDir),
-  totalFiles,
-  added,
-  changed,
-  movementCount,
-  movementPct,
-  addedPct,
-  changedPct,
-  signals,
-  score,
-  level,
-  insight,
-  confidence,
-  tags: detectedGroups,
-  summary,
-  note,
-  generatedAt: new Date().toISOString()
-};
+  const result = {
+    id: path.basename(newDir),
+    totalFiles,
+    added,
+    changed,
+    movementCount,
+    movementPct,
+    addedPct,
+    changedPct,
+    signals,
+    score,
+    level,
+    insight,
+    confidence,
+    tags: detectedGroups,
+    summary,
+    note,
+    generatedAt: new Date().toISOString(),
+  };
 
-  const outputDir = path.join(process.cwd(), "output");
-  const outputFile = path.join(outputDir, "latest.json");
+  const publicDir = path.join(__dirname, "..", "public", "data");
+  const publicFile = path.join(publicDir, "latest.json");
 
-  await fs.ensureDir(outputDir);
-  await fs.writeJson(outputFile, result, { spaces: 2 });
+  await fs.ensureDir(publicDir);
+  await fs.writeJson(publicFile, result, { spaces: 2 });
 
   console.log("Archivo generado:");
-  console.log(outputFile);
+  console.log(publicFile);
   console.log(JSON.stringify(result, null, 2));
 }
 
