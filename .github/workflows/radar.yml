@@ -1,9 +1,10 @@
 name: Pond0x Radar
-
+# trigger schedule refresh
 on:
   schedule:
-    - cron: "0 * * * *" # cada hora
+    - cron: "*/5 * * * *" # cada hora
   workflow_dispatch:
+  push:
 
 jobs:
   run-radar:
