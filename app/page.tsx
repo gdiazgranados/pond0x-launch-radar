@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react"
+import { useEffect, useMemo, useState, type ReactNode } from "react"
 
   function remoteJsonUrl(filename: string, cacheBust: number) {
   return `/data/${filename}?t=${cacheBust}`
@@ -91,19 +91,6 @@ function formatRelativeMinutes(dateString?: string) {
   }
 
   return `${hours}h ${remaining}m ago`
-}
-
-function addMinutes(dateString?: string, minutes = 60) {
-  if (!dateString) return "..."
-  const dt = new Date(dateString)
-  if (Number.isNaN(dt.getTime())) return dateString
-
-  dt.setMinutes(dt.getMinutes() + minutes)
-
-  return dt.toLocaleString(undefined, {
-    hour12: true,
-    timeZoneName: "short",
-  })
 }
 
 function getHeartbeatStatus(dateString?: string, scheduleMinutes = 60) {
@@ -341,76 +328,16 @@ export default function Home() {
   const [loading, setLoading] = useState(true)
   const [heartbeatData, setHeartbeatData] = useState<HeartbeatData | null>(null)
   const [now, setNow] = useState(Date.now())
-  const [, forceTick] = useState(0)
-
-  const loadRemoteRadar = useCallback(async (signal?: AbortSignal) => {
-    const cacheBust = Date.now()
-
-    const [latestRes, historyRes, alertsRes, heartbeatRes] = await Promise.all([
-      fetch(remoteJsonUrl("latest.json", cacheBust), { cache: "no-store", signal }),
-      fetch(remoteJsonUrl("history.json", cacheBust), { cache: "no-store", signal }),
-      fetch(remoteJsonUrl("alerts-history.json", cacheBust), { cache: "no-store", signal }),
-      fetch(remoteJsonUrl("heartbeat.json", cacheBust), { cache: "no-store", signal }),
-    ])
-
-    if (!latestRes.ok || !historyRes.ok || !alertsRes.ok || !heartbeatRes.ok) {
-      throw new Error("Failed to load one or more remote radar resources")
-    }
-
-    const [latestJson, historyJson, alertsJson, heartbeatJson] = await Promise.all([
-      latestRes.json(),
-      historyRes.json(),
-      alertsRes.json(),
-      heartbeatRes.json(),
-    ])
-
-    setData(latestJson)
-    setHistory(Array.isArray(historyJson) ? historyJson : [])
-    setAlerts(Array.isArray(alertsJson) ? alertsJson : [])
-    setHeartbeatData({ ...heartbeatJson })
-  }, [])
 
   useEffect(() => {
-    const controller = new AbortController()
-    let isMounted = true
-
-    async function fetchData() {
-      try {
-        await loadRemoteRadar(controller.signal)
-      } catch (error) {
-        if ((error as Error).name !== "AbortError") {
-          console.error("Error loading radar data:", error)
-        }
-      } finally {
-        if (isMounted) {
-          setLoading(false)
-        }
-      }
-    }
-
-    fetchData()
-
-    const fetchInterval = setInterval(fetchData, 60_000)
     const clockInterval = setInterval(() => {
-      if (isMounted) {
-        setNow(Date.now())
-      }
+      setNow(Date.now())
     }, 1000)
 
-    const tickInterval = setInterval(() => {
-      if (isMounted) {
-        forceTick((t) => t + 1)
-      }
-    }, 30_000)
-
     return () => {
-      isMounted = false
-      controller.abort()
-      clearInterval(fetchInterval)
-      clearInterval(tickInterval)
       clearInterval(clockInterval)
     }
-  }, [loadRemoteRadar])
+  }, [])
 
   const previousPollAt = useMemo(() => {
     const lastSuccess = heartbeatData?.lastSuccessAt
@@ -448,13 +375,6 @@ export default function Home() {
 
     return `${minutes}m ${seconds}s`
   }, [nextPollAt, now])
-
-    const isLate = nextSweepCountdown === "running..."
-
-    const isCritical =
-      nextSweepCountdown === "running..." &&
-      !!nextPollAt &&
-      Date.now() - new Date(nextPollAt).getTime() > 10 * 60 * 1000
 
   const palette = useMemo(() => getLevelPalette(data?.level), [data])
 
@@ -1043,7 +963,7 @@ export default function Home() {
                       <div className="mt-3 h-2 w-full rounded-full bg-white/10">
                         <div
                           className={`h-2 rounded-full ${itemPalette.bar}`}
-                          style={{ width: `${item.score}%` }}
+                          style={{ width: `${clampPercent(item.score)}%` }}
                         />
                       </div>
                     </div>
