@@ -106,7 +106,7 @@ function addMinutes(dateString?: string, minutes = 60) {
   })
 }
 
-function getHeartbeatStatus(dateString?: string, scheduleMinutes = 5) {
+function getHeartbeatStatus(dateString?: string, scheduleMinutes = 60) {
   const mins = minutesSince(dateString)
 
   if (mins === null) {
@@ -118,18 +118,20 @@ function getHeartbeatStatus(dateString?: string, scheduleMinutes = 5) {
     }
   }
 
-  if (mins <= scheduleMinutes * 1.5) {
+  const schedule = Number(scheduleMinutes || 60)
+
+  if (mins <= schedule) {
     return {
-      label: "LIVE",
+      label: "FRESH",
       tone: "text-emerald-300",
       badge: "border-emerald-500/30 bg-emerald-500/10 text-emerald-200",
       dot: "bg-emerald-400",
     }
   }
 
-  if (mins <= scheduleMinutes * 3) {
+  if (mins <= schedule * 2) {
     return {
-      label: "DELAYED",
+      label: "LAGGING",
       tone: "text-yellow-300",
       badge: "border-yellow-500/30 bg-yellow-500/10 text-yellow-200",
       dot: "bg-yellow-400",
@@ -423,23 +425,6 @@ export default function Home() {
     return new Date(dt.getTime() + scheduleMinutes * 60 * 1000).toISOString()
   }, [heartbeatData?.lastRunAt, heartbeatData?.scheduleMinutes])
 
-    // 🔥 primera carga
-    fetchData()
-
-    // 🔁 polling (trae datos nuevos)
-    const fetchInterval = setInterval(fetchData, 60_000)
-
-    // ⏱️ re-render para actualizar "Freshness"
-    const tickInterval = setInterval(() => {
-      forceTick((t) => t + 1)
-    }, 30_000)
-
-    return () => {
-      clearInterval(fetchInterval)
-      clearInterval(tickInterval)
-    }
-  }, [])
-
   const palette = useMemo(() => getLevelPalette(data?.level), [data])
 
   const chartData = useMemo(() => {
@@ -519,14 +504,7 @@ export default function Home() {
       time: shortTime(item.generatedAt),
       level: item.level || "LOW",
       signalType: getSignalType(item),
-      probability:
-        item.level === "VERY HIGH"
-          ? "VERY HIGH"
-          : item.level === "HIGH"
-          ? "HIGH"
-          : item.level === "MEDIUM"
-          ? "MEDIUM"
-          : "LOW",
+      probability: probabilityFromLevel(item.level),
       label: "HIST",
     }))
 
@@ -535,14 +513,7 @@ export default function Home() {
       time: shortTime(alert.sentAt),
       level: alert.level || "LOW",
       signalType: getSignalType(alert),
-      probability:
-        alert.level === "VERY HIGH"
-          ? "VERY HIGH"
-          : alert.level === "HIGH"
-          ? "HIGH"
-          : alert.level === "MEDIUM"
-          ? "MEDIUM"
-          : "LOW",
+      probability: probabilityFromLevel(alert.level),
       label: "ALERT",
     }))
 
@@ -648,7 +619,13 @@ export default function Home() {
               <span className={`h-3 w-3 rounded-full ${heartbeat.dot}`} />
               <div className={`text-2xl font-semibold ${heartbeat.tone}`}>{heartbeat.label}</div>
               <span className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${heartbeat.badge}`}>
-                active monitor
+                {heartbeat.label === "FRESH"
+                  ? "within schedule"
+                  : heartbeat.label === "LAGGING"
+                  ? "delayed sweep"
+                  : heartbeat.label === "STALE"
+                  ? "active monitor"
+                  : "no signal"}
               </span>
             </div>
 
@@ -812,7 +789,7 @@ export default function Home() {
                   <div className="h-3 w-full rounded-full bg-white/10">
                     <div
                       className={`h-3 rounded-full ${palette.bar}`}
-                      style={{ width: `${data?.score ?? 0}%` }}
+                      style={{ width: `${clampPercent(data?.score)}%` }}
                     />
                   </div>
                 </div>
@@ -825,7 +802,7 @@ export default function Home() {
                   <div className="h-2.5 w-full rounded-full bg-white/10">
                     <div
                       className="h-2.5 rounded-full bg-cyan-400"
-                      style={{ width: `${data?.addedPct ?? 0}%` }}
+                      style={{ width: `${clampPercent(data?.addedPct)}%` }}
                     />
                   </div>
                 </div>
@@ -838,7 +815,7 @@ export default function Home() {
                   <div className="h-2.5 w-full rounded-full bg-white/10">
                     <div
                       className="h-2.5 rounded-full bg-yellow-400"
-                      style={{ width: `${data?.changedPct ?? 0}%` }}
+                      style={{ width: `${clampPercent(data?.changedPct)}%` }}
                     />
                   </div>
                 </div>
@@ -851,7 +828,7 @@ export default function Home() {
                   <div className="h-2.5 w-full rounded-full bg-white/10">
                     <div
                       className="h-2.5 rounded-full bg-emerald-400"
-                      style={{ width: `${data?.movementPct ?? 0}%` }}
+                      style={{ width: `${clampPercent(data?.movementPct)}%` }}
                     />
                   </div>
                 </div>
