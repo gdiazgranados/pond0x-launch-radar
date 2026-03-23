@@ -1,9 +1,9 @@
 "use client"
 
-import { useEffect, useMemo, useState, type ReactNode } from "react"
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react"
 
-  function remoteJsonUrl(filename: string) {
-  return `/data/${filename}?t=${Date.now()}`
+  function remoteJsonUrl(filename: string, cacheBust: number) {
+  return `/data/${filename}?t=${cacheBust}`
 }
 
 type RadarData = {
@@ -264,6 +264,19 @@ function probabilityClass(probability: string) {
   }
 }
 
+function probabilityFromLevel(level?: string) {
+  if (level === "VERY HIGH") return "VERY HIGH"
+  if (level === "HIGH") return "HIGH"
+  if (level === "MEDIUM") return "MEDIUM"
+  return "LOW"
+}
+
+function clampPercent(value?: number) {
+  const n = Number(value ?? 0)
+  if (Number.isNaN(n)) return 0
+  return Math.max(0, Math.min(100, n))
+}
+
 function getTickerTone(level?: string) {
   switch (level) {
     case "VERY HIGH":
@@ -325,72 +338,90 @@ export default function Home() {
   const [alerts, setAlerts] = useState<AlertItem[]>([])
   const [loading, setLoading] = useState(true)
   const [heartbeatData, setHeartbeatData] = useState<HeartbeatData | null>(null)
-  const [dataSource, setDataSource] = useState("github-cdn")
-  const [lastUiSyncAt, setLastUiSyncAt] = useState<string | null>(null)
-  const [remoteLatencyMs, setRemoteLatencyMs] = useState<number | null>(null)
-  const [previousPollAt, setPreviousPollAt] = useState<string | null>(null)
-  const [nextPollAt, setNextPollAt] = useState<string | null>(null)
   const [, forceTick] = useState(0)
 
-    async function loadRemoteRadar() {
-      const start = performance.now()
+  const loadRemoteRadar = useCallback(async (signal?: AbortSignal) => {
+    const cacheBust = Date.now()
 
-      const [latestRes, historyRes, alertsRes, heartbeatRes] = await Promise.all([
-        fetch(remoteJsonUrl("latest.json"), { cache: "no-store" }),
-        fetch(remoteJsonUrl("history.json"), { cache: "no-store" }),
-        fetch(remoteJsonUrl("alerts-history.json"), { cache: "no-store" }),
-        fetch(remoteJsonUrl("heartbeat.json"), { cache: "no-store" }),
-      ])
+    const [latestRes, historyRes, alertsRes, heartbeatRes] = await Promise.all([
+      fetch(remoteJsonUrl("latest.json", cacheBust), { cache: "no-store", signal }),
+      fetch(remoteJsonUrl("history.json", cacheBust), { cache: "no-store", signal }),
+      fetch(remoteJsonUrl("alerts-history.json", cacheBust), { cache: "no-store", signal }),
+      fetch(remoteJsonUrl("heartbeat.json", cacheBust), { cache: "no-store", signal }),
+    ])
 
-      if (!latestRes.ok || !historyRes.ok || !alertsRes.ok || !heartbeatRes.ok) {
-        throw new Error("Failed to load one or more remote radar resources")
-      }
-
-      const [latestJson, historyJson, alertsJson, heartbeatJson] = await Promise.all([
-        latestRes.json(),
-        historyRes.json(),
-        alertsRes.json(),
-        heartbeatRes.json(),
-      ])
-
-      const end = performance.now()
-
-      setData(latestJson)
-      setHistory(Array.isArray(historyJson) ? historyJson : [])
-      setAlerts(Array.isArray(alertsJson) ? alertsJson : [])
-      setHeartbeatData({ ...heartbeatJson })
-
-      const lastRun = heartbeatJson?.lastRunAt ? new Date(heartbeatJson.lastRunAt) : null
-      const scheduleMinutes = Number(heartbeatJson?.scheduleMinutes ?? 5)
-
-      if (lastRun && !Number.isNaN(lastRun.getTime())) {
-        setPreviousPollAt(lastRun.toISOString())
-        const next = new Date(lastRun.getTime() + scheduleMinutes * 60 * 1000)
-        setNextPollAt(next.toISOString())
-      } else {
-        setPreviousPollAt(null)
-        setNextPollAt(null)
-      }
-
-      setRemoteLatencyMs(Math.round(end - start))
-      setLastUiSyncAt(
-        new Date().toLocaleString("es-MX", {
-          timeZone: "America/Mexico_City",
-        })
-      )
-      setDataSource("github-cdn")
+    if (!latestRes.ok || !historyRes.ok || !alertsRes.ok || !heartbeatRes.ok) {
+      throw new Error("Failed to load one or more remote radar resources")
     }
+
+    const [latestJson, historyJson, alertsJson, heartbeatJson] = await Promise.all([
+      latestRes.json(),
+      historyRes.json(),
+      alertsRes.json(),
+      heartbeatRes.json(),
+    ])
+
+    setData(latestJson)
+    setHistory(Array.isArray(historyJson) ? historyJson : [])
+    setAlerts(Array.isArray(alertsJson) ? alertsJson : [])
+    setHeartbeatData({ ...heartbeatJson })
+  }, [])
 
   useEffect(() => {
+    const controller = new AbortController()
+    let isMounted = true
+
     async function fetchData() {
       try {
-        await loadRemoteRadar()
+        await loadRemoteRadar(controller.signal)
       } catch (error) {
-        console.error("Error loading radar data:", error)
+        if ((error as Error).name !== "AbortError") {
+          console.error("Error loading radar data:", error)
+        }
       } finally {
-        setLoading(false)
+        if (isMounted) {
+          setLoading(false)
+        }
       }
     }
+
+    fetchData()
+
+    const fetchInterval = setInterval(fetchData, 60_000)
+
+    const tickInterval = setInterval(() => {
+      if (isMounted) {
+        forceTick((t) => t + 1)
+      }
+    }, 30_000)
+
+    return () => {
+      isMounted = false
+      controller.abort()
+      clearInterval(fetchInterval)
+      clearInterval(tickInterval)
+    }
+  }, [loadRemoteRadar])
+
+  const previousPollAt = useMemo(() => {
+    const lastSuccess = heartbeatData?.lastSuccessAt
+    if (!lastSuccess) return null
+
+    const dt = new Date(lastSuccess)
+    return Number.isNaN(dt.getTime()) ? null : dt.toISOString()
+  }, [heartbeatData?.lastSuccessAt])
+
+  const nextPollAt = useMemo(() => {
+    const lastRun = heartbeatData?.lastRunAt
+    const scheduleMinutes = Number(heartbeatData?.scheduleMinutes ?? 5)
+
+    if (!lastRun) return null
+
+    const dt = new Date(lastRun)
+    if (Number.isNaN(dt.getTime())) return null
+
+    return new Date(dt.getTime() + scheduleMinutes * 60 * 1000).toISOString()
+  }, [heartbeatData?.lastRunAt, heartbeatData?.scheduleMinutes])
 
     // 🔥 primera carga
     fetchData()
