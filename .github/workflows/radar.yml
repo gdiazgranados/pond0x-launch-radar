@@ -34,7 +34,7 @@ jobs:
 
       - name: Write heartbeat start
         run: |
-          node -e "const fs=require('fs'); const path='public/data/heartbeat.json'; const now=new Date().toISOString(); const data={source:'github-actions', lastRunAt:now, lastSuccessAt:null, status:'running', scheduleMinutes:60}; fs.mkdirSync('public/data',{recursive:true}); fs.writeFileSync(path, JSON.stringify(data,null,2));"
+        node -e "const fs=require('fs'); const path='public/data/heartbeat.json'; const now=new Date().toISOString(); const data={source:'github-actions', lastRunAt:now, lastSuccessAt:null, status:'running', scheduleMinutes:60}; fs.mkdirSync('public/data',{recursive:true}); fs.writeFileSync(path, JSON.stringify(data,null,2));"
 
       - name: Run capture
         run: node watcher/capture.js
