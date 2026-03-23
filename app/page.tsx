@@ -1,6 +1,12 @@
 "use client"
 
 import { useEffect, useMemo, useState, type ReactNode } from "react"
+const REMOTE_DATA_BASE =
+  "https://cdn.jsdelivr.net/gh/gdiazgranados/pond0x-launch-radar@main/public/data"
+
+  function remoteJsonUrl(filename: string) {
+  return `${REMOTE_DATA_BASE}/${filename}?t=${Date.now()}`
+}
 
 type RadarData = {
   id: string
@@ -47,31 +53,18 @@ type HeartbeatData = {
   scheduleMinutes: number
 }
 
-function formatDate(dateString?: string) {
-  if (!dateString) return "..."
-
-  try {
-    return new Date(dateString).toLocaleString(undefined, {
-      hour12: true,
-      timeZoneName: "short",
-    })
-  } catch {
-    return dateString
-  }
+function formatDate(date?: string) {
+  if (!date) return "—"
+  return new Date(date).toLocaleString("es-MX", {
+    timeZone: "America/Mexico_City",
+  })
 }
 
-function shortTime(dateString?: string) {
-  if (!dateString) return "..."
-
-  try {
-    return new Date(dateString).toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: true,
-    })
-  } catch {
-    return dateString
-  }
+function shortTime(date?: string) {
+  if (!date) return "—"
+  return new Date(date).toLocaleTimeString("es-MX", {
+    timeZone: "America/Mexico_City",
+  })
 }
 
 function minutesSince(dateString?: string) {
@@ -115,7 +108,7 @@ function addMinutes(dateString?: string, minutes = 60) {
   })
 }
 
-function getHeartbeatStatus(dateString?: string) {
+function getHeartbeatStatus(dateString?: string, scheduleMinutes = 5) {
   const mins = minutesSince(dateString)
 
   if (mins === null) {
@@ -127,7 +120,7 @@ function getHeartbeatStatus(dateString?: string) {
     }
   }
 
-  if (mins <= 90) {
+  if (mins <= scheduleMinutes * 1.5) {
     return {
       label: "LIVE",
       tone: "text-emerald-300",
@@ -136,7 +129,7 @@ function getHeartbeatStatus(dateString?: string) {
     }
   }
 
-  if (mins <= 150) {
+  if (mins <= scheduleMinutes * 3) {
     return {
       label: "DELAYED",
       tone: "text-yellow-300",
@@ -334,34 +327,88 @@ export default function Home() {
   const [alerts, setAlerts] = useState<AlertItem[]>([])
   const [loading, setLoading] = useState(true)
   const [heartbeatData, setHeartbeatData] = useState<HeartbeatData | null>(null)
+  const [dataSource, setDataSource] = useState("github-cdn")
+  const [lastUiSyncAt, setLastUiSyncAt] = useState<string | null>(null)
+  const [remoteLatencyMs, setRemoteLatencyMs] = useState<number | null>(null)
+  const [previousPollAt, setPreviousPollAt] = useState<string | null>(null)
+  const [nextPollAt, setNextPollAt] = useState<string | null>(null)
+
+    async function loadRemoteRadar() {
+      const start = performance.now()
+
+      const [latestRes, historyRes, alertsRes, heartbeatRes] = await Promise.all([
+        fetch(remoteJsonUrl("latest.json"), { cache: "no-store" }),
+        fetch(remoteJsonUrl("history.json"), { cache: "no-store" }),
+        fetch(remoteJsonUrl("alerts-history.json"), { cache: "no-store" }),
+        fetch(remoteJsonUrl("heartbeat.json"), { cache: "no-store" }),
+      ])
+
+      if (!latestRes.ok || !historyRes.ok || !alertsRes.ok || !heartbeatRes.ok) {
+        throw new Error("Failed to load one or more remote radar resources")
+      }
+
+      const [latestJson, historyJson, alertsJson, heartbeatJson] = await Promise.all([
+        latestRes.json(),
+        historyRes.json(),
+        alertsRes.json(),
+        heartbeatRes.json(),
+      ])
+
+      const end = performance.now()
+
+      setData(latestJson)
+      setHistory(Array.isArray(historyJson) ? historyJson : [])
+      setAlerts(Array.isArray(alertsJson) ? alertsJson : [])
+      setHeartbeatData(heartbeatJson)
+
+      const lastRun = heartbeatJson?.lastRunAt ? new Date(heartbeatJson.lastRunAt) : null
+      const scheduleMinutes = Number(heartbeatJson?.scheduleMinutes ?? 5)
+
+      if (lastRun && !Number.isNaN(lastRun.getTime())) {
+        setPreviousPollAt(lastRun.toISOString())
+        const next = new Date(lastRun.getTime() + scheduleMinutes * 60 * 1000)
+        setNextPollAt(next.toISOString())
+      } else {
+        setPreviousPollAt(null)
+        setNextPollAt(null)
+      }
+
+      setRemoteLatencyMs(Math.round(end - start))
+      setLastUiSyncAt(
+        new Date().toLocaleString("es-MX", {
+          timeZone: "America/Mexico_City",
+        })
+      )
+      setDataSource("github-cdn")
+    }
 
   useEffect(() => {
-    async function loadRadar() {
+    let cancelled = false
+    let inFlight = false
+
+    async function init() {
+      if (inFlight || cancelled) return
+      inFlight = true
       try {
-        const [latestRes, historyRes, alertsRes, heartbeatRes] = await Promise.all([
-          fetch("/data/latest.json", { cache: "no-store" }),
-          fetch("/data/history.json", { cache: "no-store" }),
-          fetch("/data/alerts-history.json", { cache: "no-store" }),
-          fetch("/data/heartbeat.json", { cache: "no-store" }),
-        ])
-
-        const latestJson = await latestRes.json()
-        const historyJson = await historyRes.json()
-        const alertsJson = await alertsRes.json()
-        const heartbeatJson = await heartbeatRes.json()
-
-        setData(latestJson)
-        setHistory(Array.isArray(historyJson) ? historyJson : [])
-        setAlerts(Array.isArray(alertsJson) ? alertsJson : [])
-        setHeartbeatData(heartbeatJson)
+        await loadRemoteRadar()
       } catch (error) {
         console.error("Error loading radar data:", error)
       } finally {
+        inFlight = false
         setLoading(false)
       }
     }
 
-    loadRadar()
+    init()
+
+    const interval = setInterval(() => {
+      init()
+    }, 60_000)
+
+    return () => {
+      cancelled = true
+      clearInterval(interval)
+    }
   }, [])
 
   const palette = useMemo(() => getLevelPalette(data?.level), [data])
@@ -397,7 +444,11 @@ export default function Home() {
   const signalType = useMemo(() => getSignalType(data), [data])
   const launchProbability = useMemo(() => getLaunchProbability(data), [data])
   const heartbeat = useMemo(
-    () => getHeartbeatStatus(heartbeatData?.lastSuccessAt || heartbeatData?.lastRunAt || undefined),
+    () =>
+      getHeartbeatStatus(
+        heartbeatData?.lastSuccessAt || heartbeatData?.lastRunAt || undefined,
+        heartbeatData?.scheduleMinutes || 5
+      ),
     [heartbeatData]
   )
 
@@ -582,9 +633,11 @@ export default function Home() {
                   Last successful check
                 </div>
                 <div className="mt-2 text-sm font-medium text-white">
-                  {formatDate(
-                    heartbeatData?.lastSuccessAt || heartbeatData?.lastRunAt || undefined
-                 )}
+                  {previousPollAt
+                    ? new Date(previousPollAt).toLocaleString("es-MX", {
+                        timeZone: "America/Mexico_City",
+                      })
+                    : "—"}
                 </div>
               </div>
 
@@ -604,10 +657,11 @@ export default function Home() {
                   Next expected sweep
                 </div>
                 <div className="mt-2 text-sm font-medium text-white">
-                  {addMinutes(
-                    heartbeatData?.lastSuccessAt || heartbeatData?.lastRunAt || undefined,
-                    heartbeatData?.scheduleMinutes || 60
-                  )}
+                  {nextPollAt
+                    ? new Date(nextPollAt).toLocaleString("es-MX", {
+                        timeZone: "America/Mexico_City",
+                      })
+                    : "—"}
                 </div>
               </div>
 
