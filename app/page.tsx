@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState, type ReactNode } from "react"
 
 type RadarData = {
   id: string
@@ -39,10 +39,22 @@ type AlertItem = {
   sentAt: string
 }
 
+type HeartbeatData = {
+  source: string
+  lastRunAt: string | null
+  lastSuccessAt: string | null
+  status: "unknown" | "running" | "success" | "failed" | string
+  scheduleMinutes: number
+}
+
 function formatDate(dateString?: string) {
   if (!dateString) return "..."
+
   try {
-    return new Date(dateString).toLocaleString()
+    return new Date(dateString).toLocaleString(undefined, {
+      hour12: true,
+      timeZoneName: "short",
+    })
   } catch {
     return dateString
   }
@@ -50,13 +62,94 @@ function formatDate(dateString?: string) {
 
 function shortTime(dateString?: string) {
   if (!dateString) return "..."
+
   try {
     return new Date(dateString).toLocaleTimeString([], {
       hour: "2-digit",
       minute: "2-digit",
+      hour12: true,
     })
   } catch {
     return dateString
+  }
+}
+
+function minutesSince(dateString?: string) {
+  if (!dateString) return null
+
+  const ts = new Date(dateString).getTime()
+  if (Number.isNaN(ts)) return null
+
+  const diffMs = Date.now() - ts
+  return Math.max(0, Math.floor(diffMs / 60000))
+}
+
+function formatRelativeMinutes(dateString?: string) {
+  const mins = minutesSince(dateString)
+  if (mins === null) return "unknown"
+
+  if (mins < 1) return "just now"
+  if (mins === 1) return "1 min ago"
+  if (mins < 60) return `${mins} min ago`
+
+  const hours = Math.floor(mins / 60)
+  const remaining = mins % 60
+
+  if (remaining === 0) {
+    return hours === 1 ? "1h ago" : `${hours}h ago`
+  }
+
+  return `${hours}h ${remaining}m ago`
+}
+
+function addMinutes(dateString?: string, minutes = 60) {
+  if (!dateString) return "..."
+  const dt = new Date(dateString)
+  if (Number.isNaN(dt.getTime())) return dateString
+
+  dt.setMinutes(dt.getMinutes() + minutes)
+
+  return dt.toLocaleString(undefined, {
+    hour12: true,
+    timeZoneName: "short",
+  })
+}
+
+function getHeartbeatStatus(dateString?: string) {
+  const mins = minutesSince(dateString)
+
+  if (mins === null) {
+    return {
+      label: "UNKNOWN",
+      tone: "text-slate-300",
+      badge: "border-slate-500/30 bg-slate-500/10 text-slate-200",
+      dot: "bg-slate-400",
+    }
+  }
+
+  if (mins <= 90) {
+    return {
+      label: "LIVE",
+      tone: "text-emerald-300",
+      badge: "border-emerald-500/30 bg-emerald-500/10 text-emerald-200",
+      dot: "bg-emerald-400",
+    }
+  }
+
+  if (mins <= 150) {
+    return {
+      label: "DELAYED",
+      tone: "text-yellow-300",
+      badge: "border-yellow-500/30 bg-yellow-500/10 text-yellow-200",
+      dot: "bg-yellow-400",
+    }
+  }
+
+  return {
+    label: "STALE",
+    tone: "text-red-300",
+    badge: "border-red-500/30 bg-red-500/10 text-red-200",
+    dot: "bg-red-400",
   }
 }
 
@@ -77,28 +170,190 @@ function buildLinePoints(
     .join(" ")
 }
 
+function getLevelPalette(level?: string) {
+  switch (level) {
+    case "VERY HIGH":
+      return {
+        badge: "border-red-500/40 bg-red-500/10 text-red-200",
+        text: "text-red-300",
+        bar: "bg-red-500",
+        dot: "bg-red-400",
+        label: "ACTIVATION",
+      }
+    case "HIGH":
+      return {
+        badge: "border-orange-500/40 bg-orange-500/10 text-orange-200",
+        text: "text-orange-300",
+        bar: "bg-orange-400",
+        dot: "bg-orange-400",
+        label: "HEATING",
+      }
+    case "MEDIUM":
+      return {
+        badge: "border-yellow-500/40 bg-yellow-500/10 text-yellow-200",
+        text: "text-yellow-300",
+        bar: "bg-yellow-400",
+        dot: "bg-yellow-400",
+        label: "BUILDUP",
+      }
+    default:
+      return {
+        badge: "border-emerald-500/30 bg-emerald-500/10 text-emerald-200",
+        text: "text-emerald-300",
+        bar: "bg-emerald-400",
+        dot: "bg-emerald-400",
+        label: "QUIET",
+      }
+  }
+}
+
+function getSignalType(data?: RadarData | AlertItem | null) {
+  if (!data) return "UNKNOWN"
+
+  const tags = data.tags || []
+  const signals = data.signals || []
+
+  if (tags.includes("REWARDS") || signals.includes("claim") || signals.includes("reward")) {
+    return "REWARDS"
+  }
+
+  if (
+    signals.includes("connect") &&
+    (signals.includes("ethereum") || signals.includes("solana"))
+  ) {
+    return "CHAIN"
+  }
+
+  if (tags.includes("AUTH") || signals.includes("verify") || signals.includes("account")) {
+    return "AUTH"
+  }
+
+  if (tags.includes("SYSTEM") || signals.includes("portal")) {
+    return "SYSTEM"
+  }
+
+  return "UNKNOWN"
+}
+
+function getLaunchProbability(data?: RadarData | null) {
+  if (!data) return "LOW"
+
+  const signalType = getSignalType(data)
+  const trend = data.trend ?? 0
+  const score = data.score ?? 0
+  const movementPct = data.movementPct ?? 0
+
+  if (data.level === "VERY HIGH") return "VERY HIGH"
+  if (data.level === "HIGH" || score >= 60 || (movementPct >= 30 && trend >= 5)) return "HIGH"
+
+  if (
+    data.level === "MEDIUM" ||
+    trend >= 3 ||
+    movementPct >= 10 ||
+    signalType === "AUTH" ||
+    signalType === "CHAIN" ||
+    signalType === "REWARDS"
+  ) {
+    return "MEDIUM"
+  }
+
+  return "LOW"
+}
+
+function probabilityClass(probability: string) {
+  switch (probability) {
+    case "VERY HIGH":
+      return "border-red-500/40 bg-red-500/10 text-red-200"
+    case "HIGH":
+      return "border-orange-500/40 bg-orange-500/10 text-orange-200"
+    case "MEDIUM":
+      return "border-yellow-500/40 bg-yellow-500/10 text-yellow-200"
+    default:
+      return "border-emerald-500/30 bg-emerald-500/10 text-emerald-200"
+  }
+}
+
+function getTickerTone(level?: string) {
+  switch (level) {
+    case "VERY HIGH":
+      return "text-red-300"
+    case "HIGH":
+      return "text-orange-300"
+    case "MEDIUM":
+      return "text-yellow-300"
+    default:
+      return "text-emerald-300"
+  }
+}
+
+function SectionTitle({
+  title,
+  subtitle,
+  right,
+}: {
+  title: string
+  subtitle?: string
+  right?: ReactNode
+}) {
+  return (
+    <div className="mb-4 flex items-start justify-between gap-4 border-b border-white/10 pb-3">
+      <div>
+        <div className="text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-500">
+          {title}
+        </div>
+        {subtitle ? <div className="mt-1 text-sm text-slate-400">{subtitle}</div> : null}
+      </div>
+      {right}
+    </div>
+  )
+}
+
+function MetricCard({
+  label,
+  value,
+  subvalue,
+  valueClassName = "text-white",
+}: {
+  label: string
+  value: ReactNode
+  subvalue?: ReactNode
+  valueClassName?: string
+}) {
+  return (
+    <div className="rounded-xl border border-white/10 bg-[#06080b] p-4">
+      <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">{label}</div>
+      <div className={`mt-3 text-3xl font-semibold leading-none ${valueClassName}`}>{value}</div>
+      {subvalue ? <div className="mt-2 text-xs text-slate-500">{subvalue}</div> : null}
+    </div>
+  )
+}
+
 export default function Home() {
   const [data, setData] = useState<RadarData | null>(null)
   const [history, setHistory] = useState<RadarData[]>([])
   const [alerts, setAlerts] = useState<AlertItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [heartbeatData, setHeartbeatData] = useState<HeartbeatData | null>(null)
 
   useEffect(() => {
     async function loadRadar() {
       try {
-        const [latestRes, historyRes, alertsRes] = await Promise.all([
+        const [latestRes, historyRes, alertsRes, heartbeatRes] = await Promise.all([
           fetch("/data/latest.json", { cache: "no-store" }),
           fetch("/data/history.json", { cache: "no-store" }),
           fetch("/data/alerts-history.json", { cache: "no-store" }),
+          fetch("/data/heartbeat.json", { cache: "no-store" }),
         ])
 
         const latestJson = await latestRes.json()
         const historyJson = await historyRes.json()
         const alertsJson = await alertsRes.json()
+        const heartbeatJson = await heartbeatRes.json()
 
         setData(latestJson)
         setHistory(Array.isArray(historyJson) ? historyJson : [])
         setAlerts(Array.isArray(alertsJson) ? alertsJson : [])
+        setHeartbeatData(heartbeatJson)
       } catch (error) {
         console.error("Error loading radar data:", error)
       } finally {
@@ -109,25 +364,10 @@ export default function Home() {
     loadRadar()
   }, [])
 
-  const levelStyles = useMemo(() => {
-    return {
-      LOW: "bg-slate-600/80 text-slate-100 border-slate-500/40",
-      MEDIUM: "bg-yellow-500/80 text-slate-950 border-yellow-400/50",
-      HIGH: "bg-orange-500/80 text-slate-950 border-orange-400/50",
-      "VERY HIGH": "bg-red-600/90 text-white border-red-400/50",
-    } as Record<string, string>
-  }, [])
-
-  const scoreBarClass = useMemo(() => {
-    if (!data) return "bg-cyan-400"
-    if (data.level === "VERY HIGH") return "bg-red-500"
-    if (data.level === "HIGH") return "bg-orange-400"
-    if (data.level === "MEDIUM") return "bg-yellow-400"
-    return "bg-cyan-400"
-  }, [data])
+  const palette = useMemo(() => getLevelPalette(data?.level), [data])
 
   const chartData = useMemo(() => {
-    const items = [...history].slice(0, 5).reverse()
+    const items = [...history].slice(0, 8).reverse()
 
     return items.map((item) => ({
       label: shortTime(item.generatedAt),
@@ -154,17 +394,94 @@ export default function Home() {
     )
   }, [chartData])
 
+  const signalType = useMemo(() => getSignalType(data), [data])
+  const launchProbability = useMemo(() => getLaunchProbability(data), [data])
+  const heartbeat = useMemo(
+    () => getHeartbeatStatus(heartbeatData?.lastSuccessAt || heartbeatData?.lastRunAt || undefined),
+    [heartbeatData]
+  )
+
+  const recentCheckIns = useMemo(() => {
+    const items = history.slice(0, 8).map((item) => ({
+      id: `${item.id}-${item.generatedAt}`,
+      time: shortTime(item.generatedAt),
+      full: formatDate(item.generatedAt),
+      level: item.level || "LOW",
+    }))
+
+    if (data?.generatedAt) {
+      return [
+        {
+          id: `live-${data.id}`,
+          time: shortTime(data.generatedAt),
+          full: formatDate(data.generatedAt),
+          level: data.level || "LOW",
+        },
+        ...items,
+      ].slice(0, 8)
+    }
+
+    return items
+  }, [data, history])
+
+  const tickerItems = useMemo(() => {
+    const latestItem = data
+      ? [
+          {
+            id: `latest-${data.id}`,
+            time: shortTime(data.generatedAt),
+            level: data.level || "LOW",
+            signalType: getSignalType(data),
+            probability: getLaunchProbability(data),
+            label: "LIVE",
+          },
+        ]
+      : []
+
+    const historyItems = history.slice(0, 5).map((item) => ({
+      id: `history-${item.id}-${item.generatedAt}`,
+      time: shortTime(item.generatedAt),
+      level: item.level || "LOW",
+      signalType: getSignalType(item),
+      probability:
+        item.level === "VERY HIGH"
+          ? "VERY HIGH"
+          : item.level === "HIGH"
+          ? "HIGH"
+          : item.level === "MEDIUM"
+          ? "MEDIUM"
+          : "LOW",
+      label: "HIST",
+    }))
+
+    const alertItems = alerts.slice(0, 5).map((alert, index) => ({
+      id: `alert-${alert.id}-${alert.sentAt}-${index}`,
+      time: shortTime(alert.sentAt),
+      level: alert.level || "LOW",
+      signalType: getSignalType(alert),
+      probability:
+        alert.level === "VERY HIGH"
+          ? "VERY HIGH"
+          : alert.level === "HIGH"
+          ? "HIGH"
+          : alert.level === "MEDIUM"
+          ? "MEDIUM"
+          : "LOW",
+      label: "ALERT",
+    }))
+
+    return [...latestItem, ...alertItems, ...historyItems].slice(0, 10)
+  }, [data, history, alerts])
+
   if (loading) {
     return (
-      <main className="min-h-screen bg-black text-white">
-        <div className="mx-auto max-w-6xl px-6 py-10">
-          <h1 className="text-4xl font-bold tracking-tight">🚀 Pond0x Launch Radar</h1>
-          <div className="mt-8 animate-pulse space-y-4">
-            <div className="h-6 w-72 rounded bg-white/10" />
-            <div className="h-6 w-40 rounded bg-white/10" />
-            <div className="h-6 w-56 rounded bg-white/10" />
-            <div className="h-6 w-60 rounded bg-white/10" />
-            <div className="h-4 w-full rounded bg-white/10" />
+      <main className="min-h-screen bg-[#020406] text-white">
+        <div className="mx-auto max-w-7xl px-6 py-8">
+          <div className="animate-pulse space-y-4">
+            <div className="h-10 w-96 rounded bg-white/10" />
+            <div className="h-28 w-full rounded bg-white/5" />
+            <div className="h-80 w-full rounded bg-white/5" />
+            <div className="h-56 w-full rounded bg-white/5" />
           </div>
         </div>
       </main>
@@ -172,379 +489,559 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen bg-black text-white">
-      <div className="mx-auto max-w-6xl px-6 py-10">
-        <header className="mb-8">
-          <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
-            🚀 Pond0x Launch Radar
-          </h1>
-          <p className="mt-3 max-w-3xl text-sm text-slate-400 sm:text-base">
-            Frontend change radar for detecting launch signals, activation clues, and unusual
-            UI movement across Pond0x surfaces.
-          </p>
-        </header>
+    <main className="min-h-screen bg-[#020406] text-white">
+      <div className="mx-auto max-w-7xl px-5 py-6">
+        <header className="mb-6 border-b border-white/10 pb-5">
+          <div className="flex flex-wrap items-start justify-between gap-5">
+            <div>
+              <div className="text-[11px] font-semibold uppercase tracking-[0.3em] text-cyan-400">
+                Pond0x Signal Terminal
+              </div>
+              <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">
+                Pond0x Launch Radar
+              </h1>
+              <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">
+                Live monitoring terminal for frontend movement, launch indicators, reward flows,
+                wallet connection patterns, and activation probability across Pond0x surfaces.
+              </p>
+            </div>
 
-        {data?.alert && (
-          <div className="mb-8 rounded-2xl border border-red-400/20 bg-red-500/10 p-4 text-red-300 shadow-lg shadow-red-950/20">
-            <div className="text-sm font-medium uppercase tracking-wide">Alert</div>
-            <div className="mt-1 text-lg font-semibold">{data.alert}</div>
+            <div className="min-w-[250px] rounded-2xl border border-white/10 bg-[#06080b] p-4">
+              <div className="text-[11px] uppercase tracking-[0.28em] text-slate-500">
+                Terminal State
+              </div>
+              <div className="mt-3 flex items-center gap-3">
+                <span className={`h-3 w-3 rounded-full ${palette.dot}`} />
+                <div className={`text-2xl font-semibold ${palette.text}`}>{palette.label}</div>
+              </div>
+              <div className="mt-2 flex items-center gap-2 text-sm text-slate-400">
+                <span className={`rounded-full border px-2 py-0.5 text-xs ${palette.badge}`}>
+                  {data?.level || "LOW"}
+                </span>
+                <span>{data?.score ?? 0}/100 intensity</span>
+              </div>
+            </div>
           </div>
-        )}
 
-        <section className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
-          <div className="rounded-2xl border border-white/10 bg-zinc-950 p-6 shadow-2xl shadow-black/40">
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              <div className="rounded-xl border border-white/10 bg-black/40 p-4">
-                <div className="text-sm text-slate-400">Snapshot</div>
-                <div className="mt-2 text-xl font-semibold break-all">{data?.id || "..."}</div>
+          <div className="mt-5 rounded-xl border border-white/10 bg-[#06080b] px-4 py-3">
+            <div className="mb-2 flex items-center justify-between gap-3">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-500">
+                Signal Tape
               </div>
-
-              <div className="rounded-xl border border-white/10 bg-black/40 p-4">
-                <div className="text-sm text-slate-400">Score</div>
-                <div className="mt-2 text-3xl font-bold">{data?.score ?? 0}</div>
-              </div>
-
-              <div className="rounded-xl border border-white/10 bg-black/40 p-4">
-                <div className="text-sm text-slate-400">Total archivos</div>
-                <div className="mt-2 text-2xl font-semibold">{data?.totalFiles ?? 0}</div>
-              </div>
-
-              <div className="rounded-xl border border-white/10 bg-black/40 p-4">
-                <div className="text-sm text-slate-400">Archivos nuevos</div>
-                <div className="mt-2 text-2xl font-semibold">
-                  {data?.added ?? 0}
-                  <span className="ml-2 text-sm text-cyan-300">({data?.addedPct ?? 0}%)</span>
-                </div>
-              </div>
-
-              <div className="rounded-xl border border-white/10 bg-black/40 p-4">
-                <div className="text-sm text-slate-400">Archivos modificados</div>
-                <div className="mt-2 text-2xl font-semibold">
-                  {data?.changed ?? 0}
-                  <span className="ml-2 text-sm text-yellow-300">
-                    ({data?.changedPct ?? 0}%)
-                  </span>
-                </div>
-              </div>
-
-              <div className="rounded-xl border border-white/10 bg-black/40 p-4">
-                <div className="text-sm text-slate-400">Movimiento total</div>
-                <div className="mt-2 text-2xl font-semibold">
-                  {data?.movementCount ?? 0}
-                  <span className="ml-2 text-sm text-emerald-300">
-                    ({data?.movementPct ?? 0}%)
-                  </span>
-                </div>
+              <div className="text-[11px] uppercase tracking-[0.22em] text-slate-600">
+                Bloomberg-style live feed
               </div>
             </div>
 
-            <div className="mt-6">
-              <span
-                className={`inline-flex rounded-md border px-4 py-2 text-sm font-semibold ${
-                  levelStyles[data?.level || "LOW"] || "bg-slate-700 text-white border-slate-500/40"
-                }`}
-              >
-                {data?.level || "LOW"}
-              </span>
-
-              <div className="mt-5">
-                <div className="mb-2 flex items-center justify-between text-sm text-slate-400">
-                  <span>Radar intensity</span>
-                  <span>{data?.score ?? 0}/100</span>
-                </div>
-
-                <div className="h-4 w-full rounded-full bg-white/10">
-                  <div
-                    className={`h-4 rounded-full transition-all duration-700 ${scoreBarClass}`}
-                    style={{ width: `${data?.score ?? 0}%` }}
-                  />
-                </div>
-
-                <div className="mt-6 grid gap-4">
-                  <div>
-                    <div className="mb-2 flex items-center justify-between text-sm text-slate-400">
-                      <span>Added %</span>
-                      <span>{data?.addedPct ?? 0}%</span>
-                    </div>
-                    <div className="h-3 w-full rounded-full bg-white/10">
-                      <div
-                        className="h-3 rounded-full bg-cyan-400 transition-all duration-700"
-                        style={{ width: `${data?.addedPct ?? 0}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="mb-2 flex items-center justify-between text-sm text-slate-400">
-                      <span>Changed %</span>
-                      <span>{data?.changedPct ?? 0}%</span>
-                    </div>
-                    <div className="h-3 w-full rounded-full bg-white/10">
-                      <div
-                        className="h-3 rounded-full bg-yellow-400 transition-all duration-700"
-                        style={{ width: `${data?.changedPct ?? 0}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="mb-2 flex items-center justify-between text-sm text-slate-400">
-                      <span>Total movement %</span>
-                      <span>{data?.movementPct ?? 0}%</span>
-                    </div>
-                    <div className="h-3 w-full rounded-full bg-white/10">
-                      <div
-                        className="h-3 rounded-full bg-emerald-400 transition-all duration-700"
-                        style={{ width: `${data?.movementPct ?? 0}%` }}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-8">
-              <h2 className="text-2xl font-bold">Signals</h2>
-
-              {data?.signals?.length ? (
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {data.signals.map((signal) => (
-                    <span
-                      key={signal}
-                      className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1 text-sm text-cyan-300"
+            <div className="overflow-x-auto">
+              <div className="flex min-w-max items-center gap-3 whitespace-nowrap">
+                {tickerItems.length > 0 ? (
+                  tickerItems.map((item, index) => (
+                    <div
+                      key={`${item.id}-${index}`}
+                      className="inline-flex items-center gap-3 rounded-full border border-white/10 bg-black/30 px-3 py-2 text-xs"
                     >
-                      {signal}
-                    </span>
-                  ))}
-                </div>
-              ) : (
-                <p className="mt-4 text-slate-500">No signal keywords detected.</p>
-              )}
-            </div>
-
-            <div className="mt-8">
-              <h2 className="text-2xl font-bold">Resumen ejecutivo</h2>
-              <p className="mt-4 text-base leading-7 text-slate-300">{data?.summary || "..."}</p>
-
-              <div className="mt-6 rounded-xl border border-cyan-400/20 bg-cyan-400/5 p-4">
-                <div className="text-sm font-medium text-cyan-300">AI Insight</div>
-                <div className="mt-2 font-semibold text-white">
-                  {data?.insight || "No insight"}
-                </div>
-                <div className="mt-1 text-xs text-slate-400">
-                  Confidence: {data?.confidence ? `${Math.round(data.confidence * 100)}%` : "0%"}
-                </div>
-
-                {!!data?.tags?.length && (
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {data.tags.map((tag) => (
-                      <span
-                        key={tag}
-                        className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-2 py-1 text-xs text-cyan-300"
-                      >
-                        {tag}
+                      <span className="text-slate-500">{item.time}</span>
+                      <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-semibold text-slate-300">
+                        {item.label}
                       </span>
-                    ))}
-                  </div>
+                      <span className={`font-semibold ${getTickerTone(item.level)}`}>
+                        {item.level}
+                      </span>
+                      <span className="text-cyan-300">{item.signalType}</span>
+                      <span className="text-slate-500">•</span>
+                      <span className="text-white">{item.probability}</span>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-sm text-slate-500">No tape items yet.</div>
                 )}
               </div>
-
-              <h3 className="mt-6 text-xl font-semibold text-white">Lectura</h3>
-              <p className="mt-3 text-base leading-7 text-slate-400">{data?.note || "..."}</p>
-            </div>
-
-            <div className="mt-8 text-sm text-slate-500">
-              Generado: {formatDate(data?.generatedAt)}
             </div>
           </div>
+        </header>
 
-          <div className="rounded-2xl border border-white/10 bg-zinc-950 p-6 shadow-2xl shadow-black/40">
-            <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-bold">History</h2>
-              <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-400">
-                últimos 5
+        <section className="mb-5 grid gap-4 xl:grid-cols-[0.75fr_1.25fr]">
+          <div className="rounded-2xl border border-white/10 bg-[#05070a] p-5">
+            <SectionTitle
+              title="Radar Heartbeat"
+              subtitle="Monitoring freshness and expected sweep timing"
+            />
+
+            <div className="flex items-center gap-3">
+              <span className={`h-3 w-3 rounded-full ${heartbeat.dot}`} />
+              <div className={`text-2xl font-semibold ${heartbeat.tone}`}>{heartbeat.label}</div>
+              <span className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${heartbeat.badge}`}>
+                active monitor
               </span>
             </div>
 
-            <div className="mt-5 space-y-3">
-              {history.length > 0 ? (
-                history.slice(0, 5).map((item) => (
-                  <div
-                    key={`${item.id}-${item.generatedAt}`}
-                    className="rounded-xl border border-white/10 bg-black/40 p-4"
-                  >
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <div>
-                        <div className="font-medium text-white break-all">{item.id}</div>
-                        <div className="mt-1 text-xs text-slate-500">
-                          {formatDate(item.generatedAt)}
-                        </div>
-                      </div>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <div className="rounded-xl border border-white/10 bg-black/20 p-4">
+                <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">
+                  Last successful check
+                </div>
+                <div className="mt-2 text-sm font-medium text-white">
+                  {formatDate(
+                    heartbeatData?.lastSuccessAt || heartbeatData?.lastRunAt || undefined
+                 )}
+                </div>
+              </div>
 
-                      <div className="flex items-center gap-2">
-                        <span className="rounded-md bg-white/5 px-2 py-1 text-sm font-semibold text-cyan-300">
-                          {item.score}
-                        </span>
-                        <span
-                          className={`rounded-md border px-2 py-1 text-xs font-semibold ${
-                            levelStyles[item.level] ||
-                            "bg-slate-700 text-white border-slate-500/40"
-                          }`}
-                        >
+              <div className="rounded-xl border border-white/10 bg-black/20 p-4">
+                <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">
+                  Freshness
+                </div>
+                <div className="mt-2 text-sm font-medium text-white">
+                  {formatRelativeMinutes(
+                    heartbeatData?.lastSuccessAt || heartbeatData?.lastRunAt || undefined
+                  )}
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-white/10 bg-black/20 p-4">
+                <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">
+                  Next expected sweep
+                </div>
+                <div className="mt-2 text-sm font-medium text-white">
+                  {addMinutes(
+                    heartbeatData?.lastSuccessAt || heartbeatData?.lastRunAt || undefined,
+                    heartbeatData?.scheduleMinutes || 60
+                  )}
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-white/10 bg-black/20 p-4">
+                <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">
+                  Source
+                </div>
+                <div className="mt-2 text-sm font-medium text-cyan-300">
+                  {heartbeatData?.source || "github-actions"}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-white/10 bg-[#05070a] p-5">
+            <SectionTitle
+              title="Check-in Tape"
+              subtitle="Recent successful radar sweeps"
+            />
+
+            <div className="overflow-x-auto">
+              <div className="flex min-w-max items-center gap-3 whitespace-nowrap">
+                {recentCheckIns.length > 0 ? (
+                  recentCheckIns.map((item, index) => {
+                    const itemPalette = getLevelPalette(item.level)
+
+                    return (
+                      <div
+                        key={`${item.id}-${index}`}
+                        className="inline-flex items-center gap-3 rounded-full border border-white/10 bg-black/30 px-3 py-2 text-xs"
+                        title={item.full}
+                      >
+                        <span className="text-slate-500">{item.time}</span>
+                        <span className={`h-2.5 w-2.5 rounded-full ${itemPalette.dot}`} />
+                        <span className="text-white">✓ sweep completed</span>
+                        <span className={`rounded-full border px-2 py-0.5 ${itemPalette.badge}`}>
                           {item.level}
                         </span>
                       </div>
-                    </div>
+                    )
+                  })
+                ) : (
+                  <div className="text-sm text-slate-500">No check-ins available yet.</div>
+                )}
+              </div>
+            </div>
+          </div>
+        </section>
 
-                    <div className="mt-3">
-                      <div className="h-2 w-full rounded-full bg-white/10">
+        <section className="grid gap-5 xl:grid-cols-[1.28fr_0.72fr]">
+          <div className="space-y-5">
+            <div className="rounded-2xl border border-white/10 bg-[#05070a] p-5">
+              <SectionTitle
+                title="Signal Overview"
+                subtitle="Primary operational metrics"
+                right={
+                  <span className="rounded-full border border-cyan-500/20 bg-cyan-500/10 px-3 py-1 text-xs font-medium text-cyan-300">
+                    LIVE SNAPSHOT
+                  </span>
+                }
+              />
+
+              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                <MetricCard
+                  label="Snapshot"
+                  value={data?.id || "..."}
+                  valueClassName="break-all text-lg text-white"
+                />
+                <MetricCard
+                  label="Score"
+                  value={data?.score ?? 0}
+                  valueClassName={palette.text}
+                />
+                <MetricCard
+                  label="Signal Type"
+                  value={signalType}
+                  valueClassName="text-cyan-300"
+                />
+                <MetricCard
+                  label="Launch Probability"
+                  value={
+                    <span
+                      className={`inline-flex rounded-full border px-3 py-1 text-base ${probabilityClass(
+                        launchProbability
+                      )}`}
+                    >
+                      {launchProbability}
+                    </span>
+                  }
+                />
+              </div>
+
+              <div className="mt-4 grid gap-4 sm:grid-cols-3">
+                <MetricCard label="Total Files" value={data?.totalFiles ?? 0} />
+                <MetricCard
+                  label="Added"
+                  value={data?.added ?? 0}
+                  subvalue={`${data?.addedPct ?? 0}% of surface`}
+                  valueClassName="text-cyan-300"
+                />
+                <MetricCard
+                  label="Changed"
+                  value={data?.changed ?? 0}
+                  subvalue={`${data?.changedPct ?? 0}% of surface`}
+                  valueClassName="text-yellow-300"
+                />
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-white/10 bg-[#05070a] p-5">
+              <SectionTitle
+                title="Intensity Matrix"
+                subtitle="Score and movement breakdown"
+                right={<div className="text-xs text-slate-500">{data?.score ?? 0}/100</div>}
+              />
+
+              <div className="space-y-5">
+                <div>
+                  <div className="mb-2 flex items-center justify-between text-sm text-slate-400">
+                    <span>Radar Score</span>
+                    <span>{data?.score ?? 0}%</span>
+                  </div>
+                  <div className="h-3 w-full rounded-full bg-white/10">
+                    <div
+                      className={`h-3 rounded-full ${palette.bar}`}
+                      style={{ width: `${data?.score ?? 0}%` }}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <div className="mb-2 flex items-center justify-between text-sm text-slate-400">
+                    <span>Added %</span>
+                    <span>{data?.addedPct ?? 0}%</span>
+                  </div>
+                  <div className="h-2.5 w-full rounded-full bg-white/10">
+                    <div
+                      className="h-2.5 rounded-full bg-cyan-400"
+                      style={{ width: `${data?.addedPct ?? 0}%` }}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <div className="mb-2 flex items-center justify-between text-sm text-slate-400">
+                    <span>Changed %</span>
+                    <span>{data?.changedPct ?? 0}%</span>
+                  </div>
+                  <div className="h-2.5 w-full rounded-full bg-white/10">
+                    <div
+                      className="h-2.5 rounded-full bg-yellow-400"
+                      style={{ width: `${data?.changedPct ?? 0}%` }}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <div className="mb-2 flex items-center justify-between text-sm text-slate-400">
+                    <span>Total Movement %</span>
+                    <span>{data?.movementPct ?? 0}%</span>
+                  </div>
+                  <div className="h-2.5 w-full rounded-full bg-white/10">
+                    <div
+                      className="h-2.5 rounded-full bg-emerald-400"
+                      style={{ width: `${data?.movementPct ?? 0}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
+              <div className="rounded-2xl border border-white/10 bg-[#05070a] p-5">
+                <SectionTitle title="Signals & Tags" subtitle="Semantic surface scan" />
+
+                {data?.signals?.length ? (
+                  <div className="flex flex-wrap gap-2">
+                    {data.signals.map((signal) => (
+                      <span
+                        key={signal}
+                        className="rounded-full border border-cyan-500/20 bg-cyan-500/10 px-3 py-1 text-sm text-cyan-300"
+                      >
+                        {signal}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-dashed border-white/10 bg-black/20 p-4 text-sm text-slate-500">
+                    No signals detected.
+                  </div>
+                )}
+
+                <div className="mt-5">
+                  <div className="mb-2 text-[11px] uppercase tracking-[0.24em] text-slate-500">
+                    Tags
+                  </div>
+                  {!!data?.tags?.length ? (
+                    <div className="flex flex-wrap gap-2">
+                      {data.tags.map((tag) => (
+                        <span
+                          key={tag}
+                          className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-300"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-sm text-slate-500">No tags assigned.</div>
+                  )}
+                </div>
+
+                <div className="mt-6 grid gap-3">
+                  <div className="rounded-xl border border-white/10 bg-black/20 p-4">
+                    <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">
+                      Signal Type
+                    </div>
+                    <div className="mt-2 text-xl font-semibold text-cyan-300">{signalType}</div>
+                  </div>
+
+                  <div className="rounded-xl border border-white/10 bg-black/20 p-4">
+                    <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">
+                      Generated
+                    </div>
+                    <div className="mt-2 text-sm text-slate-300">
+                      {formatDate(data?.generatedAt)}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-white/10 bg-[#05070a] p-5">
+                <SectionTitle
+                  title="Executive Readout"
+                  subtitle="Human-readable interpretation layer"
+                  right={
+                    <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-300">
+                      Confidence{" "}
+                      {data?.confidence ? `${Math.round(data.confidence * 100)}%` : "0%"}
+                    </span>
+                  }
+                />
+
+                <div className="rounded-xl border border-white/10 bg-black/20 p-4">
+                  <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">
+                    Summary
+                  </div>
+                  <p className="mt-2 text-sm leading-7 text-slate-300">{data?.summary || "..."}</p>
+                </div>
+
+                <div className="mt-4 rounded-xl border border-cyan-500/20 bg-cyan-500/[0.04] p-4">
+                  <div className="text-[11px] uppercase tracking-[0.24em] text-cyan-300">
+                    AI Insight
+                  </div>
+                  <div className="mt-2 text-lg font-semibold text-white">
+                    {data?.insight || "No insight"}
+                  </div>
+                </div>
+
+                <div className="mt-4 rounded-xl border border-white/10 bg-black/20 p-4">
+                  <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">
+                    Reading
+                  </div>
+                  <p className="mt-2 text-sm leading-7 text-slate-400">{data?.note || "..."}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <aside className="rounded-2xl border border-white/10 bg-[#05070a] p-5">
+            <SectionTitle
+              title="History"
+              subtitle="Recent terminal states"
+              right={
+                <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-400">
+                  last {Math.min(history.length, 8)}
+                </span>
+              }
+            />
+
+            <div className="space-y-3">
+              {history.length > 0 ? (
+                history.slice(0, 8).map((item) => {
+                  const itemPalette = getLevelPalette(item.level)
+                  const itemSignalType = getSignalType(item)
+                  const itemProbability =
+                    item.level === "VERY HIGH"
+                      ? "VERY HIGH"
+                      : item.level === "HIGH"
+                      ? "HIGH"
+                      : item.level === "MEDIUM"
+                      ? "MEDIUM"
+                      : "LOW"
+
+                  return (
+                    <div
+                      key={`${item.id}-${item.generatedAt}`}
+                      className="rounded-xl border border-white/10 bg-black/20 p-4"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <div className="break-all text-sm font-medium text-white">{item.id}</div>
+                          <div className="mt-1 text-xs text-slate-500">
+                            {formatDate(item.generatedAt)}
+                          </div>
+                        </div>
+
+                        <span className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${itemPalette.badge}`}>
+                          {item.level}
+                        </span>
+                      </div>
+
+                      <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-slate-400">
+                        <div>
+                          Signal: <span className="text-cyan-300">{itemSignalType}</span>
+                        </div>
+                        <div>
+                          Launch:{" "}
+                          <span className={`rounded-full border px-2 py-0.5 ${probabilityClass(itemProbability)}`}>
+                            {itemProbability}
+                          </span>
+                        </div>
+                        <div>
+                          Score: <span className="text-white">{item.score}</span>
+                        </div>
+                        <div>
+                          Movement: <span className="text-emerald-300">{item.movementPct ?? 0}%</span>
+                        </div>
+                      </div>
+
+                      <div className="mt-3 h-2 w-full rounded-full bg-white/10">
                         <div
-                          className={`h-2 rounded-full ${
-                            item.level === "VERY HIGH"
-                              ? "bg-red-500"
-                              : item.level === "HIGH"
-                              ? "bg-orange-400"
-                              : item.level === "MEDIUM"
-                              ? "bg-yellow-400"
-                              : "bg-cyan-400"
-                          }`}
+                          className={`h-2 rounded-full ${itemPalette.bar}`}
                           style={{ width: `${item.score}%` }}
                         />
                       </div>
                     </div>
-
-                    <div className="mt-3 grid grid-cols-2 gap-3 text-sm text-slate-400">
-                      <div>
-                        Nuevos: {item.added}{" "}
-                        <span className="text-cyan-300">({item.addedPct ?? 0}%)</span>
-                      </div>
-                      <div>
-                        Modificados: {item.changed}{" "}
-                        <span className="text-yellow-300">({item.changedPct ?? 0}%)</span>
-                      </div>
-                      <div className="col-span-2">
-                        Movimiento: {item.movementCount ?? item.added + item.changed}{" "}
-                        <span className="text-emerald-300">({item.movementPct ?? 0}%)</span>
-                      </div>
-                    </div>
-
-                    {!!item.signals?.length && (
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        {item.signals.slice(0, 6).map((signal) => (
-                          <span
-                            key={`${item.id}-${signal}`}
-                            className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-xs text-slate-300"
-                          >
-                            {signal}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ))
+                  )
+                })
               ) : (
-                <div className="rounded-xl border border-dashed border-white/10 bg-black/30 p-5 text-sm text-slate-500">
+                <div className="rounded-xl border border-dashed border-white/10 bg-black/20 p-5 text-sm text-slate-500">
                   No history available yet.
                 </div>
               )}
             </div>
-          </div>
+          </aside>
         </section>
 
-        <section className="mt-8 grid gap-6 lg:grid-cols-4">
-          <div className="rounded-2xl border border-white/10 bg-zinc-950 p-5">
-            <div className="text-sm text-slate-400">Current status</div>
-            <div className="mt-3 text-lg font-semibold text-white">
-              {data?.level === "VERY HIGH"
-                ? "Immediate attention recommended"
+        <section className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <MetricCard
+            label="Terminal Status"
+            value={
+              data?.level === "VERY HIGH"
+                ? "Immediate attention"
                 : data?.level === "HIGH"
-                ? "Strong movement detected"
+                ? "Strong movement"
                 : data?.level === "MEDIUM"
-                ? "Visible dev activity"
-                : "Quiet surface for now"}
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-white/10 bg-zinc-950 p-5">
-            <div className="text-sm text-slate-400">Signal count</div>
-            <div className="mt-3 text-3xl font-bold text-cyan-300">
-              {data?.signals?.length ?? 0}
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-white/10 bg-zinc-950 p-5">
-            <div className="text-sm text-slate-400">Trend</div>
-            <div className="mt-3 text-2xl font-bold text-white">
-              {data?.trendDirection === "UP"
+                ? "Visible buildup"
+                : "Quiet surface"
+            }
+            valueClassName="text-lg text-white"
+          />
+          <MetricCard
+            label="Signal Count"
+            value={data?.signals?.length ?? 0}
+            valueClassName="text-cyan-300"
+          />
+          <MetricCard
+            label="Trend"
+            value={
+              data?.trendDirection === "UP"
                 ? `↑ +${data?.trend ?? 0}%`
                 : data?.trendDirection === "DOWN"
                 ? `↓ ${data?.trend ?? 0}%`
-                : `${data?.trend ?? 0}%`}
-            </div>
-            <div className="mt-1 text-xs text-slate-500">vs previous run</div>
-          </div>
-
-          <div className="rounded-2xl border border-white/10 bg-zinc-950 p-5">
-            <div className="text-sm text-slate-400">Generated</div>
-            <div className="mt-3 text-sm font-medium text-white">
-              {formatDate(data?.generatedAt)}
-            </div>
-          </div>
+                : `${data?.trend ?? 0}%`
+            }
+          />
+          <MetricCard
+            label="Generated"
+            value={formatDate(data?.generatedAt)}
+            valueClassName="text-sm leading-snug text-white"
+          />
         </section>
 
-        <section className="mt-8 rounded-2xl border border-white/10 bg-zinc-950 p-6 shadow-2xl shadow-black/40">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold text-white">Trend Graph</h2>
-              <p className="mt-1 text-sm text-slate-400">
-                Score vs movement percentage across the latest runs
-              </p>
-            </div>
-
-            <div className="flex flex-wrap gap-3 text-xs">
-              <div className="flex items-center gap-2 text-slate-300">
-                <span className="inline-block h-2.5 w-2.5 rounded-full bg-cyan-400" />
-                Score
+        <section className="mt-5 rounded-2xl border border-white/10 bg-[#05070a] p-5">
+          <SectionTitle
+            title="Trend Graph"
+            subtitle="Score vs movement across latest runs"
+            right={
+              <div className="flex gap-4 text-xs">
+                <div className="flex items-center gap-2 text-slate-300">
+                  <span className="inline-block h-2.5 w-2.5 rounded-full bg-cyan-400" />
+                  Score
+                </div>
+                <div className="flex items-center gap-2 text-slate-300">
+                  <span className="inline-block h-2.5 w-2.5 rounded-full bg-emerald-400" />
+                  Movement %
+                </div>
               </div>
-              <div className="flex items-center gap-2 text-slate-300">
-                <span className="inline-block h-2.5 w-2.5 rounded-full bg-emerald-400" />
-                Movement %
-              </div>
-            </div>
-          </div>
+            }
+          />
 
-          <div className="mt-6 rounded-xl border border-white/10 bg-black/40 p-4">
+          <div className="rounded-xl border border-white/10 bg-black/20 p-4">
             {chartData.length > 0 ? (
               <>
-                <div className="relative h-56 w-full">
+                <div className="relative h-64 w-full">
                   <svg
                     viewBox="0 0 100 50"
                     preserveAspectRatio="none"
                     className="h-full w-full overflow-visible"
                   >
-                    <line x1="0" y1="40" x2="100" y2="40" stroke="rgba(255,255,255,0.15)" strokeWidth="0.6" />
-                    <line x1="0" y1="30" x2="100" y2="30" stroke="rgba(255,255,255,0.08)" strokeWidth="0.4" />
-                    <line x1="0" y1="20" x2="100" y2="20" stroke="rgba(255,255,255,0.08)" strokeWidth="0.4" />
-                    <line x1="0" y1="10" x2="100" y2="10" stroke="rgba(255,255,255,0.08)" strokeWidth="0.4" />
-                    <line x1="0" y1="0" x2="100" y2="0" stroke="rgba(255,255,255,0.08)" strokeWidth="0.4" />
+                    <line x1="0" y1="40" x2="100" y2="40" stroke="rgba(255,255,255,0.16)" strokeWidth="0.6" />
+                    <line x1="0" y1="30" x2="100" y2="30" stroke="rgba(255,255,255,0.07)" strokeWidth="0.4" />
+                    <line x1="0" y1="20" x2="100" y2="20" stroke="rgba(255,255,255,0.07)" strokeWidth="0.4" />
+                    <line x1="0" y1="10" x2="100" y2="10" stroke="rgba(255,255,255,0.07)" strokeWidth="0.4" />
+                    <line x1="0" y1="0" x2="100" y2="0" stroke="rgba(255,255,255,0.07)" strokeWidth="0.4" />
 
-                    {scorePoints && (
+                    {scorePoints ? (
                       <polyline
                         fill="none"
                         stroke="rgb(34, 211, 238)"
-                        strokeWidth="1.4"
+                        strokeWidth="1.7"
                         points={scorePoints}
                       />
-                    )}
+                    ) : null}
 
-                    {movementPoints && (
+                    {movementPoints ? (
                       <polyline
                         fill="none"
                         stroke="rgb(52, 211, 153)"
-                        strokeWidth="1.4"
+                        strokeWidth="1.7"
                         points={movementPoints}
                       />
-                    )}
+                    ) : null}
 
                     {chartData.map((point, index) => {
                       const x = chartData.length === 1 ? 50 : (index / (chartData.length - 1)) * 100
@@ -553,15 +1050,19 @@ export default function Home() {
 
                       return (
                         <g key={`${point.label}-${index}`}>
-                          <circle cx={x} cy={scoreY} r="1.4" fill="rgb(34, 211, 238)" />
-                          <circle cx={x} cy={movementY} r="1.4" fill="rgb(52, 211, 153)" />
+                          <circle cx={x} cy={scoreY} r="1.5" fill="rgb(34, 211, 238)" />
+                          <circle cx={x} cy={movementY} r="1.5" fill="rgb(52, 211, 153)" />
                         </g>
                       )
                     })}
                   </svg>
                 </div>
 
-                <div className="mt-4 grid grid-cols-5 gap-2 text-center text-xs text-slate-500">
+                <div
+                  className={`mt-4 grid gap-2 text-center text-xs text-slate-500 ${
+                    chartData.length <= 4 ? "grid-cols-4" : "grid-cols-8"
+                  }`}
+                >
                   {chartData.map((point, index) => (
                     <div key={`${point.label}-${index}`} className="truncate">
                       {point.label}
@@ -570,68 +1071,96 @@ export default function Home() {
                 </div>
               </>
             ) : (
-              <div className="rounded-xl border border-dashed border-white/10 bg-black/30 p-5 text-sm text-slate-500">
+              <div className="rounded-xl border border-dashed border-white/10 bg-black/20 p-5 text-sm text-slate-500">
                 No chart data available yet.
               </div>
             )}
           </div>
         </section>
 
-        <section className="mt-10">
-          <h2 className="mb-4 text-xl font-semibold text-white">🚨 Recent Alerts</h2>
+        <section className="mt-5 rounded-2xl border border-white/10 bg-[#05070a] p-5">
+          <SectionTitle
+            title="Recent Alerts"
+            subtitle="Latest delivered alert events"
+            right={
+              <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-400">
+                {alerts.length} total
+              </span>
+            }
+          />
 
           {alerts.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-white/10 bg-black/30 p-5 text-sm text-slate-500">
+            <div className="rounded-xl border border-dashed border-white/10 bg-black/20 p-5 text-sm text-slate-500">
               No alerts yet.
             </div>
           ) : (
-            <div className="space-y-3">
-              {alerts.slice(0, 5).map((alert, i) => (
-                <div
-                  key={`${alert.id}-${alert.sentAt}-${i}`}
-                  className="rounded-xl border border-white/10 bg-zinc-950 p-4"
-                >
-                  <div className="flex flex-wrap justify-between gap-3 text-sm">
-                    <span
-                      className={`rounded-md border px-2 py-1 font-bold ${
-                        levelStyles[alert.level] ||
-                        "bg-slate-700 text-white border-slate-500/40"
-                      }`}
-                    >
-                      {alert.level}
-                    </span>
-                    <span className="text-slate-400">{formatDate(alert.sentAt)}</span>
-                  </div>
+            <div className="grid gap-4 lg:grid-cols-2">
+              {alerts.slice(0, 6).map((alert, i) => {
+                const alertPalette = getLevelPalette(alert.level)
+                const alertSignalType = getSignalType(alert)
+                const alertProbability =
+                  alert.level === "VERY HIGH"
+                    ? "VERY HIGH"
+                    : alert.level === "HIGH"
+                    ? "HIGH"
+                    : alert.level === "MEDIUM"
+                    ? "MEDIUM"
+                    : "LOW"
 
-                  <div className="mt-2 text-xs text-slate-400">
-                    Score: {alert.score} | Movement: {alert.movementPct}% | Trend:{" "}
-                    {alert.trendDirection === "UP"
-                      ? `↑ +${alert.trend}%`
-                      : alert.trendDirection === "DOWN"
-                      ? `↓ ${alert.trend}%`
-                      : `${alert.trend}%`}
-                  </div>
+                return (
+                  <div
+                    key={`${alert.id}-${alert.sentAt}-${i}`}
+                    className="rounded-xl border border-white/10 bg-black/20 p-4"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className={`h-2.5 w-2.5 rounded-full ${alertPalette.dot}`} />
+                          <span className="text-sm font-medium text-white">{alert.summary}</span>
+                        </div>
+                        <div className="mt-2 text-xs text-slate-500">{formatDate(alert.sentAt)}</div>
+                      </div>
 
-                  <div className="mt-3 text-sm text-slate-300">{alert.summary}</div>
-
-                  <div className="mt-3 text-xs text-slate-500">
-                    Signals: {alert.signals?.join(", ") || "none"}
-                  </div>
-
-                  {!!alert.tags?.length && (
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {alert.tags.map((tag, tagIndex) => (
-                        <span
-                          key={`${tag}-${tagIndex}`}
-                          className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-2 py-1 text-xs text-cyan-300"
-                        >
-                          {tag}
-                        </span>
-                      ))}
+                      <span className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${alertPalette.badge}`}>
+                        {alert.level}
+                      </span>
                     </div>
-                  )}
-                </div>
-              ))}
+
+                    <div className="mt-4 grid grid-cols-2 gap-2 text-xs text-slate-400">
+                      <div>
+                        Signal: <span className="text-cyan-300">{alertSignalType}</span>
+                      </div>
+                      <div>
+                        Launch:{" "}
+                        <span className={`rounded-full border px-2 py-0.5 ${probabilityClass(alertProbability)}`}>
+                          {alertProbability}
+                        </span>
+                      </div>
+                      <div>
+                        Score: <span className="text-white">{alert.score}</span>
+                      </div>
+                      <div>
+                        Movement: <span className="text-emerald-300">{alert.movementPct}%</span>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 text-sm text-slate-400">{alert.insight}</div>
+
+                    {!!alert.signals?.length ? (
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        {alert.signals.map((signal, signalIndex) => (
+                          <span
+                            key={`${signal}-${signalIndex}`}
+                            className="rounded-full border border-cyan-500/20 bg-cyan-500/10 px-2.5 py-1 text-xs text-cyan-300"
+                          >
+                            {signal}
+                          </span>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                )
+              })}
             </div>
           )}
         </section>
