@@ -359,7 +359,7 @@ export default function Home() {
       setData(latestJson)
       setHistory(Array.isArray(historyJson) ? historyJson : [])
       setAlerts(Array.isArray(alertsJson) ? alertsJson : [])
-      setHeartbeatData(heartbeatJson)
+      setHeartbeatData({ ...heartbeatJson })
 
       const lastRun = heartbeatJson?.lastRunAt ? new Date(heartbeatJson.lastRunAt) : null
       const scheduleMinutes = Number(heartbeatJson?.scheduleMinutes ?? 5)
