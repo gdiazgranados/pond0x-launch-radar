@@ -383,32 +383,23 @@ export default function Home() {
     }
 
   useEffect(() => {
-    let cancelled = false
-    let inFlight = false
-
-    async function init() {
-      if (inFlight || cancelled) return
-      inFlight = true
+    async function fetchData() {
       try {
         await loadRemoteRadar()
       } catch (error) {
         console.error("Error loading radar data:", error)
       } finally {
-        inFlight = false
         setLoading(false)
       }
     }
 
-    init()
+    // primera carga
+    fetchData()
 
-    const interval = setInterval(() => {
-      init()
-    }, 60_000)
+    // polling cada 60s
+    const interval = setInterval(fetchData, 60_000)
 
-    return () => {
-      cancelled = true
-      clearInterval(interval)
-    }
+    return () => clearInterval(interval)
   }, [])
 
   const palette = useMemo(() => getLevelPalette(data?.level), [data])
