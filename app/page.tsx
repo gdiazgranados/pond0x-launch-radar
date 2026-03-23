@@ -1,11 +1,9 @@
 "use client"
 
 import { useEffect, useMemo, useState, type ReactNode } from "react"
-const REMOTE_DATA_BASE =
-  "https://cdn.jsdelivr.net/gh/gdiazgranados/pond0x-launch-radar@main/public/data"
 
   function remoteJsonUrl(filename: string) {
-  return `${REMOTE_DATA_BASE}/${filename}?t=${Date.now()}`
+  return `/data/${filename}?t=${Date.now()}`
 }
 
 type RadarData = {
@@ -332,6 +330,7 @@ export default function Home() {
   const [remoteLatencyMs, setRemoteLatencyMs] = useState<number | null>(null)
   const [previousPollAt, setPreviousPollAt] = useState<string | null>(null)
   const [nextPollAt, setNextPollAt] = useState<string | null>(null)
+  const [, forceTick] = useState(0)
 
     async function loadRemoteRadar() {
       const start = performance.now()
@@ -393,13 +392,21 @@ export default function Home() {
       }
     }
 
-    // primera carga
+    // 🔥 primera carga
     fetchData()
 
-    // polling cada 60s
-    const interval = setInterval(fetchData, 60_000)
+    // 🔁 polling (trae datos nuevos)
+    const fetchInterval = setInterval(fetchData, 60_000)
 
-    return () => clearInterval(interval)
+    // ⏱️ re-render para actualizar "Freshness"
+    const tickInterval = setInterval(() => {
+      forceTick((t) => t + 1)
+    }, 30_000)
+
+    return () => {
+      clearInterval(fetchInterval)
+      clearInterval(tickInterval)
+    }
   }, [])
 
   const palette = useMemo(() => getLevelPalette(data?.level), [data])
@@ -434,13 +441,9 @@ export default function Home() {
 
   const signalType = useMemo(() => getSignalType(data), [data])
   const launchProbability = useMemo(() => getLaunchProbability(data), [data])
-  const heartbeat = useMemo(
-    () =>
-      getHeartbeatStatus(
-        heartbeatData?.lastSuccessAt || heartbeatData?.lastRunAt || undefined,
-        heartbeatData?.scheduleMinutes || 5
-      ),
-    [heartbeatData]
+  const heartbeat = getHeartbeatStatus(
+    heartbeatData?.lastSuccessAt || heartbeatData?.lastRunAt || undefined,
+    heartbeatData?.scheduleMinutes || 5
   )
 
   const recentCheckIns = useMemo(() => {
