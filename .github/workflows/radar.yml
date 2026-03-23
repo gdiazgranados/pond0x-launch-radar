@@ -2,7 +2,7 @@ name: Pond0x Radar
 # trigger schedule refresh
 on:
   schedule:
-    - cron: "*/5 * * * *" # cada hora
+    - cron: "0 * * * *" # cada hora
   workflow_dispatch:
   push:
 
@@ -60,7 +60,8 @@ jobs:
 
       - name: Write heartbeat success
         run: |
-          node -e "const fs=require('fs'); const path='public/data/heartbeat.json'; const now=new Date().toISOString(); const data={source:'github-actions', lastRunAt:now, lastSuccessAt:now, status:'success', scheduleMinutes:5}; fs.writeFileSync(path, JSON.stringify(data,null,2));"
+          node -e "const fs=require('fs'); const path='public/data/heartbeat.json'; const now=new Date().toISOString(); const data={source:'github-actions', lastRunAt:now, lastSuccessAt:now, status:'success', scheduleMinutes:5
+          }; fs.writeFileSync(path, JSON.stringify(data,null,2));"
           echo "Heartbeat after success:"
           cat public/data/heartbeat.json
       - name: Commit and push
