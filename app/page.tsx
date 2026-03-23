@@ -340,6 +340,7 @@ export default function Home() {
   const [alerts, setAlerts] = useState<AlertItem[]>([])
   const [loading, setLoading] = useState(true)
   const [heartbeatData, setHeartbeatData] = useState<HeartbeatData | null>(null)
+  const [now, setNow] = useState(Date.now())
   const [, forceTick] = useState(0)
 
   const loadRemoteRadar = useCallback(async (signal?: AbortSignal) => {
@@ -390,6 +391,11 @@ export default function Home() {
     fetchData()
 
     const fetchInterval = setInterval(fetchData, 60_000)
+    const clockInterval = setInterval(() => {
+      if (isMounted) {
+        setNow(Date.now())
+      }
+    }, 1000)
 
     const tickInterval = setInterval(() => {
       if (isMounted) {
@@ -402,6 +408,7 @@ export default function Home() {
       controller.abort()
       clearInterval(fetchInterval)
       clearInterval(tickInterval)
+      clearInterval(clockInterval)
     }
   }, [loadRemoteRadar])
 
@@ -424,6 +431,30 @@ export default function Home() {
 
     return new Date(dt.getTime() + scheduleMinutes * 60 * 1000).toISOString()
   }, [heartbeatData?.lastRunAt, heartbeatData?.scheduleMinutes])
+
+    const nextSweepCountdown = useMemo(() => {
+    if (!nextPollAt) return null
+
+    const target = new Date(nextPollAt).getTime()
+    if (Number.isNaN(target)) return null
+
+    const diff = target - now
+
+    if (diff <= 0) return "running..."
+
+    const totalSeconds = Math.floor(diff / 1000)
+    const minutes = Math.floor(totalSeconds / 60)
+    const seconds = totalSeconds % 60
+
+    return `${minutes}m ${seconds}s`
+  }, [nextPollAt, now])
+
+    const isLate = nextSweepCountdown === "running..."
+
+    const isCritical =
+      nextSweepCountdown === "running..." &&
+      !!nextPollAt &&
+      Date.now() - new Date(nextPollAt).getTime() > 10 * 60 * 1000
 
   const palette = useMemo(() => getLevelPalette(data?.level), [data])
 
@@ -630,30 +661,8 @@ export default function Home() {
             </div>
 
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <div className="rounded-xl border border-white/10 bg-black/20 p-4">
-                <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">
-                  Last successful check
-                </div>
-                <div className="mt-2 text-sm font-medium text-white">
-                  {previousPollAt
-                    ? new Date(previousPollAt).toLocaleString("es-MX", {
-                        timeZone: "America/Mexico_City",
-                      })
-                    : "—"}
-                </div>
-              </div>
 
-              <div className="rounded-xl border border-white/10 bg-black/20 p-4">
-                <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">
-                  Freshness
-                </div>
-                <div className="mt-2 text-sm font-medium text-white">
-                  {formatRelativeMinutes(
-                    heartbeatData?.lastSuccessAt || heartbeatData?.lastRunAt || undefined
-                  )}
-                </div>
-              </div>
-
+              {/* 1️⃣ NEXT */}
               <div className="rounded-xl border border-white/10 bg-black/20 p-4">
                 <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">
                   Next expected sweep
@@ -665,20 +674,57 @@ export default function Home() {
                       })
                     : "—"}
                 </div>
+                <div
+                  className={`mt-2 text-xs ${
+                    nextSweepCountdown === "running..."
+                      ? "text-yellow-400 animate-pulse"
+                      : "text-slate-500"
+         }`}
+       >
+         Next sweep in: {nextSweepCountdown ?? "—"}
+       </div>
               </div>
 
-              <div className="rounded-xl border border-white/10 bg-black/20 p-4">
-                <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">
-                  Source
-                </div>
-                <div className="mt-2 text-sm font-medium text-cyan-300">
-                  {heartbeatData?.source || "github-actions"}
-                </div>
-              </div>
-            </div>
-          </div>
+  {/* 2️⃣ LAST */}
+  <div className="rounded-xl border border-white/10 bg-black/20 p-4">
+    <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">
+      Last successful check
+    </div>
+    <div className="mt-2 text-sm font-medium text-white">
+      {previousPollAt
+        ? new Date(previousPollAt).toLocaleString("es-MX", {
+            timeZone: "America/Mexico_City",
+          })
+        : "—"}
+    </div>
+  </div>
 
-          <div className="rounded-2xl border border-white/10 bg-[#05070a] p-5">
+  {/* 3️⃣ FRESHNESS */}
+  <div className="rounded-xl border border-white/10 bg-black/20 p-4">
+    <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">
+      Freshness
+    </div>
+    <div className="mt-2 text-sm font-medium text-white">
+      {formatRelativeMinutes(
+        heartbeatData?.lastSuccessAt || heartbeatData?.lastRunAt || undefined
+      )}
+    </div>
+  </div>
+
+    {/* 4️⃣ SOURCE */}
+  <div className="rounded-xl border border-white/10 bg-black/20 p-4">
+    <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">
+      Source
+    </div>
+    <div className="mt-2 text-sm font-medium text-cyan-300">
+      {heartbeatData?.source || "github-actions"}
+    </div>
+  </div>
+
+</div>
+</div>
+
+<div className="rounded-2xl border border-white/10 bg-[#05070a] p-5">
             <SectionTitle
               title="Check-in Tape"
               subtitle="Recent successful radar sweeps"
