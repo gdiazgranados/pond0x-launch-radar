@@ -2,7 +2,7 @@ name: Pond0x Radar
 # trigger schedule refresh
 on:
   schedule:
-    - cron: "0 * * * *" # cada hora
+    - cron: "*/5 * * * *" # cada 5 minutos
   workflow_dispatch:
   push:
 
@@ -35,35 +35,18 @@ jobs:
 
       - name: Write heartbeat start
         run: |
-         node -e "const fs=require('fs'); const path='public/data/heartbeat.json'; const now=new Date().toISOString(); const data={source:'github-actions', lastRunAt:now, lastSuccessAt:null, status:'running', scheduleMinutes:5}; fs.mkdirSync('public/data',{recursive:true}); fs.writeFileSync(path, JSON.stringify(data,null,2));"
+          node -e "const fs=require('fs'); const path='public/data/heartbeat.json'; const now=new Date().toISOString(); const data={source:'github-actions-sentinel', lastRunAt:now, lastSuccessAt:null, status:'running', scheduleMinutes:5}; fs.mkdirSync('public/data',{recursive:true}); fs.writeFileSync(path, JSON.stringify(data,null,2));" lastSuccessAt:null, status:'running', scheduleMinutes:5}; fs.mkdirSync('public/data',{recursive:true}); fs.writeFileSync(path, JSON.stringify(data,null,2));"
 
-      - name: Run capture
-        run: node watcher/capture.js
-
-      - name: Run radar
-        run: node watcher/radar.js
-
-      - name: Prune old snapshots
-        run: node watcher/prune-snapshots.js
-
-      - name: Ensure public data directory exists
-        run: mkdir -p public/data
-
-      - name: Update history
-        run: node watcher/update-history.js
-
-      - name: Send alerts
-        run: node watcher/notify.js
+      - name: Run sentinel
+        run: node watcher/sentinel.js
         env:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
 
       - name: Write heartbeat success
         run: |
-          node -e "const fs=require('fs'); const path='public/data/heartbeat.json'; const now=new Date().toISOString(); const data={source:'github-actions', lastRunAt:now, lastSuccessAt:now, status:'success', scheduleMinutes:5
-          }; fs.writeFileSync(path, JSON.stringify(data,null,2));"
-          echo "Heartbeat after success:"
-          cat public/data/heartbeat.json
+          node -e "const fs=require('fs'); const path='public/data/heartbeat.json'; const now=new Date().toISOString(); const data={source:'github-actions-sentinel', lastRunAt:now, lastSuccessAt:now, status:'success', scheduleMinutes:5}; fs.writeFileSync(path, JSON.stringify(data,null,2));"
+          
       - name: Commit and push
         run: |
           git config --global user.name "radar-bot"
