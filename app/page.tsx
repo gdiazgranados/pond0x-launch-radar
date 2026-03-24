@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState, type ReactNode } from "react"
+import { useRadarData } from "./hooks/useRadarData"
 
   function remoteJsonUrl(filename: string, cacheBust: number) {
   return `/data/${filename}?t=${cacheBust}`
@@ -322,12 +323,8 @@ function MetricCard({
 }
 
 export default function Home() {
-  const [data, setData] = useState<RadarData | null>(null)
-  const [history, setHistory] = useState<RadarData[]>([])
-  const [alerts, setAlerts] = useState<AlertItem[]>([])
-  const [loading, setLoading] = useState(true)
-  const [heartbeatData, setHeartbeatData] = useState<HeartbeatData | null>(null)
-  const [now, setNow] = useState(Date.now())
+  const { data, history, alerts, loading, heartbeatData, error, refresh } = useRadarData()
+const [now, setNow] = useState(Date.now())
 
   useEffect(() => {
     const clockInterval = setInterval(() => {

@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
-import type { RadarData, AlertItem, HeartbeatData } from "@/types/radar"
+import type { RadarData, AlertItem, HeartbeatData } from "../types/radar"
 
 function remoteJsonUrl(filename: string, cacheBust: number) {
   return `/data/${filename}?t=${cacheBust}`
