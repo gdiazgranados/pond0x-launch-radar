@@ -19,6 +19,15 @@ export type RadarData = {
   trend?: number
   trendDirection?: "UP" | "DOWN" | "FLAT" | string
   generatedAt: string
+  significance?: "NONE" | "LOW" | "WATCH" | "HIGH" | string
+  rarityScore?: number
+  focusAreas?: string[]
+  sensitiveHits?: string[]
+  changeTypes?: string[]
+  patternScore?: number
+  patterns?: string[]
+  activationProbability?: number
+  whyItMatters?: string
 }
 
 export type AlertItem = {
@@ -33,6 +42,14 @@ export type AlertItem = {
   insight: string
   summary: string
   sentAt: string
+  significance?: string
+  focusAreas?: string[]
+  sensitiveHits?: string[]
+  changeTypes?: string[]
+  patternScore?: number
+  patterns?: string[]
+  activationProbability?: number
+  whyItMatters?: string
 }
 
 export type HeartbeatData = {

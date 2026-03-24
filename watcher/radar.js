@@ -1,6 +1,8 @@
 const fs = require("fs-extra");
 const path = require("path");
 
+const { summarizeRadarIntelligence } = require("./radar-intelligence");
+
 const KEY_SIGNALS = [
   "claim",
   "reward",
@@ -156,10 +158,12 @@ async function main() {
   let added = 0;
   let changed = 0;
   const allSignals = new Set();
+  const changedFiles = [];
 
   for (const [name, newFile] of newMap.entries()) {
     if (!oldMap.has(name)) {
       added++;
+      changedFiles.push(name);
       const content = await readFileSafe(newFile);
       scoreSignals(content).forEach((signal) => allSignals.add(signal));
       continue;
@@ -170,6 +174,7 @@ async function main() {
 
     if (oldContent !== newContent) {
       changed++;
+      changedFiles.push(name);
       scoreSignals(newContent).forEach((signal) => allSignals.add(signal));
     }
   }
@@ -184,25 +189,34 @@ async function main() {
   const changedPct =
     totalFiles > 0 ? Number(((changed / totalFiles) * 100).toFixed(2)) : 0;
 
-  let score = 0;
-  score += added * 10;
-  score += changed * 5;
-  score += allSignals.size * 7;
-
-  if (added === 0 && changed === 0) {
-    score -= 20;
-  }
-
-  if (score < 0) score = 0;
-  if (score > 100) score = 100;
-
-  let level = "LOW";
-  if (score > 20) level = "MEDIUM";
-  if (score > 50) level = "HIGH";
-  if (score > 80) level = "VERY HIGH";
-
   const signals = [...allSignals];
   const detectedGroups = detectGroups(signals);
+  const draftSnapshot = {
+    id: path.basename(newDir),
+    totalFiles,
+    added,
+    changed,
+    movementCount,
+    movementPct,
+    addedPct,
+    changedPct,
+    signals,
+    tags: detectedGroups,
+    changedFiles,
+  };
+
+  const historyFile = path.join(__dirname, "..", "public", "data", "history.json");
+    let existingHistory = [];
+
+    if (await fs.pathExists(historyFile)) {
+      try {
+        existingHistory = await fs.readJson(historyFile);
+        if (!Array.isArray(existingHistory)) existingHistory = [];
+      } catch {
+        existingHistory = [];
+      }
+    }
+  
   const { insight, confidence } = buildInsight(movementPct, signals, detectedGroups);
 
   const summary = !oldDir
@@ -213,13 +227,15 @@ async function main() {
         signals.length ? ` Señales: ${signals.join(", ")}.` : " Sin señales relevantes."
       }`;
 
+  const intelligence = summarizeRadarIntelligence(draftSnapshot, existingHistory);
+
   const note = !oldDir
     ? "Primera corrida base. El siguiente snapshot permitirá detectar cambios."
-    : level === "VERY HIGH"
+    : intelligence.level === "VERY HIGH"
     ? "Señales fuertes de activación o pre-launch."
-    : level === "HIGH"
+    : intelligence.level === "HIGH"
     ? "Cambios importantes en frontend y señales relevantes."
-    : level === "MEDIUM"
+    : intelligence.level === "MEDIUM"
     ? "Actividad de desarrollo visible."
     : "Sin señales fuertes por ahora.";
 
@@ -233,15 +249,31 @@ async function main() {
     addedPct,
     changedPct,
     signals,
-    score,
-    level,
+    patternScore: intelligence.patternScore,
+    patterns: intelligence.patterns,
+    activationProbability: intelligence.activationProbability,
+    score: intelligence.score,
+    level: intelligence.level,
+    significance: intelligence.significance,
+    rarityScore: intelligence.rarityScore,
+    focusAreas: intelligence.focusAreas,
+    sensitiveHits: intelligence.sensitiveHits,
+    changeTypes: intelligence.changeTypes,
     insight,
     confidence,
     tags: detectedGroups,
     summary,
     note,
+    changedFiles,
     generatedAt: new Date().toISOString(),
+    trend: 0,
+    trendDirection: "FLAT",
+    whyItMatters: intelligence.whyItMatters,
   };
+
+  draftSnapshot.summary = summary;
+  draftSnapshot.insight = insight;
+  draftSnapshot.note = note;
 
   const publicDir = path.join(__dirname, "..", "public", "data");
   const publicFile = path.join(publicDir, "latest.json");

@@ -85,6 +85,19 @@ export function RecentAlerts({
 
                 <div className="mt-4 text-sm text-slate-400">{alert.insight}</div>
 
+                {!!alert.focusAreas?.length ? (
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {alert.focusAreas.map((area) => (
+                      <span
+                        key={area}
+                        className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-slate-300"
+                      >
+                        {area}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
+
                 {!!alert.signals?.length ? (
                   <div className="mt-4 flex flex-wrap gap-2">
                     {alert.signals.map((signal, signalIndex) => (

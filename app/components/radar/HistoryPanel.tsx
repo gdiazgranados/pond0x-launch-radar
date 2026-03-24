@@ -57,6 +57,19 @@ export function HistoryPanel({
                   </div>
                 </div>
 
+                {!!item.focusAreas?.length ? (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {item.focusAreas.map((area) => (
+                      <span
+                        key={area}
+                        className="rounded-full border border-cyan-500/20 bg-cyan-500/10 px-2 py-0.5 text-[11px] text-cyan-300"
+                      >
+                        {area}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
+
                 <div className="mt-3 h-2 w-full rounded-full bg-white/10">
                   <div
                     className={`h-2 rounded-full ${palette.bar}`}

@@ -101,7 +101,7 @@ export function getLevelPalette(level?: string) {
 }
 
 export function getSignalType(data?: { tags?: string[]; signals?: string[] } | null) {
-  if (!data) return "UNKNOWN"
+  if (!data) return "NO SIGNAL"
 
   const tags = data.tags || []
   const signals = data.signals || []
@@ -125,7 +125,7 @@ export function getSignalType(data?: { tags?: string[]; signals?: string[] } | n
     return "SYSTEM"
   }
 
-  return "UNKNOWN"
+  return "NO SIGNAL"
 }
 
 export function getLaunchProbability(data?: {
@@ -136,15 +136,33 @@ export function getLaunchProbability(data?: {
   tags?: string[]
   signals?: string[]
 } | null) {
-  if (!data) return "LOW"
+  if (!data) return "DORMANT"
 
-  const signalType = getSignalType(data)
-  const trend = data.trend ?? 0
   const score = data.score ?? 0
   const movementPct = data.movementPct ?? 0
+  const tags = data.tags || []
+  const signals = data.signals || []
+  const signalType = getSignalType(data)
+  const trend = data.trend ?? 0
+
+  if (
+    score === 0 &&
+    movementPct === 0 &&
+    tags.length === 0 &&
+    signals.length === 0
+  ) {
+    return "DORMANT"
+  }
 
   if (data.level === "VERY HIGH") return "VERY HIGH"
-  if (data.level === "HIGH" || score >= 60 || (movementPct >= 30 && trend >= 5)) return "HIGH"
+
+  if (
+    data.level === "HIGH" ||
+    score >= 60 ||
+    (movementPct >= 30 && trend >= 5)
+  ) {
+    return "HIGH"
+  }
 
   if (
     data.level === "MEDIUM" ||
@@ -168,6 +186,8 @@ export function probabilityClass(probability: string) {
       return "border-orange-500/40 bg-orange-500/10 text-orange-200"
     case "MEDIUM":
       return "border-yellow-500/40 bg-yellow-500/10 text-yellow-200"
+    case "DORMANT":
+      return "border-slate-500/30 bg-slate-500/10 text-slate-300"
     default:
       return "border-emerald-500/30 bg-emerald-500/10 text-emerald-200"
   }
@@ -177,7 +197,8 @@ export function probabilityFromLevel(level?: string) {
   if (level === "VERY HIGH") return "VERY HIGH"
   if (level === "HIGH") return "HIGH"
   if (level === "MEDIUM") return "MEDIUM"
-  return "LOW"
+  if (level === "LOW") return "DORMANT"
+  return "DORMANT"
 }
 
 export function getTickerTone(level?: string) {
@@ -188,6 +209,8 @@ export function getTickerTone(level?: string) {
       return "text-orange-300"
     case "MEDIUM":
       return "text-yellow-300"
+    case "DORMANT":
+      return "text-slate-300"
     default:
       return "text-emerald-300"
   }

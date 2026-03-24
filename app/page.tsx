@@ -63,7 +63,7 @@ const [now, setNow] = useState(Date.now())
 
     const diff = target - now
 
-    if (diff <= 0) return "running..."
+    if (diff <= 0) return "overdue"
 
     const totalSeconds = Math.floor(diff / 1000)
     const minutes = Math.floor(totalSeconds / 60)
@@ -445,7 +445,7 @@ const [now, setNow] = useState(Date.now())
                   <div className="text-[11px] uppercase tracking-[0.24em] text-cyan-300">
                     AI Insight
                   </div>
-                  <div className="mt-2 text-lg font-semibold text-white">
+                  <div className="mt-2 text-xl font-bold leading-7 text-white">
                     {data?.insight || "No insight"}
                   </div>
                 </div>
@@ -459,6 +459,70 @@ const [now, setNow] = useState(Date.now())
               </div>
             </div>
           </div>
+
+          <div className="mt-4 rounded-xl border border-orange-500/20 bg-orange-500/[0.05] p-4">
+            <div className="text-[11px] uppercase tracking-[0.24em] text-orange-300">
+              Activation Probability
+            </div>
+
+            <div className="mt-2 flex items-center justify-between">
+              <div className="text-2xl font-bold text-white">
+                {data?.activationProbability ?? 0}%
+              </div>
+
+              <div className="text-xs text-slate-400">
+                pattern-driven signal confidence
+              </div>
+            </div>
+
+            <div className="mt-3 h-2 w-full rounded-full bg-white/10">
+              <div
+                className="h-2 rounded-full bg-orange-400"
+                style={{
+                  width: `${data?.activationProbability ?? 0}%`,
+                }}
+              />
+            </div>
+          </div>
+
+                {data?.whyItMatters && (
+                  <div className="mt-4 rounded-xl border border-emerald-500/20 bg-emerald-500/[0.05] p-4">
+                    <div className="text-[11px] uppercase tracking-[0.24em] text-emerald-300">
+                      Why This Matters
+                    </div>
+                    <div className="mt-2 text-sm leading-6 text-white">
+                      {data.whyItMatters}
+                    </div>
+                  </div>
+                )}
+
+                {!!data?.patterns?.length ? (
+                  <div className="mt-4">
+                    <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">
+                      Detected Patterns
+                    </div>
+
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {data.patterns.map((pattern) => (
+                        <span
+                          key={pattern}
+                          className="rounded-full border border-orange-500/20 bg-orange-500/10 px-2.5 py-1 text-xs text-orange-300"
+                       >
+                          {pattern}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+
+                <div className="mt-4 rounded-xl border border-white/10 bg-black/20 p-4">
+                  <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">
+                    Activation Probability
+                  </div>
+                  <div className="mt-2 text-xl font-semibold text-orange-300">
+                    {data?.activationProbability ?? 0}%
+                  </div>
+                </div>
 
           <HistoryPanel history={history} />
 

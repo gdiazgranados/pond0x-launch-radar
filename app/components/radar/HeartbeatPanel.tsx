@@ -60,12 +60,14 @@ export function HeartbeatPanel({
           </div>
           <div
             className={`mt-2 text-xs ${
-              nextSweepCountdown === "running..."
+              nextSweepCountdown === "overdue"
                 ? "text-yellow-400 animate-pulse"
                 : "text-slate-500"
             }`}
           >
-            Next sweep in: {nextSweepCountdown ?? "—"}
+            {nextSweepCountdown === "overdue"
+              ? "Next sweep overdue"
+              : `Next sweep in: ${nextSweepCountdown ?? "—"}`}
           </div>
         </div>
 
