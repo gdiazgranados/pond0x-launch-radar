@@ -2,96 +2,12 @@
 
 import { useEffect, useMemo, useState, type ReactNode } from "react"
 import { useRadarData } from "./hooks/useRadarData"
+import type { RadarData, AlertItem, HeartbeatData } from "./types/radar"
+import { formatDate, shortTime, minutesSince, formatRelativeMinutes } from "./lib/date"
+import { clampPercent } from "./lib/radar"
 
   function remoteJsonUrl(filename: string, cacheBust: number) {
   return `/data/${filename}?t=${cacheBust}`
-}
-
-type RadarData = {
-  id: string
-  totalFiles: number
-  added: number
-  changed: number
-  movementCount: number
-  movementPct: number
-  addedPct: number
-  changedPct: number
-  signals: string[]
-  score: number
-  level: "LOW" | "MEDIUM" | "HIGH" | "VERY HIGH" | string
-  insight?: string
-  confidence?: number
-  tags?: string[]
-  alert?: string | null
-  summary: string
-  note: string
-  trend?: number
-  trendDirection?: "UP" | "DOWN" | "FLAT" | string
-  generatedAt: string
-}
-
-type AlertItem = {
-  id: string
-  level: string
-  score: number
-  movementPct: number
-  trend: number
-  trendDirection: string
-  signals: string[]
-  tags: string[]
-  insight: string
-  summary: string
-  sentAt: string
-}
-
-type HeartbeatData = {
-  source: string
-  lastRunAt: string | null
-  lastSuccessAt: string | null
-  status: "unknown" | "running" | "success" | "failed" | string
-  scheduleMinutes: number
-}
-
-function formatDate(date?: string) {
-  if (!date) return "—"
-  return new Date(date).toLocaleString("es-MX", {
-    timeZone: "America/Mexico_City",
-  })
-}
-
-function shortTime(date?: string) {
-  if (!date) return "—"
-  return new Date(date).toLocaleTimeString("es-MX", {
-    timeZone: "America/Mexico_City",
-  })
-}
-
-function minutesSince(dateString?: string) {
-  if (!dateString) return null
-
-  const ts = new Date(dateString).getTime()
-  if (Number.isNaN(ts)) return null
-
-  const diffMs = Date.now() - ts
-  return Math.max(0, Math.floor(diffMs / 60000))
-}
-
-function formatRelativeMinutes(dateString?: string) {
-  const mins = minutesSince(dateString)
-  if (mins === null) return "unknown"
-
-  if (mins < 1) return "just now"
-  if (mins === 1) return "1 min ago"
-  if (mins < 60) return `${mins} min ago`
-
-  const hours = Math.floor(mins / 60)
-  const remaining = mins % 60
-
-  if (remaining === 0) {
-    return hours === 1 ? "1h ago" : `${hours}h ago`
-  }
-
-  return `${hours}h ${remaining}m ago`
 }
 
 function getHeartbeatStatus(dateString?: string, scheduleMinutes = 60) {
@@ -259,12 +175,6 @@ function probabilityFromLevel(level?: string) {
   if (level === "HIGH") return "HIGH"
   if (level === "MEDIUM") return "MEDIUM"
   return "LOW"
-}
-
-function clampPercent(value?: number) {
-  const n = Number(value ?? 0)
-  if (Number.isNaN(n)) return 0
-  return Math.max(0, Math.min(100, n))
 }
 
 function getTickerTone(level?: string) {
