@@ -4,232 +4,25 @@ import { useEffect, useMemo, useState, type ReactNode } from "react"
 import { useRadarData } from "./hooks/useRadarData"
 import type { RadarData, AlertItem, HeartbeatData } from "./types/radar"
 import { formatDate, shortTime, minutesSince, formatRelativeMinutes } from "./lib/date"
-import { clampPercent } from "./lib/radar"
+import { SectionTitle } from "./components/radar/SectionTitle"
+import { MetricCard } from "./components/radar/MetricCard"
+import { HeartbeatPanel } from "./components/radar/HeartbeatPanel"
+import { CheckInTape } from "./components/radar/CheckInTape"
+import {
+  clampPercent,
+  getHeartbeatStatus,
+  buildLinePoints,
+  getLevelPalette,
+  getSignalType,
+  getLaunchProbability,
+  probabilityClass,
+  probabilityFromLevel,
+  getTickerTone,
+} from "./lib/radar"
+
 
   function remoteJsonUrl(filename: string, cacheBust: number) {
   return `/data/${filename}?t=${cacheBust}`
-}
-
-function getHeartbeatStatus(dateString?: string, scheduleMinutes = 60) {
-  const mins = minutesSince(dateString)
-
-  if (mins === null) {
-    return {
-      label: "UNKNOWN",
-      tone: "text-slate-300",
-      badge: "border-slate-500/30 bg-slate-500/10 text-slate-200",
-      dot: "bg-slate-400",
-    }
-  }
-
-  const schedule = Number(scheduleMinutes || 60)
-
-  if (mins <= schedule) {
-    return {
-      label: "FRESH",
-      tone: "text-emerald-300",
-      badge: "border-emerald-500/30 bg-emerald-500/10 text-emerald-200",
-      dot: "bg-emerald-400",
-    }
-  }
-
-  if (mins <= schedule * 2) {
-    return {
-      label: "LAGGING",
-      tone: "text-yellow-300",
-      badge: "border-yellow-500/30 bg-yellow-500/10 text-yellow-200",
-      dot: "bg-yellow-400",
-    }
-  }
-
-  return {
-    label: "STALE",
-    tone: "text-red-300",
-    badge: "border-red-500/30 bg-red-500/10 text-red-200",
-    dot: "bg-red-400",
-  }
-}
-
-function buildLinePoints(
-  values: number[],
-  width: number,
-  height: number,
-  maxValue: number
-) {
-  if (!values.length) return ""
-
-  return values
-    .map((value, index) => {
-      const x = values.length === 1 ? width / 2 : (index / (values.length - 1)) * width
-      const y = height - (value / Math.max(maxValue, 1)) * height
-      return `${x},${y}`
-    })
-    .join(" ")
-}
-
-function getLevelPalette(level?: string) {
-  switch (level) {
-    case "VERY HIGH":
-      return {
-        badge: "border-red-500/40 bg-red-500/10 text-red-200",
-        text: "text-red-300",
-        bar: "bg-red-500",
-        dot: "bg-red-400",
-        label: "ACTIVATION",
-      }
-    case "HIGH":
-      return {
-        badge: "border-orange-500/40 bg-orange-500/10 text-orange-200",
-        text: "text-orange-300",
-        bar: "bg-orange-400",
-        dot: "bg-orange-400",
-        label: "HEATING",
-      }
-    case "MEDIUM":
-      return {
-        badge: "border-yellow-500/40 bg-yellow-500/10 text-yellow-200",
-        text: "text-yellow-300",
-        bar: "bg-yellow-400",
-        dot: "bg-yellow-400",
-        label: "BUILDUP",
-      }
-    default:
-      return {
-        badge: "border-emerald-500/30 bg-emerald-500/10 text-emerald-200",
-        text: "text-emerald-300",
-        bar: "bg-emerald-400",
-        dot: "bg-emerald-400",
-        label: "QUIET",
-      }
-  }
-}
-
-function getSignalType(data?: RadarData | AlertItem | null) {
-  if (!data) return "UNKNOWN"
-
-  const tags = data.tags || []
-  const signals = data.signals || []
-
-  if (tags.includes("REWARDS") || signals.includes("claim") || signals.includes("reward")) {
-    return "REWARDS"
-  }
-
-  if (
-    signals.includes("connect") &&
-    (signals.includes("ethereum") || signals.includes("solana"))
-  ) {
-    return "CHAIN"
-  }
-
-  if (tags.includes("AUTH") || signals.includes("verify") || signals.includes("account")) {
-    return "AUTH"
-  }
-
-  if (tags.includes("SYSTEM") || signals.includes("portal")) {
-    return "SYSTEM"
-  }
-
-  return "UNKNOWN"
-}
-
-function getLaunchProbability(data?: RadarData | null) {
-  if (!data) return "LOW"
-
-  const signalType = getSignalType(data)
-  const trend = data.trend ?? 0
-  const score = data.score ?? 0
-  const movementPct = data.movementPct ?? 0
-
-  if (data.level === "VERY HIGH") return "VERY HIGH"
-  if (data.level === "HIGH" || score >= 60 || (movementPct >= 30 && trend >= 5)) return "HIGH"
-
-  if (
-    data.level === "MEDIUM" ||
-    trend >= 3 ||
-    movementPct >= 10 ||
-    signalType === "AUTH" ||
-    signalType === "CHAIN" ||
-    signalType === "REWARDS"
-  ) {
-    return "MEDIUM"
-  }
-
-  return "LOW"
-}
-
-function probabilityClass(probability: string) {
-  switch (probability) {
-    case "VERY HIGH":
-      return "border-red-500/40 bg-red-500/10 text-red-200"
-    case "HIGH":
-      return "border-orange-500/40 bg-orange-500/10 text-orange-200"
-    case "MEDIUM":
-      return "border-yellow-500/40 bg-yellow-500/10 text-yellow-200"
-    default:
-      return "border-emerald-500/30 bg-emerald-500/10 text-emerald-200"
-  }
-}
-
-function probabilityFromLevel(level?: string) {
-  if (level === "VERY HIGH") return "VERY HIGH"
-  if (level === "HIGH") return "HIGH"
-  if (level === "MEDIUM") return "MEDIUM"
-  return "LOW"
-}
-
-function getTickerTone(level?: string) {
-  switch (level) {
-    case "VERY HIGH":
-      return "text-red-300"
-    case "HIGH":
-      return "text-orange-300"
-    case "MEDIUM":
-      return "text-yellow-300"
-    default:
-      return "text-emerald-300"
-  }
-}
-
-function SectionTitle({
-  title,
-  subtitle,
-  right,
-}: {
-  title: string
-  subtitle?: string
-  right?: ReactNode
-}) {
-  return (
-    <div className="mb-4 flex items-start justify-between gap-4 border-b border-white/10 pb-3">
-      <div>
-        <div className="text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-500">
-          {title}
-        </div>
-        {subtitle ? <div className="mt-1 text-sm text-slate-400">{subtitle}</div> : null}
-      </div>
-      {right}
-    </div>
-  )
-}
-
-function MetricCard({
-  label,
-  value,
-  subvalue,
-  valueClassName = "text-white",
-}: {
-  label: string
-  value: ReactNode
-  subvalue?: ReactNode
-  valueClassName?: string
-}) {
-  return (
-    <div className="rounded-xl border border-white/10 bg-[#06080b] p-4">
-      <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">{label}</div>
-      <div className={`mt-3 text-3xl font-semibold leading-none ${valueClassName}`}>{value}</div>
-      {subvalue ? <div className="mt-2 text-xs text-slate-500">{subvalue}</div> : null}
-    </div>
-  )
 }
 
 export default function Home() {
@@ -467,123 +260,16 @@ const [now, setNow] = useState(Date.now())
         </header>
 
         <section className="mb-5 grid gap-4 xl:grid-cols-[0.75fr_1.25fr]">
-          <div className="rounded-2xl border border-white/10 bg-[#05070a] p-5">
-            <SectionTitle
-              title="Radar Heartbeat"
-              subtitle="Monitoring freshness and expected sweep timing"
-            />
+          <HeartbeatPanel
+            heartbeat={heartbeat}
+            nextPollAt={nextPollAt}
+            previousPollAt={previousPollAt}
+            nextSweepCountdown={nextSweepCountdown}
+            source={heartbeatData?.source}
+            freshnessDate={heartbeatData?.lastSuccessAt || heartbeatData?.lastRunAt || undefined}
+          />
 
-            <div className="flex items-center gap-3">
-              <span className={`h-3 w-3 rounded-full ${heartbeat.dot}`} />
-              <div className={`text-2xl font-semibold ${heartbeat.tone}`}>{heartbeat.label}</div>
-              <span className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${heartbeat.badge}`}>
-                {heartbeat.label === "FRESH"
-                  ? "within schedule"
-                  : heartbeat.label === "LAGGING"
-                  ? "delayed sweep"
-                  : heartbeat.label === "STALE"
-                  ? "active monitor"
-                  : "no signal"}
-              </span>
-            </div>
-
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-
-              {/* 1️⃣ NEXT */}
-              <div className="rounded-xl border border-white/10 bg-black/20 p-4">
-                <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">
-                  Next expected sweep
-                </div>
-                <div className="mt-2 text-sm font-medium text-white">
-                  {nextPollAt
-                    ? new Date(nextPollAt).toLocaleString("es-MX", {
-                        timeZone: "America/Mexico_City",
-                      })
-                    : "—"}
-                </div>
-                <div
-                  className={`mt-2 text-xs ${
-                    nextSweepCountdown === "running..."
-                      ? "text-yellow-400 animate-pulse"
-                      : "text-slate-500"
-         }`}
-       >
-         Next sweep in: {nextSweepCountdown ?? "—"}
-       </div>
-              </div>
-
-  {/* 2️⃣ LAST */}
-  <div className="rounded-xl border border-white/10 bg-black/20 p-4">
-    <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">
-      Last successful check
-    </div>
-    <div className="mt-2 text-sm font-medium text-white">
-      {previousPollAt
-        ? new Date(previousPollAt).toLocaleString("es-MX", {
-            timeZone: "America/Mexico_City",
-          })
-        : "—"}
-    </div>
-  </div>
-
-  {/* 3️⃣ FRESHNESS */}
-  <div className="rounded-xl border border-white/10 bg-black/20 p-4">
-    <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">
-      Freshness
-    </div>
-    <div className="mt-2 text-sm font-medium text-white">
-      {formatRelativeMinutes(
-        heartbeatData?.lastSuccessAt || heartbeatData?.lastRunAt || undefined
-      )}
-    </div>
-  </div>
-
-    {/* 4️⃣ SOURCE */}
-  <div className="rounded-xl border border-white/10 bg-black/20 p-4">
-    <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">
-      Source
-    </div>
-    <div className="mt-2 text-sm font-medium text-cyan-300">
-      {heartbeatData?.source || "github-actions"}
-    </div>
-  </div>
-
-</div>
-</div>
-
-<div className="rounded-2xl border border-white/10 bg-[#05070a] p-5">
-            <SectionTitle
-              title="Check-in Tape"
-              subtitle="Recent successful radar sweeps"
-            />
-
-            <div className="overflow-x-auto">
-              <div className="flex min-w-max items-center gap-3 whitespace-nowrap">
-                {recentCheckIns.length > 0 ? (
-                  recentCheckIns.map((item, index) => {
-                    const itemPalette = getLevelPalette(item.level)
-
-                    return (
-                      <div
-                        key={`${item.id}-${index}`}
-                        className="inline-flex items-center gap-3 rounded-full border border-white/10 bg-black/30 px-3 py-2 text-xs"
-                        title={item.full}
-                      >
-                        <span className="text-slate-500">{item.time}</span>
-                        <span className={`h-2.5 w-2.5 rounded-full ${itemPalette.dot}`} />
-                        <span className="text-white">✓ sweep completed</span>
-                        <span className={`rounded-full border px-2 py-0.5 ${itemPalette.badge}`}>
-                          {item.level}
-                        </span>
-                      </div>
-                    )
-                  })
-                ) : (
-                  <div className="text-sm text-slate-500">No check-ins available yet.</div>
-                )}
-              </div>
-            </div>
-          </div>
+            <CheckInTape items={recentCheckIns} />
         </section>
 
         <section className="grid gap-5 xl:grid-cols-[1.28fr_0.72fr]">
