@@ -1,17 +1,18 @@
 "use client"
 
-import { useEffect, useMemo, useState, type ReactNode } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useRadarData } from "./hooks/useRadarData"
-import type { RadarData, AlertItem, HeartbeatData } from "./types/radar"
-import { formatDate, shortTime, minutesSince, formatRelativeMinutes } from "./lib/date"
+import { formatDate, shortTime } from "./lib/date"
 import { SectionTitle } from "./components/radar/SectionTitle"
 import { MetricCard } from "./components/radar/MetricCard"
 import { HeartbeatPanel } from "./components/radar/HeartbeatPanel"
 import { CheckInTape } from "./components/radar/CheckInTape"
+import { HistoryPanel } from "./components/radar/HistoryPanel"
+import { RecentAlerts } from "./components/radar/RecentAlerts"
+import { TrendGraph } from "./components/radar/TrendGraph"
 import {
   clampPercent,
   getHeartbeatStatus,
-  buildLinePoints,
   getLevelPalette,
   getSignalType,
   getLaunchProbability,
@@ -20,13 +21,8 @@ import {
   getTickerTone,
 } from "./lib/radar"
 
-
-  function remoteJsonUrl(filename: string, cacheBust: number) {
-  return `/data/${filename}?t=${cacheBust}`
-}
-
 export default function Home() {
-  const { data, history, alerts, loading, heartbeatData, error, refresh } = useRadarData()
+  const { data, history, alerts, loading, heartbeatData } = useRadarData()
 const [now, setNow] = useState(Date.now())
 
   useEffect(() => {
@@ -77,34 +73,6 @@ const [now, setNow] = useState(Date.now())
   }, [nextPollAt, now])
 
   const palette = useMemo(() => getLevelPalette(data?.level), [data])
-
-  const chartData = useMemo(() => {
-    const items = [...history].slice(0, 8).reverse()
-
-    return items.map((item) => ({
-      label: shortTime(item.generatedAt),
-      score: item.score ?? 0,
-      movement: item.movementPct ?? 0,
-    }))
-  }, [history])
-
-  const scorePoints = useMemo(() => {
-    return buildLinePoints(
-      chartData.map((d) => d.score),
-      100,
-      40,
-      100
-    )
-  }, [chartData])
-
-  const movementPoints = useMemo(() => {
-    return buildLinePoints(
-      chartData.map((d) => d.movement),
-      100,
-      40,
-      100
-    )
-  }, [chartData])
 
   const signalType = useMemo(() => getSignalType(data), [data])
   const launchProbability = useMemo(() => getLaunchProbability(data), [data])
@@ -492,83 +460,8 @@ const [now, setNow] = useState(Date.now())
             </div>
           </div>
 
-          <aside className="rounded-2xl border border-white/10 bg-[#05070a] p-5">
-            <SectionTitle
-              title="History"
-              subtitle="Recent terminal states"
-              right={
-                <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-400">
-                  last {Math.min(history.length, 8)}
-                </span>
-              }
-            />
+          <HistoryPanel history={history} />
 
-            <div className="space-y-3">
-              {history.length > 0 ? (
-                history.slice(0, 8).map((item) => {
-                  const itemPalette = getLevelPalette(item.level)
-                  const itemSignalType = getSignalType(item)
-                  const itemProbability =
-                    item.level === "VERY HIGH"
-                      ? "VERY HIGH"
-                      : item.level === "HIGH"
-                      ? "HIGH"
-                      : item.level === "MEDIUM"
-                      ? "MEDIUM"
-                      : "LOW"
-
-                  return (
-                    <div
-                      key={`${item.id}-${item.generatedAt}`}
-                      className="rounded-xl border border-white/10 bg-black/20 p-4"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <div className="break-all text-sm font-medium text-white">{item.id}</div>
-                          <div className="mt-1 text-xs text-slate-500">
-                            {formatDate(item.generatedAt)}
-                          </div>
-                        </div>
-
-                        <span className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${itemPalette.badge}`}>
-                          {item.level}
-                        </span>
-                      </div>
-
-                      <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-slate-400">
-                        <div>
-                          Signal: <span className="text-cyan-300">{itemSignalType}</span>
-                        </div>
-                        <div>
-                          Launch:{" "}
-                          <span className={`rounded-full border px-2 py-0.5 ${probabilityClass(itemProbability)}`}>
-                            {itemProbability}
-                          </span>
-                        </div>
-                        <div>
-                          Score: <span className="text-white">{item.score}</span>
-                        </div>
-                        <div>
-                          Movement: <span className="text-emerald-300">{item.movementPct ?? 0}%</span>
-                        </div>
-                      </div>
-
-                      <div className="mt-3 h-2 w-full rounded-full bg-white/10">
-                        <div
-                          className={`h-2 rounded-full ${itemPalette.bar}`}
-                          style={{ width: `${clampPercent(item.score)}%` }}
-                        />
-                      </div>
-                    </div>
-                  )
-                })
-              ) : (
-                <div className="rounded-xl border border-dashed border-white/10 bg-black/20 p-5 text-sm text-slate-500">
-                  No history available yet.
-                </div>
-              )}
-            </div>
-          </aside>
         </section>
 
         <section className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -607,178 +500,9 @@ const [now, setNow] = useState(Date.now())
           />
         </section>
 
-        <section className="mt-5 rounded-2xl border border-white/10 bg-[#05070a] p-5">
-          <SectionTitle
-            title="Trend Graph"
-            subtitle="Score vs movement across latest runs"
-            right={
-              <div className="flex gap-4 text-xs">
-                <div className="flex items-center gap-2 text-slate-300">
-                  <span className="inline-block h-2.5 w-2.5 rounded-full bg-cyan-400" />
-                  Score
-                </div>
-                <div className="flex items-center gap-2 text-slate-300">
-                  <span className="inline-block h-2.5 w-2.5 rounded-full bg-emerald-400" />
-                  Movement %
-                </div>
-              </div>
-            }
-          />
+        <TrendGraph values={history.map((h) => h.score)} />
 
-          <div className="rounded-xl border border-white/10 bg-black/20 p-4">
-            {chartData.length > 0 ? (
-              <>
-                <div className="relative h-64 w-full">
-                  <svg
-                    viewBox="0 0 100 50"
-                    preserveAspectRatio="none"
-                    className="h-full w-full overflow-visible"
-                  >
-                    <line x1="0" y1="40" x2="100" y2="40" stroke="rgba(255,255,255,0.16)" strokeWidth="0.6" />
-                    <line x1="0" y1="30" x2="100" y2="30" stroke="rgba(255,255,255,0.07)" strokeWidth="0.4" />
-                    <line x1="0" y1="20" x2="100" y2="20" stroke="rgba(255,255,255,0.07)" strokeWidth="0.4" />
-                    <line x1="0" y1="10" x2="100" y2="10" stroke="rgba(255,255,255,0.07)" strokeWidth="0.4" />
-                    <line x1="0" y1="0" x2="100" y2="0" stroke="rgba(255,255,255,0.07)" strokeWidth="0.4" />
-
-                    {scorePoints ? (
-                      <polyline
-                        fill="none"
-                        stroke="rgb(34, 211, 238)"
-                        strokeWidth="1.7"
-                        points={scorePoints}
-                      />
-                    ) : null}
-
-                    {movementPoints ? (
-                      <polyline
-                        fill="none"
-                        stroke="rgb(52, 211, 153)"
-                        strokeWidth="1.7"
-                        points={movementPoints}
-                      />
-                    ) : null}
-
-                    {chartData.map((point, index) => {
-                      const x = chartData.length === 1 ? 50 : (index / (chartData.length - 1)) * 100
-                      const scoreY = 40 - (point.score / 100) * 40
-                      const movementY = 40 - (point.movement / 100) * 40
-
-                      return (
-                        <g key={`${point.label}-${index}`}>
-                          <circle cx={x} cy={scoreY} r="1.5" fill="rgb(34, 211, 238)" />
-                          <circle cx={x} cy={movementY} r="1.5" fill="rgb(52, 211, 153)" />
-                        </g>
-                      )
-                    })}
-                  </svg>
-                </div>
-
-                <div
-                  className={`mt-4 grid gap-2 text-center text-xs text-slate-500 ${
-                    chartData.length <= 4 ? "grid-cols-4" : "grid-cols-8"
-                  }`}
-                >
-                  {chartData.map((point, index) => (
-                    <div key={`${point.label}-${index}`} className="truncate">
-                      {point.label}
-                    </div>
-                  ))}
-                </div>
-              </>
-            ) : (
-              <div className="rounded-xl border border-dashed border-white/10 bg-black/20 p-5 text-sm text-slate-500">
-                No chart data available yet.
-              </div>
-            )}
-          </div>
-        </section>
-
-        <section className="mt-5 rounded-2xl border border-white/10 bg-[#05070a] p-5">
-          <SectionTitle
-            title="Recent Alerts"
-            subtitle="Latest delivered alert events"
-            right={
-              <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-400">
-                {alerts.length} total
-              </span>
-            }
-          />
-
-          {alerts.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-white/10 bg-black/20 p-5 text-sm text-slate-500">
-              No alerts yet.
-            </div>
-          ) : (
-            <div className="grid gap-4 lg:grid-cols-2">
-              {alerts.slice(0, 6).map((alert, i) => {
-                const alertPalette = getLevelPalette(alert.level)
-                const alertSignalType = getSignalType(alert)
-                const alertProbability =
-                  alert.level === "VERY HIGH"
-                    ? "VERY HIGH"
-                    : alert.level === "HIGH"
-                    ? "HIGH"
-                    : alert.level === "MEDIUM"
-                    ? "MEDIUM"
-                    : "LOW"
-
-                return (
-                  <div
-                    key={`${alert.id}-${alert.sentAt}-${i}`}
-                    className="rounded-xl border border-white/10 bg-black/20 p-4"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className={`h-2.5 w-2.5 rounded-full ${alertPalette.dot}`} />
-                          <span className="text-sm font-medium text-white">{alert.summary}</span>
-                        </div>
-                        <div className="mt-2 text-xs text-slate-500">{formatDate(alert.sentAt)}</div>
-                      </div>
-
-                      <span className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${alertPalette.badge}`}>
-                        {alert.level}
-                      </span>
-                    </div>
-
-                    <div className="mt-4 grid grid-cols-2 gap-2 text-xs text-slate-400">
-                      <div>
-                        Signal: <span className="text-cyan-300">{alertSignalType}</span>
-                      </div>
-                      <div>
-                        Launch:{" "}
-                        <span className={`rounded-full border px-2 py-0.5 ${probabilityClass(alertProbability)}`}>
-                          {alertProbability}
-                        </span>
-                      </div>
-                      <div>
-                        Score: <span className="text-white">{alert.score}</span>
-                      </div>
-                      <div>
-                        Movement: <span className="text-emerald-300">{alert.movementPct}%</span>
-                      </div>
-                    </div>
-
-                    <div className="mt-4 text-sm text-slate-400">{alert.insight}</div>
-
-                    {!!alert.signals?.length ? (
-                      <div className="mt-4 flex flex-wrap gap-2">
-                        {alert.signals.map((signal, signalIndex) => (
-                          <span
-                            key={`${signal}-${signalIndex}`}
-                            className="rounded-full border border-cyan-500/20 bg-cyan-500/10 px-2.5 py-1 text-xs text-cyan-300"
-                          >
-                            {signal}
-                          </span>
-                        ))}
-                      </div>
-                    ) : null}
-                  </div>
-                )
-              })}
-            </div>
-          )}
-        </section>
+        <RecentAlerts alerts={alerts} />
       </div>
     </main>
   )
