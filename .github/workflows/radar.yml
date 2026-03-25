@@ -52,6 +52,12 @@ jobs:
           fs.writeFileSync(path, JSON.stringify(data, null, 2));
           '
 
+      - name: Run sentinel
+        run: node watcher/sentinel.js
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+
       - name: Write heartbeat success
         run: |
           node -e '
@@ -67,6 +73,7 @@ jobs:
             scheduleMinutes: 5
           };
 
+          fs.mkdirSync("public/data", { recursive: true });
           fs.writeFileSync(path, JSON.stringify(data, null, 2));
           '
 
@@ -77,6 +84,6 @@ jobs:
         run: |
           git config --global user.name "radar-bot"
           git config --global user.email "bot@radar.ai"
-          git add public/data/latest.json public/data/history.json public/data/alerts-history.json public/data/heartbeat.json watcher/last-alert.json
+          git add public/data/latest.json public/data/history.json public/data/alerts-history.json public/data/heartbeat.json watcher/last-alert.json watcher/output/sentinel-state.json watcher/output/sentinel-events.json
           git commit -m "Auto radar update" || echo "No changes to commit"
           git push
