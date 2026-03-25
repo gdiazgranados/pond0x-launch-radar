@@ -59,3 +59,47 @@ export type HeartbeatData = {
   status: "unknown" | "running" | "success" | "failed" | string
   scheduleMinutes: number
 }
+
+export type SentinelChangedSurface = {
+  url: string
+  label: string
+  kind: string
+  previousStatus: number | null
+  currentStatus: number
+  diff?: {
+    firstSeen?: boolean
+    statusChanged?: boolean
+    finalUrlChanged?: boolean
+    etagChanged?: boolean
+    lastModifiedChanged?: boolean
+    contentLengthChanged?: boolean
+    htmlHashChanged?: boolean
+  }
+}
+
+export type SentinelKeywordTrigger = {
+  url: string
+  label: string
+  keywords: string[]
+}
+
+export type SentinelEvent = {
+  checkedAt: string
+  changed: boolean
+  triggerReason: string
+  changedSurfaces: SentinelChangedSurface[]
+  activatedCandidates: Array<{
+    url: string
+    label: string
+    from: number
+    to: number
+  }>
+  keywordTriggers: SentinelKeywordTrigger[]
+  maxPriority?: number
+  threshold?: {
+    hasCandidateActivation?: boolean
+    hasKeywordTrigger?: boolean
+    highPrioritySurfaceChanged?: boolean
+    multipleSurfaceChange?: boolean
+  }
+}

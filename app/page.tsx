@@ -10,6 +10,8 @@ import { CheckInTape } from "./components/radar/CheckInTape"
 import { HistoryPanel } from "./components/radar/HistoryPanel"
 import { RecentAlerts } from "./components/radar/RecentAlerts"
 import { TrendGraph } from "./components/radar/TrendGraph"
+import { useSentinelData } from "./hooks/useSentinelData"
+import { SentinelPanel } from "./components/radar/SentinelPanel"
 import {
   clampPercent,
   getHeartbeatStatus,
@@ -34,6 +36,8 @@ const [now, setNow] = useState(Date.now())
       clearInterval(clockInterval)
     }
   }, [])
+
+  const { latestEvent } = useSentinelData()
 
   const previousPollAt = useMemo(() => {
     const lastSuccess = heartbeatData?.lastSuccessAt
@@ -567,6 +571,7 @@ const [now, setNow] = useState(Date.now())
         <TrendGraph values={history.map((h) => h.score)} />
 
         <RecentAlerts alerts={alerts} />
+        <SentinelPanel event={latestEvent} />
       </div>
     </main>
   )
