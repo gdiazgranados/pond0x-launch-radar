@@ -38,56 +38,38 @@ async function sendTelegramMessage(text) {
 }
 
 function buildAlertSignature(data) {
+  const significance = data.significance || "NONE";
+  const focusAreas = (data.focusAreas || []).slice().sort().join("|");
+  const hits = (data.sensitiveHits || []).slice().sort().join("|");
   const level = data.level || "LOW";
-  const movementPct = data.movementPct ?? 0;
-  const score = data.score ?? 0;
-  const signals = (data.signals || []).join("|");
-  return `${level}__${movementPct}__${score}__${signals}`;
+  const generatedHour = data.generatedAt
+    ? new Date(data.generatedAt).toISOString().slice(0, 13)
+    : "unknown";
+
+  return `${significance}__${level}__${focusAreas}__${hits}__${generatedHour}`;
 }
 
 function classifyAlert(data) {
-  const movementPct = data.movementPct ?? 0;
-  const score = data.score ?? 0;
-  const level = data.level || "LOW";
-  const signals = data.signals || [];
-  const trend = data.trend ?? 0;
-  const tags = data.tags || [];
+  const significance = data.significance || "NONE";
+  const rarityScore = data.rarityScore ?? 0;
+  const focusAreas = data.focusAreas || [];
 
-  const hasRewardsCombo =
-    signals.includes("claim") ||
-    (signals.includes("reward") && signals.includes("connect"));
-
-  const hasWalletCombo =
-    signals.includes("connect") &&
-    (signals.includes("ethereum") || signals.includes("solana"));
-
-  const hasAuthCombo =
-    signals.includes("verify") && signals.includes("account");
-
-  const earlySignals =
-    (signals.includes("connect") && signals.includes("account")) ||
-    (signals.includes("verify") && signals.includes("connect")) ||
-    (signals.includes("portal") && movementPct >= 10);
-
-  if (level === "VERY HIGH") {
+  if (significance === "HIGH") {
     return "CRITICAL";
   }
 
   if (
-    (level === "HIGH" && trend >= 5) ||
-    (movementPct >= 30 && trend >= 5) ||
-    (score >= 60 && trend >= 5) ||
-    hasRewardsCombo
+    focusAreas.includes("REWARDS") ||
+    focusAreas.includes("CLAIM")
   ) {
     return "HIGH";
   }
 
-  if (
-    (hasWalletCombo && trend >= 3) ||
-    (hasAuthCombo && trend >= 3) ||
-    (tags.includes("REWARDS") && trend >= 3) ||
-    (earlySignals && trend >= 2)
-  ) {
+  if (rarityScore >= 70) {
+    return "HIGH";
+  }
+
+  if (significance === "WATCH") {
     return "EARLY";
   }
 
@@ -95,37 +77,31 @@ function classifyAlert(data) {
 }
 
 function detectSignalType(data) {
+  const focusAreas = data.focusAreas || [];
   const signals = data.signals || [];
   const tags = data.tags || [];
 
-  if (
-    signals.includes("claim") ||
-    signals.includes("reward") ||
-    tags.includes("REWARDS")
-  ) {
+  if (focusAreas.includes("REWARDS") || focusAreas.includes("CLAIM")) {
     return "REWARDS";
   }
 
-  if (
-    signals.includes("connect") &&
-    (signals.includes("ethereum") || signals.includes("solana"))
-  ) {
-    return "CHAIN";
+  if (focusAreas.includes("WALLET")) {
+    return "WALLET";
   }
 
-  if (
-    signals.includes("verify") ||
-    signals.includes("account") ||
-    tags.includes("AUTH")
-  ) {
+  if (focusAreas.includes("AUTH")) {
     return "AUTH";
   }
 
-  if (signals.includes("portal")) {
+  if (focusAreas.includes("SYSTEM") || focusAreas.includes("PORTAL")) {
     return "SYSTEM";
   }
 
-  return "UNKNOWN";
+  if (signals.length === 0 && tags.length === 0) {
+    return "NO SIGNAL";
+  }
+
+  return "WATCH";
 }
 
 function shouldSendAlert(data) {
@@ -134,12 +110,17 @@ function shouldSendAlert(data) {
 
 function formatAlertMessage(data) {
   const level = data.level || "LOW";
+  const significance = data.significance || "NONE";
   const score = data.score ?? 0;
   const movementPct = data.movementPct ?? 0;
+  const rarityScore = data.rarityScore ?? 0;
   const trend = data.trend ?? 0;
   const trendDirection = data.trendDirection || "FLAT";
   const signals = data.signals?.length ? data.signals.join(", ") : "none";
   const tags = data.tags?.length ? data.tags.join(", ") : "none";
+  const focusAreas = data.focusAreas?.length ? data.focusAreas.join(", ") : "none";
+  const hits = data.sensitiveHits?.length ? data.sensitiveHits.join(", ") : "none";
+  const changeTypes = data.changeTypes?.length ? data.changeTypes.join(", ") : "none";
   const insight = data.insight || "No insight";
   const summary = data.summary || "No summary";
   const alertType = classifyAlert(data) || "INFO";
@@ -152,9 +133,9 @@ function formatAlertMessage(data) {
       ? `DOWN ${trend}%`
       : `${trend}%`;
 
-  let header = "🟢 QUIET SURFACE";
-  if (alertType === "EARLY") header = "🟡 EARLY SIGNAL DETECTED";
-  if (alertType === "HIGH") header = "🟠 HIGH-CONFIDENCE SIGNAL";
+  let header = "🟢 STABLE SURFACE";
+  if (alertType === "EARLY") header = "🟡 EARLY WATCH SIGNAL";
+  if (alertType === "HIGH") header = "🟠 HIGH-SENSITIVITY SIGNAL";
   if (alertType === "CRITICAL") header = "🚨 POND0X ACTIVATION SIGNAL";
 
   return `${header}
@@ -162,10 +143,15 @@ function formatAlertMessage(data) {
 🚦 Alert Type: ${alertType}
 🧬 Signal Type: ${signalType}
 ⚡ Level: ${level}
+📌 Significance: ${significance}
 📊 Score: ${score}
 📈 Movement: ${movementPct}%
+🧭 Rarity: ${rarityScore}
 📉 Trend: ${trendText}
 
+🎯 Focus Areas: ${focusAreas}
+🔎 Sensitive Hits: ${hits}
+🧱 Change Types: ${changeTypes}
 🧠 Signals: ${signals}
 🏷 Tags: ${tags}
 
@@ -223,12 +209,18 @@ async function main() {
   alertsHistory.unshift({
     id: data.id,
     level: data.level,
+    significance: data.significance || "NONE",
+    rarityScore: data.rarityScore ?? 0,
     score: data.score ?? 0,
     movementPct: data.movementPct ?? 0,
     trend: data.trend ?? 0,
     trendDirection: data.trendDirection || "FLAT",
     signals: data.signals || [],
     tags: data.tags || [],
+    focusAreas: data.focusAreas || [],
+    sensitiveHits: data.sensitiveHits || [],
+    changeTypes: data.changeTypes || [],
+    changedFiles: data.changedFiles || [],
     insight: data.insight || "No insight",
     summary: data.summary || "No summary",
     sentAt: new Date().toISOString(),

@@ -1,13 +1,13 @@
 const fs = require("fs-extra");
 const path = require("path");
 
-const MAX_HISTORY = 5;
+const MAX_HISTORY = 50;
 
 async function main() {
   const watcherDir = __dirname;
   const root = path.join(watcherDir, "..");
 
-  const latestPath = path.join(watcherDir, "output", "latest.json");
+  const latestPath = path.join(root, "public", "data", "latest.json");
   const historyPath = path.join(root, "public", "data", "history.json");
 
   if (!(await fs.pathExists(latestPath))) {
@@ -19,6 +19,9 @@ async function main() {
   let history = [];
   if (await fs.pathExists(historyPath)) {
     history = await fs.readJson(historyPath);
+    if (!Array.isArray(history)) {
+      history = [];
+    }
   }
 
   const totalFiles = latest.totalFiles ?? 0;
@@ -64,6 +67,12 @@ async function main() {
     changedPct,
     movementPct,
     summary,
+    significance: latest.significance ?? "NONE",
+    rarityScore: latest.rarityScore ?? 0,
+    focusAreas: Array.isArray(latest.focusAreas) ? latest.focusAreas : [],
+    sensitiveHits: Array.isArray(latest.sensitiveHits) ? latest.sensitiveHits : [],
+    changeTypes: Array.isArray(latest.changeTypes) ? latest.changeTypes : [],
+    changedFiles: Array.isArray(latest.changedFiles) ? latest.changedFiles : [],
     trend,
     trendDirection,
   };
@@ -75,9 +84,8 @@ async function main() {
   await fs.ensureDir(path.dirname(historyPath));
   await fs.writeJson(historyPath, history, { spaces: 2 });
 
-  console.log("history.json updated");
   console.log(
-    `${normalized.id} | score=${normalized.score} | level=${normalized.level} | trend=${normalized.trend}`
+    `${normalized.id} | score=${normalized.score} | level=${normalized.level} | significance=${normalized.significance} | trend=${normalized.trend} | focus=${normalized.focusAreas.join(",") || "none"}`
   );
 }
 
