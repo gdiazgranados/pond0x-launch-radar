@@ -58,6 +58,12 @@ jobs:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
 
+      - name: Copy sentinel output to public data
+        run: |
+          mkdir -p public/data
+          cp watcher/output/sentinel-events.json public/data/sentinel-events.json || true
+          cp watcher/output/sentinel-state.json public/data/sentinel-state.json || true
+
       - name: Write heartbeat success
         run: |
           node -e '
@@ -84,6 +90,6 @@ jobs:
         run: |
           git config --global user.name "radar-bot"
           git config --global user.email "bot@radar.ai"
-          git add public/data/latest.json public/data/history.json public/data/alerts-history.json public/data/heartbeat.json watcher/last-alert.json watcher/output/sentinel-state.json watcher/output/sentinel-events.json
+          git add public/data/latest.json public/data/history.json public/data/alerts-history.json public/data/heartbeat.json public/data/sentinel-events.json public/data/sentinel-state.json watcher/last-alert.json
           git commit -m "Auto radar update" || echo "No changes to commit"
           git push
