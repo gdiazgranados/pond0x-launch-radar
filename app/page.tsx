@@ -21,7 +21,8 @@ import {
   probabilityClass,
   probabilityFromLevel,
   getTickerTone,
-  buildNarrative, // 🔥 NUEVO
+  buildNarrative,
+  prioritizeLaunchSignals,
 } from "./lib/radar"
 
 type RadarPattern =
@@ -31,14 +32,6 @@ type RadarPattern =
       confidence?: string
       reasons?: string[]
     }
-
-function asPatternLabel(pattern: RadarPattern) {
-  return typeof pattern === "string" ? pattern : pattern?.tag || "UNKNOWN"
-}
-
-function asPatternReasons(pattern: RadarPattern) {
-  return typeof pattern === "string" ? [] : pattern?.reasons || []
-}
 
 function TrendBadge({
   trendDirection,
@@ -108,18 +101,13 @@ function Gauge({
 function getEta(data: any) {
   const score = Number(data?.score || 0)
   const movement = Number(data?.movementPct || 0)
-  const trend = data?.trendDirection
+  const trendDirection = data?.trendDirection
+  const trend = typeof data?.trend === "number" ? data.trend : 0
 
-  if (score >= 85 && movement >= 25 && trend === "UP") return "< 6h"
+  if (score >= 85 && movement >= 25 && (trendDirection === "UP" || trend >= 8)) return "< 6h"
   if (score >= 75 && movement >= 20) return "< 24h"
   if (score >= 60) return "24h – 72h"
   return "monitoring"
-}
-
-function getTopPatternTags(patterns: any[] = []) {
-  return patterns.slice(0, 3).map((p) =>
-    typeof p === "string" ? p : p?.tag || "UNKNOWN"
-  )
 }
 
 function getPriorityMode(data: any) {
@@ -167,13 +155,6 @@ function getPriorityMode(data: any) {
 
 export default function Home() {
   const { data, history, alerts, loading, heartbeatData } = useRadarData()
-
-  const priorityMode = getPriorityMode(data)
-  const isElevated = priorityMode.mode !== "NORMAL"
-
-  const isPriorityView =
-    priorityMode.mode === "VERY_HIGH" || priorityMode.mode === "CRITICAL"
-
   const { latestEvent } = useSentinelData()
   const [now, setNow] = useState(Date.now())
 
@@ -185,26 +166,32 @@ export default function Home() {
     return () => clearInterval(clockInterval)
   }, [])
 
-  const palette = useMemo(() => getLevelPalette(data?.level), [data?.level])
+  const prioritizedData = useMemo(() => prioritizeLaunchSignals(data), [data])
+
+  const priorityMode = getPriorityMode(prioritizedData)
+  const isElevated = priorityMode.mode !== "NORMAL"
+  const isPriorityView =
+    priorityMode.mode === "VERY_HIGH" || priorityMode.mode === "CRITICAL"
+
+  const palette = useMemo(
+    () => getLevelPalette(prioritizedData?.level),
+    [prioritizedData?.level]
+  )
+
   const signalType = useMemo(
-    () => getSignalType(data),
-    [data?.level, data?.signals, data?.tags, data?.score]
+    () => getSignalType(prioritizedData),
+    [prioritizedData]
   )
+
   const launchProbability = useMemo(
-    () => getLaunchProbability(data),
-    [data?.activationProbability, data?.level, data?.score]
+    () => getLaunchProbability(prioritizedData),
+    [prioritizedData]
   )
 
-  const debugData = {
-  level: "VERY_HIGH",
-  tags: ["REWARDS"],
-  signals: ["connect", "ethereum"],
-  movementPct: 28,
-  trend: 9,
-  score: 85,
-}
-
-  const narrative = useMemo(() => buildNarrative(debugData), [])
+  const narrative = useMemo(
+    () => buildNarrative(prioritizedData),
+    [prioritizedData]
+  )
 
   const heartbeat = getHeartbeatStatus(
     heartbeatData?.lastSuccessAt || heartbeatData?.lastRunAt || undefined,
@@ -245,8 +232,12 @@ export default function Home() {
     return `${minutes}m ${seconds}s`
   }, [nextPollAt, now])
 
+  const recentHistory = useMemo(() => history.slice(0, 12), [history])
+  const tapeHistory = useMemo(() => history.slice(0, 5), [history])
+  const checkInHistory = useMemo(() => history.slice(0, 8), [history])
+
   const recentCheckIns = useMemo(() => {
-    const items = history.slice(0, 8).map((item) => ({
+    const items = checkInHistory.map((item) => ({
       id: `${item.id}-${item.generatedAt}`,
       time: shortTime(item.generatedAt),
       full: formatDate(item.generatedAt),
@@ -266,23 +257,45 @@ export default function Home() {
     }
 
     return items
-  }, [data, history])
+  }, [data, checkInHistory])
+
+  const velocity = useMemo(() => {
+  if (recentHistory.length < 2) return 0
+  return Number(recentHistory[0]?.score ?? 0) - Number(recentHistory[1]?.score ?? 0)
+}, [recentHistory])
+
+const burstCount = useMemo(() => {
+  const nowTs = Date.now()
+  return history.filter((item) => {
+    const ts = new Date(item.generatedAt || 0).getTime()
+    return Number.isFinite(ts) && nowTs - ts <= 5 * 60 * 1000
+  }).length
+}, [history])
+
+const confidenceScore = useMemo(() => {
+  const score = Number(prioritizedData?.score ?? data?.score ?? 0)
+  const movement = Number(prioritizedData?.movementPct ?? data?.movementPct ?? 0)
+  const trend = Number(prioritizedData?.trend ?? data?.trend ?? 0)
+
+  const raw = score * 0.6 + movement * 0.2 + trend * 2
+  return Math.max(0, Math.min(100, Math.round(raw)))
+}, [prioritizedData, data])
 
   const tickerItems = useMemo(() => {
-    const latestItem = data
+    const latestItem = prioritizedData
       ? [
           {
-            id: `latest-${data.id}`,
-            time: shortTime(data.generatedAt),
-            level: data.level || "LOW",
-            signalType: getSignalType(data),
-            probability: getLaunchProbability(data),
+            id: `latest-${prioritizedData.id ?? "current"}`,
+            time: shortTime(prioritizedData.generatedAt),
+            level: prioritizedData.level || "LOW",
+            signalType: getSignalType(prioritizedData),
+            probability: getLaunchProbability(prioritizedData),
             label: "LIVE",
           },
         ]
       : []
 
-    const historyItems = history.slice(0, 5).map((item) => ({
+    const historyItems = tapeHistory.map((item) => ({
       id: `history-${item.id}-${item.generatedAt}`,
       time: shortTime(item.generatedAt),
       level: item.level || "LOW",
@@ -301,12 +314,9 @@ export default function Home() {
     }))
 
     return [...latestItem, ...alertItems, ...historyItems].slice(0, 10)
-  }, [data, history, alerts])
+  }, [prioritizedData, history, alerts])
 
-  const breakdown = data?.breakdown
-  const patterns = Array.isArray(data?.patterns) ? data.patterns : []
-  const frontendHits = breakdown?.frontend?.hits ?? []
-  const behaviorHits = breakdown?.behavior?.hits ?? []
+  const breakdown = prioritizedData?.breakdown ?? data?.breakdown
 
   if (loading) {
     return (
@@ -349,10 +359,14 @@ export default function Home() {
               </div>
 
               <div className="flex flex-wrap items-center gap-3 text-xs">
-                <span>Score {data?.score}</span>
-                <span>Trend {data?.trendDirection}</span>
-                <span>ETA {getEta(data)}</span>
-                <span>{(getTopPatternTags(data?.patterns) || []).join(", ")}</span>
+                <span>Score {prioritizedData?.score ?? data?.score}</span>
+                <span>Trend {prioritizedData?.trendDirection ?? data?.trendDirection}</span>
+                <span>ETA {getEta(prioritizedData || data)}</span>
+                {(narrative?.context || []).map((item, i) => (
+                  <span key={i} className="opacity-80">
+                    {item}
+                  </span>
+                ))}
               </div>
             </div>
           </div>
@@ -376,14 +390,14 @@ export default function Home() {
                     palette.badge
                   } ${priorityMode.mode === "CRITICAL" ? "animate-pulse" : ""}`}
                 >
-                  {data?.level || "LOW"}
+                  {prioritizedData?.level || data?.level || "LOW"}
                 </span>
                 <TrendBadge
-                  trendDirection={data?.trendDirection}
-                  trend={data?.trend}
+                  trendDirection={prioritizedData?.trendDirection ?? data?.trendDirection}
+                  trend={prioritizedData?.trend ?? data?.trend}
                 />
                 <span className="rounded-full border border-orange-500/30 bg-orange-500/10 px-3 py-1 text-xs text-orange-300">
-                  ETA {getEta(data)}
+                  ETA {getEta(prioritizedData || data)}
                 </span>
               </div>
 
@@ -400,7 +414,7 @@ export default function Home() {
                 />
                 <MetricCard
                   label="Score"
-                  value={data?.score ?? 0}
+                  value={prioritizedData?.score ?? data?.score ?? 0}
                   valueClassName={palette.text}
                 />
                 <MetricCard
@@ -434,9 +448,9 @@ export default function Home() {
                 </div>
                 <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-slate-400">
                   <span className={`rounded-full border px-2 py-0.5 text-xs ${palette.badge}`}>
-                    {data?.level || "LOW"}
+                    {prioritizedData?.level || data?.level || "LOW"}
                   </span>
-                  <span>{data?.score ?? 0}/100 intensity</span>
+                  <span>{prioritizedData?.score ?? data?.score ?? 0}/100 intensity</span>
                 </div>
               </div>
 
@@ -596,20 +610,32 @@ export default function Home() {
                 />
                 <MetricCard
                   label="Movement"
-                  value={`${data?.movementPct ?? 0}%`}
+                  value={`${prioritizedData?.movementPct ?? data?.movementPct ?? 0}%`}
                   valueClassName="text-emerald-300"
                 />
               </div>
 
               <div className="mt-4 grid gap-4 lg:grid-cols-2">
-                <Gauge label="Radar Score" value={Number(data?.score ?? 0)} tone="cyan" />
+                <Gauge
+                  label="Radar Score"
+                  value={Number(prioritizedData?.score ?? data?.score ?? 0)}
+                  tone="cyan"
+                />
                 <Gauge
                   label="Activation Probability"
                   value={Number(data?.activationProbability ?? 0)}
                   tone="orange"
                 />
-                <Gauge label="Changed %" value={Number(data?.changedPct ?? 0)} tone="yellow" />
-                <Gauge label="Movement %" value={Number(data?.movementPct ?? 0)} tone="emerald" />
+                <Gauge
+                  label="Changed %"
+                  value={Number(data?.changedPct ?? 0)}
+                  tone="yellow"
+                />
+                <Gauge
+                  label="Movement %"
+                  value={Number(prioritizedData?.movementPct ?? data?.movementPct ?? 0)}
+                  tone="emerald"
+                />
               </div>
             </div>
 
@@ -715,7 +741,7 @@ export default function Home() {
               </div>
             )}
 
-            <HistoryPanel history={history} />
+            <HistoryPanel history={recentHistory} />
           </div>
 
           <aside className="space-y-5">
@@ -749,6 +775,42 @@ export default function Home() {
                     {breakdown?.patternBoost ?? 0}
                   </div>
                 </div>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+              <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">
+                Velocity
+              </div>
+              <div className="mt-2 text-2xl font-semibold text-cyan-300">
+                {velocity > 0 ? `+${velocity}` : velocity}
+              </div>
+              <div className="mt-1 text-xs text-slate-400">
+                score change vs previous sweep
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+              <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">
+                Burst / 5m
+              </div>
+              <div className="mt-2 text-2xl font-semibold text-orange-300">
+                {burstCount}
+              </div>
+              <div className="mt-1 text-xs text-slate-400">
+                recent events in last 5 minutes
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+              <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">
+                Confidence
+              </div>
+              <div className="mt-2 text-2xl font-semibold text-emerald-300">
+                {confidenceScore}%
+              </div>
+              <div className="mt-1 text-xs text-slate-400">
+                weighted launch confidence
               </div>
             </div>
 
