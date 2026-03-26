@@ -314,7 +314,7 @@ const confidenceScore = useMemo(() => {
     }))
 
     return [...latestItem, ...alertItems, ...historyItems].slice(0, 10)
-  }, [prioritizedData, history, alerts])
+  }, [prioritizedData, tapeHistory, alerts])
 
   const breakdown = prioritizedData?.breakdown ?? data?.breakdown
 
@@ -814,7 +814,7 @@ const confidenceScore = useMemo(() => {
               </div>
             </div>
 
-            <TrendGraph values={history.map((h) => h.score)} />
+            <TrendGraph values={recentHistory.map((h) => h.score)} />
             <RecentAlerts alerts={alerts} />
             <SentinelPanel event={latestEvent} />
           </aside>
