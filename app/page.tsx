@@ -21,6 +21,7 @@ import {
   probabilityClass,
   probabilityFromLevel,
   getTickerTone,
+  buildNarrative, // 🔥 NUEVO
 } from "./lib/radar"
 
 type RadarPattern =
@@ -194,6 +195,17 @@ export default function Home() {
     [data?.activationProbability, data?.level, data?.score]
   )
 
+  const debugData = {
+  level: "VERY_HIGH",
+  tags: ["REWARDS"],
+  signals: ["connect", "ethereum"],
+  movementPct: 28,
+  trend: 9,
+  score: 85,
+}
+
+  const narrative = useMemo(() => buildNarrative(debugData), [])
+
   const heartbeat = getHeartbeatStatus(
     heartbeatData?.lastSuccessAt || heartbeatData?.lastRunAt || undefined,
     heartbeatData?.scheduleMinutes || 5
@@ -331,7 +343,9 @@ export default function Home() {
                     ? "⚠️"
                     : "📡"}
                 </span>
-                <span className="font-semibold">{priorityMode.title}</span>
+                <span className="font-semibold">
+                  {narrative?.headline || priorityMode.title}
+                </span>
               </div>
 
               <div className="flex flex-wrap items-center gap-3 text-xs">

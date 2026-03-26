@@ -125,7 +125,7 @@ export function getSignalType(data?: { tags?: string[]; signals?: string[] } | n
     return "SYSTEM"
   }
 
-  return "NO SIGNAL"
+  return "SCANNING"
 }
 
 export function getLaunchProbability(data?: {
@@ -151,7 +151,7 @@ export function getLaunchProbability(data?: {
     tags.length === 0 &&
     signals.length === 0
   ) {
-    return "DORMANT"
+    return "STANDBY"
   }
 
   if (data.level === "VERY HIGH") return "VERY HIGH"
@@ -197,8 +197,8 @@ export function probabilityFromLevel(level?: string) {
   if (level === "VERY HIGH") return "VERY HIGH"
   if (level === "HIGH") return "HIGH"
   if (level === "MEDIUM") return "MEDIUM"
-  if (level === "LOW") return "DORMANT"
-  return "DORMANT"
+  if (level === "LOW") return "STANDBY"
+  return "STANDBY"
 }
 
 export function getTickerTone(level?: string) {
@@ -214,4 +214,107 @@ export function getTickerTone(level?: string) {
     default:
       return "text-emerald-300"
   }
+}
+export function prioritizeLaunchSignals<
+  T extends {
+    level?: string
+    tags?: string[]
+    signals?: string[]
+    score?: number
+    movementPct?: number
+    trend?: number
+    trendDirection?: string
+    id?: string
+    generatedAt?: string
+    breakdown?: any
+  }
+>(data?: T | null): (T & {
+  score: number
+  movementPct: number
+  trend: number
+  level: string
+  matchedSignals: string[]
+}) | null {
+  if (!data) return null
+
+  const tags = data.tags || []
+  const signals = data.signals || []
+
+  let boostedScore = Number(data.score ?? 0)
+  let boostedMovement = Number(data.movementPct ?? 0)
+  let boostedTrend = Number(data.trend ?? 0)
+
+  const criticalSignals = [
+    "connect",
+    "ethereum",
+    "solana",
+    "reward",
+    "claim",
+    "portal",
+    "auth",
+    "account",
+    "verify",
+  ]
+
+  const matchedSignals = signals.filter((s) => criticalSignals.includes(s))
+  const hasRewardsTag = tags.includes("REWARDS")
+  const hasLaunchTag = tags.includes("LAUNCH_IMMINENT")
+
+  boostedScore += matchedSignals.length * 8
+  if (hasRewardsTag) boostedScore += 12
+  if (hasLaunchTag) boostedScore += 20
+
+  if (signals.includes("connect")) boostedMovement += 10
+  if (signals.includes("ethereum") || signals.includes("solana")) boostedMovement += 8
+  if (signals.includes("reward") || signals.includes("claim")) boostedTrend += 4
+
+  let inferredLevel = data.level || "LOW"
+  if (boostedScore >= 80) inferredLevel = "VERY HIGH"
+  else if (boostedScore >= 60) inferredLevel = "HIGH"
+  else if (boostedScore >= 30) inferredLevel = "MEDIUM"
+
+  return {
+    ...data,
+    score: boostedScore,
+    movementPct: boostedMovement,
+    trend: boostedTrend,
+    level: inferredLevel,
+    matchedSignals,
+  }
+}
+
+export function buildNarrative(data?: {
+  level?: string
+  tags?: string[]
+  signals?: string[]
+  score?: number
+  movementPct?: number
+  trend?: number
+} | null) {
+  if (!data) return null
+
+  const level = data.level || "LOW"
+  const tags = data.tags || []
+  const signals = data.signals || []
+
+  let headline = ""
+  const context: string[] = []
+
+  if (level === "VERY HIGH") {
+    headline = "VERY HIGH SIGNAL — ACTIVATION CONDITIONS BUILDING"
+  } else if (level === "HIGH") {
+    headline = "HIGH SIGNAL — SYSTEM HEATING UP"
+  } else if (level === "MEDIUM") {
+    headline = "SIGNAL BUILDING — CONDITIONS STACKING"
+  } else {
+    headline = "WATCHING — SURFACE ACTIVITY DETECTED"
+  }
+
+  if (tags.includes("REWARDS")) context.push("REWARD_FLOW")
+  if (signals.includes("connect")) context.push("UI_ARMING")
+  if (signals.includes("ethereum") || signals.includes("solana")) context.push("CHAIN_ACTIVITY")
+  if ((data.movementPct ?? 0) > 20) context.push("BEHAVIOR_SPIKE")
+  if ((data.trend ?? 0) > 5) context.push("TREND_ACCELERATION")
+
+  return { headline, context }
 }
