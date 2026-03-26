@@ -114,13 +114,7 @@ function getEta(data: any) {
   if (score >= 60) return "24h – 72h"
   return "monitoring"
 }
-function getNarrativeState(score: number) {
-  if (score >= 75) return "LIVE SIGNAL — MULTI-SURFACE TRIGGER"
-  if (score >= 50) return "ACTIVATION BUILD — CONDITIONS FORMING"
-  if (score >= 30) return "PRE-ACTIVATION — PATTERN STACKING"
-  if (score >= 15) return "ARMING — EARLY SIGNALS DETECTED"
-  return "WATCHING — SURFACE ACTIVITY BUILDING"
-}
+
 function getTopPatternTags(patterns: any[] = []) {
   return patterns.slice(0, 3).map((p) =>
     typeof p === "string" ? p : p?.tag || "UNKNOWN"
@@ -137,7 +131,7 @@ function getPriorityMode(data: any) {
       mainBg: "bg-red-950",
       headerClass: "border-red-500/40 bg-red-900/20 shadow-[0_0_40px_rgba(255,0,0,0.15)]",
       bannerClass: "border-red-500/40 bg-red-900/30 text-red-200 shadow-[0_0_25px_rgba(255,0,0,0.15)]",
-      title: "🚨 LIVE SIGNAL — MULTI-SURFACE TRIGGER DETECTED",
+      title: "🚨 CRITICAL SIGNAL — PRE-LAUNCH CONDITIONS DETECTED",
     }
   }
 
@@ -147,7 +141,7 @@ function getPriorityMode(data: any) {
       mainBg: "bg-[#120b05]",
       headerClass: "border-orange-500/30 bg-orange-900/10 shadow-[0_0_35px_rgba(255,140,0,0.10)]",
       bannerClass: "border-orange-500/30 bg-orange-900/20 text-orange-200 shadow-[0_0_20px_rgba(255,140,0,0.10)]",
-      title: "⚠️ SIGNAL BUILDING — CONDITIONS STACKING",
+      title: "⚠️ VERY HIGH SIGNAL — ACTIVATION CONDITIONS BUILDING",
     }
   }
 
@@ -157,7 +151,7 @@ function getPriorityMode(data: any) {
       mainBg: "bg-[#111008]",
       headerClass: "border-yellow-500/20 bg-yellow-900/10 shadow-[0_0_30px_rgba(255,215,0,0.08)]",
       bannerClass: "border-yellow-500/25 bg-yellow-900/15 text-yellow-200 shadow-[0_0_16px_rgba(255,215,0,0.08)]",
-      title: "📡 SIGNAL ACTIVE — SURFACE MOVEMENT DETECTED",
+      title: "📡 HIGH SIGNAL — ELEVATED MOVEMENT DETECTED",
     }
   }
 
@@ -191,8 +185,14 @@ export default function Home() {
   }, [])
 
   const palette = useMemo(() => getLevelPalette(data?.level), [data?.level])
-  const signalType = useMemo(() => getSignalType(data), [data?.level, data?.signals, data?.tags, data?.score])
-  const launchProbability = useMemo(() => getLaunchProbability(data), [data?.activationProbability, data?.level, data?.score])
+  const signalType = useMemo(
+    () => getSignalType(data),
+    [data?.level, data?.signals, data?.tags, data?.score]
+  )
+  const launchProbability = useMemo(
+    () => getLaunchProbability(data),
+    [data?.activationProbability, data?.level, data?.score]
+  )
 
   const heartbeat = getHeartbeatStatus(
     heartbeatData?.lastSuccessAt || heartbeatData?.lastRunAt || undefined,
@@ -323,7 +323,6 @@ export default function Home() {
             } ${priorityMode.bannerClass}`}
           >
             <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
-      
               <div className="flex items-center gap-3">
                 <span className="text-lg">
                   {priorityMode.mode === "CRITICAL"
@@ -332,23 +331,19 @@ export default function Home() {
                     ? "⚠️"
                     : "📡"}
                 </span>
-                <span className="font-semibold">
-                  {priorityMode.title}
-                </span>
+                <span className="font-semibold">{priorityMode.title}</span>
               </div>
 
               <div className="flex flex-wrap items-center gap-3 text-xs">
                 <span>Score {data?.score}</span>
                 <span>Trend {data?.trendDirection}</span>
                 <span>ETA {getEta(data)}</span>
-               <span>
-                  {(getTopPatternTags(data?.patterns) || []).join(", ")}
-                </span>
+                <span>{(getTopPatternTags(data?.patterns) || []).join(", ")}</span>
               </div>
-
             </div>
           </div>
         )}
+
         <header
           className={`mb-5 rounded-3xl border p-5 transition-all duration-500 ${priorityMode.headerClass}`}
         >
@@ -509,8 +504,6 @@ export default function Home() {
         <section className="grid gap-5 xl:grid-cols-[1fr_1fr]">
           {isPriorityView && (
             <div className="space-y-5 mb-5">
-    
-              {/* 🔥 Priority Readout */}
               <div className="rounded-3xl border border-orange-500/30 bg-orange-500/10 p-5">
                 <SectionTitle
                   title="Priority Readout"
@@ -518,8 +511,6 @@ export default function Home() {
                 />
 
                 <div className="grid gap-4 lg:grid-cols-2">
-        
-                  {/* Insight */}
                   <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
                     <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">
                       Insight
@@ -529,7 +520,6 @@ export default function Home() {
                     </div>
                   </div>
 
-                  {/* Why it matters */}
                   <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
                     <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">
                       Why it matters
@@ -538,11 +528,9 @@ export default function Home() {
                       {data?.whyItMatters || "No escalation context available."}
                     </div>
                   </div>
-
                 </div>
               </div>
 
-              {/* 🔥 Pattern Highlights */}
               <div className="rounded-3xl border border-orange-500/20 bg-orange-500/[0.05] p-5">
                 <SectionTitle
                   title="Pattern Highlights"
@@ -563,7 +551,6 @@ export default function Home() {
                   })}
                 </div>
               </div>
-
             </div>
           )}
 
@@ -635,7 +622,7 @@ export default function Home() {
                   )}
 
                   <div className="mt-5">
-                   <div className="mb-2 text-[11px] uppercase tracking-[0.24em] text-slate-500">
+                    <div className="mb-2 text-[11px] uppercase tracking-[0.24em] text-slate-500">
                       Tags
                     </div>
 
@@ -726,8 +713,8 @@ export default function Home() {
                   <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">
                     Terminal Status
                   </div>
-                  <div className="text-lg font-semibold text-white">
-                    {getNarrativeState(Number(data?.score ?? 0))}
+                  <div className="mt-2 text-lg font-semibold text-white">
+                    {palette.label}
                   </div>
                 </div>
 
