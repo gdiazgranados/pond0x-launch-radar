@@ -95,13 +95,13 @@ export function getLevelPalette(level?: string) {
         text: "text-emerald-300",
         bar: "bg-emerald-400",
         dot: "bg-emerald-400",
-        label: "QUIET",
+        label: "WATCHING",
       }
   }
 }
 
 export function getSignalType(data?: { tags?: string[]; signals?: string[] } | null) {
-  if (!data) return "NO SIGNAL"
+  if (!data) return "SCANNING"
 
   const tags = data.tags || []
   const signals = data.signals || []
@@ -136,7 +136,7 @@ export function getLaunchProbability(data?: {
   tags?: string[]
   signals?: string[]
 } | null) {
-  if (!data) return "DORMANT"
+  if (!data) return "STANDBY"
 
   const score = data.score ?? 0
   const movementPct = data.movementPct ?? 0
