@@ -2,6 +2,7 @@ const fs = require("fs-extra");
 const path = require("path");
 
 const { summarizeRadarIntelligence } = require("./radar-intelligence");
+const { computeRadarScore } = require("./lib/scoring-engine");
 
 const KEY_SIGNALS = [
   "claim",
@@ -113,6 +114,83 @@ async function readFileSafe(file) {
   }
 }
 
+function toAssetRelative(dir, file) {
+  const assetsDir = path.join(dir, "assets");
+  return path.relative(assetsDir, file).replace(/\\/g, "/");
+}
+
+function includesAny(text, needles) {
+  const lower = String(text || "").toLowerCase();
+  return needles.some((needle) => lower.includes(String(needle).toLowerCase()));
+}
+
+function buildSignals({ combinedText = "", changedFiles = [], movementPct = 0, recentChangesCount = 0 }) {
+  const frontendHits = [];
+  const infraHits = [];
+  const rewardsHits = [];
+  const behaviorHits = [];
+  const onchainHits = [];
+
+  const walletKeywords = ["wallet", "connect wallet", "solana", "ethereum", "phantom", "metamask"];
+  const rewardKeywords = ["reward", "rewards", "claim", "distribution", "points", "epoch", "airdrop", "payout"];
+  const ctaKeywords = ["connect", "launch", "enter", "start", "claim now", "portal"];
+  const disabledKeywords = ["disabled", "aria-disabled", "pointer-events-none", "opacity-50"];
+
+  const hasWalletStrings = includesAny(combinedText, walletKeywords);
+  const hasRewardLogic = includesAny(combinedText, rewardKeywords);
+  const hasConnectUI = includesAny(combinedText, ctaKeywords);
+  const hasDisabledState = includesAny(combinedText, disabledKeywords);
+  const hasVisibleCTAChange = includesAny(combinedText, ["connect", "claim", "launch", "portal"]);
+
+  if (hasWalletStrings) frontendHits.push("wallet_strings");
+  if (hasConnectUI) frontendHits.push("connect_ui");
+  if (hasDisabledState) frontendHits.push("disabled_state");
+  if (hasVisibleCTAChange) frontendHits.push("cta_change");
+
+  const hasNewChunks = changedFiles.some((file) =>
+    file.includes("_next/static") || file.endsWith(".js") || file.endsWith(".css")
+  );
+
+  if (hasNewChunks) infraHits.push("new_chunks");
+  if (changedFiles.some((file) => file.endsWith(".css"))) infraHits.push("css_change");
+  if (changedFiles.some((file) => file.endsWith(".js"))) infraHits.push("js_change");
+  if (changedFiles.length >= 4) behaviorHits.push("multi_file_burst");
+
+  if (hasRewardLogic) rewardsHits.push("reward_logic");
+  if (movementPct >= 10) behaviorHits.push("movement_spike");
+  if (recentChangesCount >= 3) behaviorHits.push("recent_change_cluster");
+
+  const hasOnchainMovement = false;
+
+  const frontendScore = Math.min(frontendHits.length * 20, 100);
+  const infraScore = Math.min(infraHits.length * 20, 100);
+  const rewardsScore = Math.min(rewardsHits.length * 25, 100);
+  const behaviorScore = Math.min(behaviorHits.length * 25, 100);
+  const onchainScore = Math.min(onchainHits.length * 30, 100);
+
+  return {
+    frontend: frontendHits,
+    infra: infraHits,
+    rewards: rewardsHits,
+    behavior: behaviorHits,
+    onchain: onchainHits,
+    frontendScore,
+    infraScore,
+    rewardsScore,
+    behaviorScore,
+    onchainScore,
+    movementPct,
+    recentChangesCount,
+    hasWalletStrings,
+    hasConnectUI,
+    hasDisabledState,
+    hasRewardLogic,
+    hasOnchainMovement,
+    hasNewChunks,
+    hasVisibleCTAChange,
+  };
+}
+
 function detectGroups(signals) {
   const detectedGroups = [];
 
@@ -152,19 +230,25 @@ async function main() {
   const oldFiles = oldDir ? await readAssets(oldDir) : [];
   const newFiles = await readAssets(newDir);
 
-  const oldMap = new Map(oldFiles.map((file) => [path.basename(file), file]));
-  const newMap = new Map(newFiles.map((file) => [path.basename(file), file]));
+  const oldMap = new Map(
+    oldFiles.map((file) => [toAssetRelative(oldDir, file), file])
+  );
+  const newMap = new Map(
+    newFiles.map((file) => [toAssetRelative(newDir, file), file])
+  );
 
   let added = 0;
   let changed = 0;
   const allSignals = new Set();
   const changedFiles = [];
+  const changedContents = [];
 
   for (const [name, newFile] of newMap.entries()) {
     if (!oldMap.has(name)) {
       added++;
       changedFiles.push(name);
       const content = await readFileSafe(newFile);
+      changedContents.push(content);
       scoreSignals(content).forEach((signal) => allSignals.add(signal));
       continue;
     }
@@ -175,6 +259,7 @@ async function main() {
     if (oldContent !== newContent) {
       changed++;
       changedFiles.push(name);
+      changedContents.push(newContent);
       scoreSignals(newContent).forEach((signal) => allSignals.add(signal));
     }
   }
@@ -189,8 +274,35 @@ async function main() {
   const changedPct =
     totalFiles > 0 ? Number(((changed / totalFiles) * 100).toFixed(2)) : 0;
 
+  const combinedText = changedContents.join("\n\n");
+  const recentChangesCount = movementCount;
+
+  const historyFile = path.join(__dirname, "..", "public", "data", "history.json");
+  let existingHistory = [];
+
+  if (await fs.pathExists(historyFile)) {
+    try {
+      existingHistory = await fs.readJson(historyFile);
+      if (!Array.isArray(existingHistory)) existingHistory = [];
+    } catch {
+      existingHistory = [];
+    }
+  }
+
+  const advancedSignals = buildSignals({
+    combinedText,
+    changedFiles,
+    movementPct,
+    recentChangesCount,
+  });
+
   const signals = [...allSignals];
   const detectedGroups = detectGroups(signals);
+  const radarScore = computeRadarScore(
+    advancedSignals,
+    Array.isArray(existingHistory) ? existingHistory : []
+   );
+
   const draftSnapshot = {
     id: path.basename(newDir),
     totalFiles,
@@ -204,18 +316,6 @@ async function main() {
     tags: detectedGroups,
     changedFiles,
   };
-
-  const historyFile = path.join(__dirname, "..", "public", "data", "history.json");
-    let existingHistory = [];
-
-    if (await fs.pathExists(historyFile)) {
-      try {
-        existingHistory = await fs.readJson(historyFile);
-        if (!Array.isArray(existingHistory)) existingHistory = [];
-      } catch {
-        existingHistory = [];
-      }
-    }
   
   const { insight, confidence } = buildInsight(movementPct, signals, detectedGroups);
 
@@ -231,11 +331,13 @@ async function main() {
 
   const note = !oldDir
     ? "Primera corrida base. El siguiente snapshot permitirá detectar cambios."
-    : intelligence.level === "VERY HIGH"
+    : radarScore.level === "CRITICAL"
+    ? "Señales muy fuertes de posible launch imminente."
+    : radarScore.level === "VERY HIGH"
     ? "Señales fuertes de activación o pre-launch."
-    : intelligence.level === "HIGH"
+    : radarScore.level === "HIGH"
     ? "Cambios importantes en frontend y señales relevantes."
-    : intelligence.level === "MEDIUM"
+    : radarScore.level === "MEDIUM"
     ? "Actividad de desarrollo visible."
     : "Sin señales fuertes por ahora.";
 
@@ -250,10 +352,10 @@ async function main() {
     changedPct,
     signals,
     patternScore: intelligence.patternScore,
-    patterns: intelligence.patterns,
+    patterns: radarScore.patterns,
     activationProbability: intelligence.activationProbability,
-    score: intelligence.score,
-    level: intelligence.level,
+    score: radarScore.score,
+    level: radarScore.level,
     significance: intelligence.significance,
     rarityScore: intelligence.rarityScore,
     focusAreas: intelligence.focusAreas,
@@ -261,13 +363,15 @@ async function main() {
     changeTypes: intelligence.changeTypes,
     insight,
     confidence,
-    tags: detectedGroups,
+    tags: [...new Set([...detectedGroups, ...radarScore.tags])],
     summary,
     note,
     changedFiles,
     generatedAt: new Date().toISOString(),
-    trend: 0,
-    trendDirection: "FLAT",
+    trend: radarScore.trend,
+    trendDirection: radarScore.trendDirection,
+    breakdown: radarScore.breakdown,
+    advancedSignals,
     whyItMatters: intelligence.whyItMatters,
   };
 
@@ -280,6 +384,9 @@ async function main() {
 
   await fs.ensureDir(publicDir);
   await fs.writeJson(publicFile, result, { spaces: 2 });
+
+  const nextHistory = [...existingHistory, result].slice(-200);
+  await fs.writeJson(historyFile, nextHistory, { spaces: 2 });
 
   console.log("Archivo generado:");
   console.log(publicFile);

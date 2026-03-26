@@ -1,239 +1,276 @@
-require("dotenv").config();
-
 const fs = require("fs-extra");
 const path = require("path");
+require("dotenv").config();
 
 const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN;
-const CHAT_ID = process.env.TELEGRAM_CHAT_ID;
+const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
-if (!TELEGRAM_TOKEN) {
-  throw new Error("Missing TELEGRAM_TOKEN env variable");
+const latestFile = path.join(__dirname, "..", "public", "data", "latest.json");
+const alertsHistoryFile = path.join(__dirname, "..", "public", "data", "alerts-history.json");
+const lastAlertFile = path.join(__dirname, "last-alert.json");
+
+function round(n) {
+  return Math.round(Number(n || 0) * 100) / 100;
 }
 
-if (!CHAT_ID) {
-  throw new Error("Missing TELEGRAM_CHAT_ID env variable");
+function getPriority(latest) {
+  const tags = latest.tags || [];
+
+  if (tags.includes("LAUNCH_IMMINENT")) return "CRITICAL";
+  if (tags.includes("CONFIRMED_ACTIVATION")) return "CRITICAL";
+  if (latest.level === "VERY HIGH") return "VERY HIGH";
+  if (latest.level === "HIGH") return "HIGH";
+  if (latest.level === "MEDIUM") return "MEDIUM";
+  return "LOW";
 }
 
-async function sendTelegramMessage(text) {
+function getEta(latest) {
+  const tags = latest.tags || [];
+  const score = Number(latest.score || 0);
+  const movementPct = Number(latest.movementPct || 0);
+  const trend = String(latest.trendDirection || "FLAT");
+
+  if (tags.includes("LAUNCH_IMMINENT")) return "< 2h";
+  if (tags.includes("CONFIRMED_ACTIVATION")) return "< 6h";
+  if (score >= 80 && movementPct >= 20 && trend === "UP") return "< 24h";
+  if (score >= 65) return "24h - 72h";
+  if (score >= 45) return "monitoring";
+  return "unknown";
+}
+
+function getTopPatterns(latest, limit = 3) {
+  return Array.isArray(latest.patterns) ? latest.patterns.slice(0, limit) : [];
+}
+
+function buildSignature(latest) {
+  const tags = (latest.tags || []).slice().sort().join("|");
+  const patternTags = getTopPatterns(latest, 5).map((p) => p.tag).sort().join("|");
+  const level = latest.level || "LOW";
+  const scoreBand = Math.floor(Number(latest.score || 0) / 5) * 5;
+  return `${level}::${scoreBand}::${tags}::${patternTags}`;
+}
+
+function minutesSince(isoDate) {
+  if (!isoDate) return Number.POSITIVE_INFINITY;
+  const then = new Date(isoDate).getTime();
+  const now = Date.now();
+  return (now - then) / 60000;
+}
+
+function shouldNotify(latest, lastAlert) {
+  const priority = getPriority(latest);
+  const score = Number(latest.score || 0);
+  const movementPct = Number(latest.movementPct || 0);
+  const signature = buildSignature(latest);
+
+  if (priority === "LOW" && score < 45) {
+    return { send: false, reason: "Signal too weak", signature, priority };
+  }
+
+  if (!lastAlert) {
+    return { send: true, reason: "First alert", signature, priority };
+  }
+
+  const sameSignature = lastAlert.signature === signature;
+  const mins = minutesSince(lastAlert.sentAt);
+
+  if (priority === "CRITICAL") {
+    if (sameSignature && mins < 15) {
+      return { send: false, reason: "Duplicate CRITICAL within 15m", signature, priority };
+    }
+    return { send: true, reason: "Critical signal", signature, priority };
+  }
+
+  if (priority === "VERY HIGH") {
+    if (sameSignature && mins < 30) {
+      return { send: false, reason: "Duplicate VERY HIGH within 30m", signature, priority };
+    }
+    return { send: true, reason: "Very high signal", signature, priority };
+  }
+
+  if (priority === "HIGH") {
+    if (sameSignature && mins < 60) {
+      return { send: false, reason: "Duplicate HIGH within 60m", signature, priority };
+    }
+    if (movementPct >= 15 || score >= 70) {
+      return { send: true, reason: "High signal with movement", signature, priority };
+    }
+    return { send: false, reason: "High but not urgent enough", signature, priority };
+  }
+
+  if (priority === "MEDIUM") {
+    if (sameSignature && mins < 180) {
+      return { send: false, reason: "Duplicate MEDIUM within 180m", signature, priority };
+    }
+    return { send: true, reason: "Medium signal", signature, priority };
+  }
+
+  return { send: false, reason: "No notification rule matched", signature, priority };
+}
+
+function escapeHtml(text) {
+  return String(text || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function buildTelegramMessage(latest, decision) {
+  const priority = decision.priority;
+  const eta = getEta(latest);
+  const patterns = getTopPatterns(latest);
+  const tags = (latest.tags || []).join(", ") || "none";
+  const focus = (latest.focusAreas || []).join(", ") || "none";
+  const signals = (latest.signals || []).slice(0, 12).join(", ") || "none";
+
+  const patternLines = patterns.length
+    ? patterns
+        .map((p) => `• <b>${escapeHtml(p.tag)}</b> — ${escapeHtml((p.reasons || []).join(" / "))}`)
+        .join("\n")
+    : "• none";
+
+  const trendArrow =
+    latest.trendDirection === "UP"
+      ? "↑"
+      : latest.trendDirection === "DOWN"
+      ? "↓"
+      : "→";
+
+  const title =
+    priority === "CRITICAL"
+      ? "🚨 POND0X RADAR — CRITICAL"
+      : priority === "VERY HIGH"
+      ? "⚠️ POND0X RADAR — VERY HIGH"
+      : priority === "HIGH"
+      ? "📡 POND0X RADAR — HIGH"
+      : "🛰️ POND0X RADAR — MEDIUM";
+
+  return [
+    `<b>${title}</b>`,
+    ``,
+    `<b>Score:</b> ${escapeHtml(round(latest.score))}`,
+    `<b>Level:</b> ${escapeHtml(latest.level)}`,
+    `<b>Trend:</b> ${trendArrow} ${escapeHtml(latest.trendDirection)} (${escapeHtml(round(latest.trend))})`,
+    `<b>Movement:</b> ${escapeHtml(round(latest.movementPct))}%`,
+    `<b>ETA:</b> ${escapeHtml(eta)}`,
+    ``,
+    `<b>Patterns</b>`,
+    patternLines,
+    ``,
+    `<b>Tags:</b> ${escapeHtml(tags)}`,
+    `<b>Focus:</b> ${escapeHtml(focus)}`,
+    `<b>Signals:</b> ${escapeHtml(signals)}`,
+    ``,
+    `<b>Insight:</b> ${escapeHtml(latest.insight || "No insight available")}`,
+    `<b>Summary:</b> ${escapeHtml(latest.summary || "No summary available")}`,
+    ``,
+    `<b>Generated:</b> ${escapeHtml(latest.generatedAt || new Date().toISOString())}`,
+  ].join("\n");
+}
+
+async function sendTelegramMessage(message) {
+  if (!TELEGRAM_TOKEN || !TELEGRAM_CHAT_ID) {
+    console.log("Telegram credentials missing. Skipping send.");
+    return false;
+  }
+
   const url = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`;
 
-  const res = await fetch(url, {
+  const response = await fetch(url, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      chat_id: CHAT_ID,
-      text,
+      chat_id: TELEGRAM_CHAT_ID,
+      text: message,
+      parse_mode: "HTML",
+      disable_web_page_preview: true,
     }),
   });
 
-  const data = await res.json();
-
-  if (!data.ok) {
-    throw new Error(`Telegram error: ${JSON.stringify(data)}`);
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`Telegram API error: ${response.status} ${body}`);
   }
 
-  return data;
+  return true;
 }
 
-function buildAlertSignature(data) {
-  const significance = data.significance || "NONE";
-  const focusAreas = (data.focusAreas || []).slice().sort().join("|");
-  const hits = (data.sensitiveHits || []).slice().sort().join("|");
-  const level = data.level || "LOW";
-  const generatedHour = data.generatedAt
-    ? new Date(data.generatedAt).toISOString().slice(0, 13)
-    : "unknown";
+async function appendAlertHistory(entry) {
+  let history = [];
 
-  return `${significance}__${level}__${focusAreas}__${hits}__${generatedHour}`;
-}
-
-function classifyAlert(data) {
-  const significance = data.significance || "NONE";
-  const rarityScore = data.rarityScore ?? 0;
-  const focusAreas = data.focusAreas || [];
-
-  if (significance === "HIGH") {
-    return "CRITICAL";
+  if (await fs.pathExists(alertsHistoryFile)) {
+    try {
+      history = await fs.readJson(alertsHistoryFile);
+      if (!Array.isArray(history)) history = [];
+    } catch {
+      history = [];
+    }
   }
 
-  if (
-    focusAreas.includes("REWARDS") ||
-    focusAreas.includes("CLAIM")
-  ) {
-    return "HIGH";
-  }
+  history.push(entry);
+  history = history.slice(-300);
 
-  if (rarityScore >= 70) {
-    return "HIGH";
-  }
-
-  if (significance === "WATCH") {
-    return "EARLY";
-  }
-
-  return null;
-}
-
-function detectSignalType(data) {
-  const focusAreas = data.focusAreas || [];
-  const signals = data.signals || [];
-  const tags = data.tags || [];
-
-  if (focusAreas.includes("REWARDS") || focusAreas.includes("CLAIM")) {
-    return "REWARDS";
-  }
-
-  if (focusAreas.includes("WALLET")) {
-    return "WALLET";
-  }
-
-  if (focusAreas.includes("AUTH")) {
-    return "AUTH";
-  }
-
-  if (focusAreas.includes("SYSTEM") || focusAreas.includes("PORTAL")) {
-    return "SYSTEM";
-  }
-
-  if (signals.length === 0 && tags.length === 0) {
-    return "NO SIGNAL";
-  }
-
-  return "WATCH";
-}
-
-function shouldSendAlert(data) {
-  return classifyAlert(data) !== null;
-}
-
-function formatAlertMessage(data) {
-  const level = data.level || "LOW";
-  const significance = data.significance || "NONE";
-  const score = data.score ?? 0;
-  const movementPct = data.movementPct ?? 0;
-  const rarityScore = data.rarityScore ?? 0;
-  const trend = data.trend ?? 0;
-  const trendDirection = data.trendDirection || "FLAT";
-  const signals = data.signals?.length ? data.signals.join(", ") : "none";
-  const tags = data.tags?.length ? data.tags.join(", ") : "none";
-  const focusAreas = data.focusAreas?.length ? data.focusAreas.join(", ") : "none";
-  const hits = data.sensitiveHits?.length ? data.sensitiveHits.join(", ") : "none";
-  const changeTypes = data.changeTypes?.length ? data.changeTypes.join(", ") : "none";
-  const insight = data.insight || "No insight";
-  const summary = data.summary || "No summary";
-  const alertType = classifyAlert(data) || "INFO";
-  const signalType = detectSignalType(data);
-
-  const trendText =
-    trendDirection === "UP"
-      ? `UP +${trend}%`
-      : trendDirection === "DOWN"
-      ? `DOWN ${trend}%`
-      : `${trend}%`;
-
-  let header = "🟢 STABLE SURFACE";
-  if (alertType === "EARLY") header = "🟡 EARLY WATCH SIGNAL";
-  if (alertType === "HIGH") header = "🟠 HIGH-SENSITIVITY SIGNAL";
-  if (alertType === "CRITICAL") header = "🚨 POND0X ACTIVATION SIGNAL";
-
-  return `${header}
-
-🚦 Alert Type: ${alertType}
-🧬 Signal Type: ${signalType}
-⚡ Level: ${level}
-📌 Significance: ${significance}
-📊 Score: ${score}
-📈 Movement: ${movementPct}%
-🧭 Rarity: ${rarityScore}
-📉 Trend: ${trendText}
-
-🎯 Focus Areas: ${focusAreas}
-🔎 Sensitive Hits: ${hits}
-🧱 Change Types: ${changeTypes}
-🧠 Signals: ${signals}
-🏷 Tags: ${tags}
-
-🔍 Insight:
-${insight}
-
-📝 Summary:
-${summary}`;
+  await fs.ensureDir(path.dirname(alertsHistoryFile));
+  await fs.writeJson(alertsHistoryFile, history, { spaces: 2 });
 }
 
 async function main() {
-  const publicDataDir = path.join(__dirname, "..", "public", "data");
-  const latestPath = path.join(publicDataDir, "latest.json");
-  const lastAlertPath = path.join(__dirname, "last-alert.json");
-  const alertsHistoryPath = path.join(publicDataDir, "alerts-history.json");
-
-  if (!(await fs.pathExists(latestPath))) {
-    throw new Error(`No existe latest.json en: ${latestPath}`);
-  }
-
-  const data = await fs.readJson(latestPath);
-
-  if (!(await fs.pathExists(lastAlertPath))) {
-    await fs.writeJson(lastAlertPath, { lastSignature: null }, { spaces: 2 });
-  }
-
-  if (!(await fs.pathExists(alertsHistoryPath))) {
-    await fs.writeJson(alertsHistoryPath, [], { spaces: 2 });
-  }
-
-  const lastAlertState = await fs.readJson(lastAlertPath);
-  const lastSignature = lastAlertState.lastSignature || null;
-  const currentSignature = buildAlertSignature(data);
-
-  if (!shouldSendAlert(data)) {
-    console.log("No alert triggered");
+  if (!(await fs.pathExists(latestFile))) {
+    console.log("latest.json not found. Skipping notify.");
     return;
   }
 
-  if (lastSignature === currentSignature) {
-    console.log("Duplicate alert skipped");
-    return;
+  const latest = await fs.readJson(latestFile);
+
+  let lastAlert = null;
+  if (await fs.pathExists(lastAlertFile)) {
+    try {
+      lastAlert = await fs.readJson(lastAlertFile);
+    } catch {
+      lastAlert = null;
+    }
   }
 
-  const message = formatAlertMessage(data);
-  await sendTelegramMessage(message);
+  const decision = shouldNotify(latest, lastAlert);
 
-  await fs.writeJson(
-    lastAlertPath,
-    { lastSignature: currentSignature },
-    { spaces: 2 }
+  console.log(
+    `Notify decision: send=${decision.send} | priority=${decision.priority} | reason=${decision.reason}`
   );
 
-  const alertsHistory = await fs.readJson(alertsHistoryPath);
-  alertsHistory.unshift({
-    id: data.id,
-    level: data.level,
-    significance: data.significance || "NONE",
-    rarityScore: data.rarityScore ?? 0,
-    score: data.score ?? 0,
-    movementPct: data.movementPct ?? 0,
-    trend: data.trend ?? 0,
-    trendDirection: data.trendDirection || "FLAT",
-    signals: data.signals || [],
-    tags: data.tags || [],
-    focusAreas: data.focusAreas || [],
-    sensitiveHits: data.sensitiveHits || [],
-    changeTypes: data.changeTypes || [],
-    changedFiles: data.changedFiles || [],
-    insight: data.insight || "No insight",
-    summary: data.summary || "No summary",
+  if (!decision.send) {
+    return;
+  }
+
+  const message = buildTelegramMessage(latest, decision);
+  const sent = await sendTelegramMessage(message);
+
+  const alertRecord = {
     sentAt: new Date().toISOString(),
-  });
+    priority: decision.priority,
+    reason: decision.reason,
+    signature: decision.signature,
+    score: latest.score,
+    level: latest.level,
+    trend: latest.trend,
+    trendDirection: latest.trendDirection,
+    movementPct: latest.movementPct,
+    tags: latest.tags || [],
+    patterns: getTopPatterns(latest, 5),
+    generatedAt: latest.generatedAt,
+  };
 
-  await fs.writeJson(alertsHistoryPath, alertsHistory.slice(0, 50), {
-    spaces: 2,
-  });
-
-  console.log("Smart alert sent to Telegram channel");
+  if (sent) {
+    await fs.writeJson(lastAlertFile, alertRecord, { spaces: 2 });
+    await appendAlertHistory(alertRecord);
+    console.log("Smart alert sent to Telegram channel");
+  } else {
+    console.log("Alert generated but not sent because Telegram credentials are missing");
+  }
 }
 
-main().catch((err) => {
-  console.error("Error:", err.message || err);
+main().catch((error) => {
+  console.error("notify.js failed:", error);
   process.exit(1);
 });

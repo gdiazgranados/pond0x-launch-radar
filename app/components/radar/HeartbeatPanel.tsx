@@ -73,7 +73,7 @@ export function HeartbeatPanel({
 
         <div className="rounded-xl border border-white/10 bg-black/20 p-4">
           <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">
-            Last successful check
+            Last success
           </div>
           <div className="mt-2 text-sm font-medium text-white">
             {previousPollAt
