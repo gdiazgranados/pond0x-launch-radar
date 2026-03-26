@@ -114,6 +114,13 @@ function getEta(data: any) {
   if (score >= 60) return "24h – 72h"
   return "monitoring"
 }
+function getNarrativeState(score: number) {
+  if (score >= 75) return "LIVE SIGNAL — MULTI-SURFACE TRIGGER"
+  if (score >= 50) return "ACTIVATION BUILD — CONDITIONS FORMING"
+  if (score >= 30) return "PRE-ACTIVATION — PATTERN STACKING"
+  if (score >= 15) return "ARMING — EARLY SIGNALS DETECTED"
+  return "WATCHING — SURFACE ACTIVITY BUILDING"
+}
 function getTopPatternTags(patterns: any[] = []) {
   return patterns.slice(0, 3).map((p) =>
     typeof p === "string" ? p : p?.tag || "UNKNOWN"
@@ -130,7 +137,7 @@ function getPriorityMode(data: any) {
       mainBg: "bg-red-950",
       headerClass: "border-red-500/40 bg-red-900/20 shadow-[0_0_40px_rgba(255,0,0,0.15)]",
       bannerClass: "border-red-500/40 bg-red-900/30 text-red-200 shadow-[0_0_25px_rgba(255,0,0,0.15)]",
-      title: "🚨 CRITICAL SIGNAL — PRE-LAUNCH CONDITIONS DETECTED",
+      title: "🚨 LIVE SIGNAL — MULTI-SURFACE TRIGGER DETECTED",
     }
   }
 
@@ -140,7 +147,7 @@ function getPriorityMode(data: any) {
       mainBg: "bg-[#120b05]",
       headerClass: "border-orange-500/30 bg-orange-900/10 shadow-[0_0_35px_rgba(255,140,0,0.10)]",
       bannerClass: "border-orange-500/30 bg-orange-900/20 text-orange-200 shadow-[0_0_20px_rgba(255,140,0,0.10)]",
-      title: "⚠️ VERY HIGH SIGNAL — ACTIVATION CONDITIONS BUILDING",
+      title: "⚠️ SIGNAL BUILDING — CONDITIONS STACKING",
     }
   }
 
@@ -150,7 +157,7 @@ function getPriorityMode(data: any) {
       mainBg: "bg-[#111008]",
       headerClass: "border-yellow-500/20 bg-yellow-900/10 shadow-[0_0_30px_rgba(255,215,0,0.08)]",
       bannerClass: "border-yellow-500/25 bg-yellow-900/15 text-yellow-200 shadow-[0_0_16px_rgba(255,215,0,0.08)]",
-      title: "📡 HIGH SIGNAL — ELEVATED MOVEMENT DETECTED",
+      title: "📡 SIGNAL ACTIVE — SURFACE MOVEMENT DETECTED",
     }
   }
 
@@ -719,14 +726,8 @@ export default function Home() {
                   <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">
                     Terminal Status
                   </div>
-                  <div className="mt-2 text-lg font-semibold text-white">
-                    {data?.level === "VERY HIGH"
-                      ? "Immediate attention"
-                      : data?.level === "HIGH"
-                      ? "Strong movement"
-                      : data?.level === "MEDIUM"
-                      ? "Visible buildup"
-                      : "Quiet surface"}
+                  <div className="text-lg font-semibold text-white">
+                    {getNarrativeState(Number(data?.score ?? 0))}
                   </div>
                 </div>
 
