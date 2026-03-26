@@ -78,3 +78,75 @@ export type RadarData = {
   advancedSignals?: AdvancedSignals
   whyItMatters?: string
 }
+
+export type AlertItem = {
+  id?: string
+  sentAt: string
+  priority?: string
+  reason?: string
+  signature?: string
+  score?: number
+  level?: string
+  trend?: number
+  trendDirection?: string
+  movementPct?: number
+  tags?: string[]
+  patterns?: RadarPattern[]
+  generatedAt?: string
+  summary?: string
+  insight?: string
+  focusAreas?: string[]
+  signals?: string[]
+}
+
+export type SentinelSurface = {
+  label: string
+  url: string
+  currentStatus?: number | string
+}
+
+export type SentinelKeywordTrigger = {
+  label: string
+  url: string
+  keywords: string[]
+}
+
+export type SentinelThreshold = {
+  hasCandidateActivation?: boolean
+  hasKeywordTrigger?: boolean
+  hasMultiSurfaceChange?: boolean
+  highPrioritySurfaceChanged?: boolean
+  multipleSurfaceChange?: boolean
+}
+
+export type SentinelEvent = {
+  id?: string
+  checkedAt?: string
+  triggeredAt?: string
+  generatedAt?: string
+  sentAt?: string
+  surface?: string
+  surfaces?: string[]
+  changedSurfaces?: SentinelSurface[]
+  keywordTriggers?: SentinelKeywordTrigger[]
+  maxPriority?: number
+  threshold?: SentinelThreshold
+  status?: number
+  finalUrl?: string
+  changed?: boolean
+  triggerReason?: string
+  triggerThreshold?: string
+  summary?: string
+  level?: string
+  signalType?: string
+  probability?: string
+  reason?: string
+}
+
+export type HeartbeatData = {
+  source?: string
+  lastRunAt?: string | null
+  lastSuccessAt?: string | null
+  status?: string
+  scheduleMinutes?: number
+}
