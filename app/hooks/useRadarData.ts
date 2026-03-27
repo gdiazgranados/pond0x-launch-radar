@@ -1,50 +1,93 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
+import type { RadarData, AlertItem, HeartbeatData } from "../types/radar"
+
+function remoteJsonUrl(filename: string, cacheBust: number) {
+  return `/data/${filename}?t=${cacheBust}`
+}
 
 export function useRadarData() {
-  const [data, setData] = useState<any>(null)
-  const [history, setHistory] = useState<any[]>([])
-  const [alerts, setAlerts] = useState<any[]>([])
-  const [heartbeatData, setHeartbeatData] = useState<any>(null)
+  const [data, setData] = useState<RadarData | null>(null)
+  const [history, setHistory] = useState<RadarData[]>([])
+  const [alerts, setAlerts] = useState<AlertItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [heartbeatData, setHeartbeatData] = useState<HeartbeatData | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    let mounted = true
+  const loadRemoteRadar = useCallback(async (signal?: AbortSignal) => {
+    const cacheBust = Date.now()
 
-    async function load() {
-      try {
-        const res = await fetch(`/api/radar?ts=${Date.now()}`, {
-          cache: "no-store",
-        })
+    const [latestRes, historyRes, alertsRes, heartbeatRes] = await Promise.all([
+      fetch(remoteJsonUrl("latest.json", cacheBust), { cache: "no-store", signal }),
+      fetch(remoteJsonUrl("history.json", cacheBust), { cache: "no-store", signal }),
+      fetch(remoteJsonUrl("alerts-history.json", cacheBust), { cache: "no-store", signal }),
+      fetch(remoteJsonUrl("heartbeat.json", cacheBust), { cache: "no-store", signal }),
+    ])
 
-        if (!res.ok) {
-          throw new Error(`Radar API failed: ${res.status}`)
-        }
-
-        const json = await res.json()
-
-        if (!mounted) return
-
-        setData(json.data ?? null)
-        setHistory(Array.isArray(json.history) ? json.history : [])
-        setHeartbeatData(json.heartbeatData ?? null)
-        setAlerts(Array.isArray(json.sentinelEvents) ? json.sentinelEvents : [])
-      } catch (error) {
-        console.error("Failed to load radar data:", error)
-      } finally {
-        if (mounted) setLoading(false)
-      }
+    if (!latestRes.ok || !historyRes.ok || !alertsRes.ok || !heartbeatRes.ok) {
+      throw new Error("Failed to load one or more remote radar resources")
     }
 
-    load()
-    const interval = setInterval(load, 60_000)
+    const [latestJson, historyJson, alertsJson, heartbeatJson] = await Promise.all([
+      latestRes.json(),
+      historyRes.json(),
+      alertsRes.json(),
+      heartbeatRes.json(),
+    ])
 
-    return () => {
-      mounted = false
-      clearInterval(interval)
-    }
+    setData(latestJson)
+    setHistory(Array.isArray(historyJson) ? historyJson : [])
+    setAlerts(Array.isArray(alertsJson) ? alertsJson : [])
+    setHeartbeatData({ ...heartbeatJson })
   }, [])
 
-  return { data, history, alerts, loading, heartbeatData }
+  const refresh = useCallback(
+    async (signal?: AbortSignal) => {
+      try {
+        setError(null)
+        await loadRemoteRadar(signal)
+      } catch (error) {
+        if ((error as Error).name !== "AbortError") {
+          console.error("Error loading radar data:", error)
+          setError("No se pudieron cargar los datos del radar")
+        }
+      } finally {
+        setLoading(false)
+      }
+    },
+    [loadRemoteRadar]
+  )
+
+  useEffect(() => {
+    const controller = new AbortController()
+    let isMounted = true
+
+    async function fetchData() {
+      if (!isMounted) return
+      await refresh(controller.signal)
+    }
+
+    fetchData()
+
+    const fetchInterval = setInterval(() => {
+      fetchData()
+    }, 60_000)
+
+    return () => {
+      isMounted = false
+      controller.abort()
+      clearInterval(fetchInterval)
+    }
+  }, [refresh])
+
+  return {
+    data,
+    history,
+    alerts,
+    loading,
+    heartbeatData,
+    error,
+    refresh,
+  }
 }
