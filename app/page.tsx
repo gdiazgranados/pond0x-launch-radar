@@ -236,41 +236,18 @@ export default function Home() {
   const tapeHistory = useMemo(() => history.slice(0, 5), [history])
   const checkInHistory = useMemo(() => history.slice(0, 8), [history])
 
-  const recentCheckIns = useMemo(() => {
-    const items = checkInHistory.map((item) => ({
-      id: `${item.id}-${item.generatedAt}`,
-      time: shortTime(item.generatedAt),
-      full: formatDate(item.generatedAt),
-      level: item.level || "LOW",
-    }))
-
-    if (data?.generatedAt) {
-      return [
-        {
-          id: `live-${data.id}`,
-          time: shortTime(data.generatedAt),
-          full: formatDate(data.generatedAt),
-          level: data.level || "LOW",
-        },
-        ...items,
-      ].slice(0, 8)
-    }
-
-    return items
-  }, [data, checkInHistory])
-
   const velocity = useMemo(() => {
-  if (recentHistory.length < 2) return 0
-  return Number(recentHistory[0]?.score ?? 0) - Number(recentHistory[1]?.score ?? 0)
-}, [recentHistory])
+    if (recentHistory.length < 2) return 0
+    return Number(recentHistory[0]?.score ?? 0) - Number(recentHistory[1]?.score ?? 0)
+  }, [recentHistory])
 
-const burstCount = useMemo(() => {
-  const nowTs = Date.now()
-  return history.filter((item) => {
-    const ts = new Date(item.generatedAt || 0).getTime()
-    return Number.isFinite(ts) && nowTs - ts <= 5 * 60 * 1000
-  }).length
-}, [history])
+  const burstCount = useMemo(() => {
+    const nowTs = Date.now()
+    return history.filter((item) => {
+      const ts = new Date(item.generatedAt || 0).getTime()
+      return Number.isFinite(ts) && nowTs - ts <= 5 * 60 * 1000
+    }).length
+  }, [history])
 
 const confidenceScore = useMemo(() => {
   const score = Number(prioritizedData?.score ?? data?.score ?? 0)
@@ -280,6 +257,62 @@ const confidenceScore = useMemo(() => {
   const raw = score * 0.6 + movement * 0.2 + trend * 2
   return Math.max(0, Math.min(100, Math.round(raw)))
 }, [prioritizedData, data])
+
+const readinessState = useMemo(() => {
+  const score = Number(prioritizedData?.score ?? data?.score ?? 0)
+  const movement = Number(prioritizedData?.movementPct ?? data?.movementPct ?? 0)
+  const trend = Number(prioritizedData?.trend ?? data?.trend ?? 0)
+  const tags = prioritizedData?.tags || data?.tags || []
+  const signals = prioritizedData?.signals || data?.signals || []
+
+  const hasRewards =
+    tags.includes("REWARDS") ||
+    signals.includes("reward") ||
+    signals.includes("claim")
+
+  const hasWalletConnect =
+    signals.includes("connect") &&
+    (signals.includes("ethereum") || signals.includes("solana"))
+
+  const confidence =
+    Math.max(0, Math.min(100, Math.round(score * 0.6 + movement * 0.2 + trend * 2)))
+
+  if (
+    score >= 80 ||
+    confidence >= 75 ||
+    (hasRewards && hasWalletConnect && burstCount >= 2)
+  ) {
+    return {
+      label: "ARMED",
+      tone: "text-red-300",
+      badge: "border-red-500/30 bg-red-500/10 text-red-200",
+      note: "critical launch modules aligned",
+    }
+  }
+
+  if (
+    score >= 35 ||
+    confidence >= 45 ||
+    movement >= 10 ||
+    trend >= 3 ||
+    hasRewards ||
+    hasWalletConnect
+  ) {
+    return {
+      label: "BUILDING",
+      tone: "text-yellow-300",
+      badge: "border-yellow-500/30 bg-yellow-500/10 text-yellow-200",
+      note: "stacking pre-launch conditions",
+    }
+  }
+
+  return {
+    label: "STANDBY",
+    tone: "text-emerald-300",
+    badge: "border-emerald-500/30 bg-emerald-500/10 text-emerald-200",
+    note: "monitoring baseline activity",
+  }
+}, [prioritizedData, data, burstCount])
 
   const tickerItems = useMemo(() => {
     const latestItem = prioritizedData
@@ -526,7 +559,12 @@ const confidenceScore = useMemo(() => {
             source={heartbeatData?.source}
             freshnessDate={heartbeatData?.lastSuccessAt || heartbeatData?.lastRunAt || undefined}
           />
-          <CheckInTape items={recentCheckIns} />
+          <CheckInTape items={checkInHistory.map((item) => ({
+            id: `${item.id}-${item.generatedAt}`,
+            time: shortTime(item.generatedAt),
+            full: formatDate(item.generatedAt),
+            level: item.level || "LOW",
+          }))} />
         </section>
 
         <section className="grid gap-5 xl:grid-cols-[1fr_1fr]">
