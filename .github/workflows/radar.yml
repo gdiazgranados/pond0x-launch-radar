@@ -91,4 +91,4 @@ jobs:
           git config --global user.email "bot@radar.ai"
           git add public/data/latest.json public/data/history.json public/data/alerts-history.json public/data/heartbeat.json public/data/sentinel-events.json public/data/sentinel-state.json watcher/last-alert.json
           git commit -m "Auto radar update" || echo "No changes to commit"
-          git push origin main
+          git push origin HEAD:radar-data

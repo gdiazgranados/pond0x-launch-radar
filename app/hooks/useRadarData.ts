@@ -3,8 +3,24 @@
 import { useCallback, useEffect, useState } from "react"
 import type { RadarData, AlertItem, HeartbeatData } from "../types/radar"
 
-function remoteJsonUrl(filename: string, cacheBust: number) {
-  return `/data/${filename}?t=${cacheBust}`
+type RadarApiResponse = {
+  data?: RadarData | null
+  latest?: RadarData | null
+  latestData?: RadarData | null
+
+  history?: RadarData[]
+  historyData?: RadarData[]
+
+  alerts?: AlertItem[]
+  sentinelEvents?: AlertItem[]
+  alertsHistory?: AlertItem[]
+
+  heartbeatData?: HeartbeatData | null
+  heartbeat?: HeartbeatData | null
+}
+
+function apiRadarUrl(cacheBust: number) {
+  return `/api/radar?ts=${cacheBust}`
 }
 
 export function useRadarData() {
@@ -18,28 +34,48 @@ export function useRadarData() {
   const loadRemoteRadar = useCallback(async (signal?: AbortSignal) => {
     const cacheBust = Date.now()
 
-    const [latestRes, historyRes, alertsRes, heartbeatRes] = await Promise.all([
-      fetch(remoteJsonUrl("latest.json", cacheBust), { cache: "no-store", signal }),
-      fetch(remoteJsonUrl("history.json", cacheBust), { cache: "no-store", signal }),
-      fetch(remoteJsonUrl("alerts-history.json", cacheBust), { cache: "no-store", signal }),
-      fetch(remoteJsonUrl("heartbeat.json", cacheBust), { cache: "no-store", signal }),
-    ])
+    const res = await fetch(apiRadarUrl(cacheBust), {
+      cache: "no-store",
+      signal,
+    })
 
-    if (!latestRes.ok || !historyRes.ok || !alertsRes.ok || !heartbeatRes.ok) {
-      throw new Error("Failed to load one or more remote radar resources")
+    if (!res.ok) {
+      throw new Error(`Radar API failed: ${res.status}`)
     }
 
-    const [latestJson, historyJson, alertsJson, heartbeatJson] = await Promise.all([
-      latestRes.json(),
-      historyRes.json(),
-      alertsRes.json(),
-      heartbeatRes.json(),
-    ])
+    const json: RadarApiResponse = await res.json()
 
-    setData(latestJson)
-    setHistory(Array.isArray(historyJson) ? historyJson : [])
-    setAlerts(Array.isArray(alertsJson) ? alertsJson : [])
-    setHeartbeatData({ ...heartbeatJson })
+    const nextData =
+      json?.data ??
+      json?.latest ??
+      json?.latestData ??
+      null
+
+    const nextHistory =
+      Array.isArray(json?.history)
+        ? json.history
+        : Array.isArray(json?.historyData)
+        ? json.historyData
+        : []
+
+    const nextHeartbeat =
+      json?.heartbeatData ??
+      json?.heartbeat ??
+      null
+
+    const nextAlerts =
+      Array.isArray(json?.alerts)
+        ? json.alerts
+        : Array.isArray(json?.sentinelEvents)
+        ? json.sentinelEvents
+        : Array.isArray(json?.alertsHistory)
+        ? json.alertsHistory
+        : []
+
+    setData(nextData)
+    setHistory(nextHistory)
+    setHeartbeatData(nextHeartbeat)
+    setAlerts(nextAlerts)
   }, [])
 
   const refresh = useCallback(

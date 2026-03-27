@@ -25,7 +25,7 @@ export function useSentinelData() {
       }
 
       const json = await res.json()
-      setEvents(Array.isArray(json) ? json : [])
+      setEvents(Array.isArray(json?.sentinelEvents) ? json.sentinelEvents : [])
       setError(null)
     } catch (err) {
       if (signal?.aborted) return
