@@ -1,3 +1,7 @@
+export type RadarLevel = "LOW" | "MEDIUM" | "HIGH" | "VERY HIGH"
+export type RadarProbability = "STANDBY" | "LOW" | "MEDIUM" | "HIGH" | "VERY HIGH"
+export type TrendDirection = "UP" | "DOWN" | "FLAT"
+
 export type RadarPattern = {
   tag?: string
   boost?: number
@@ -59,7 +63,7 @@ export type RadarData = {
   patterns: RadarPattern[]
   activationProbability: number
   score: number
-  level: string
+  level: RadarLevel | string
   significance: string
   rarityScore: number
   focusAreas: string[]
@@ -73,7 +77,7 @@ export type RadarData = {
   changedFiles: string[]
   generatedAt: string
   trend?: number
-  trendDirection?: string
+  trendDirection?: TrendDirection | string
   breakdown?: RadarBreakdown
   advancedSignals?: AdvancedSignals
   whyItMatters?: string
@@ -81,18 +85,18 @@ export type RadarData = {
 
 export type AlertItem = {
   id?: string
-  sentAt: string
+  sentAt?: string
+  generatedAt?: string
   priority?: string
   reason?: string
   signature?: string
   score?: number
-  level?: string
+  level?: RadarLevel | string
   trend?: number
-  trendDirection?: string
+  trendDirection?: TrendDirection | string
   movementPct?: number
   tags?: string[]
   patterns?: RadarPattern[]
-  generatedAt?: string
   summary?: string
   insight?: string
   focusAreas?: string[]
@@ -137,9 +141,9 @@ export type SentinelEvent = {
   triggerReason?: string
   triggerThreshold?: string
   summary?: string
-  level?: string
+  level?: RadarLevel | string
   signalType?: string
-  probability?: string
+  probability?: RadarProbability | string
   reason?: string
 }
 
@@ -149,4 +153,13 @@ export type HeartbeatData = {
   lastSuccessAt?: string | null
   status?: string
   scheduleMinutes?: number
+}
+
+export type RadarApiSyncMeta = {
+  latestGeneratedAt?: string | null
+  historyLatestAt?: string | null
+  heartbeatAt?: string | null
+  sentinelLatestAt?: string | null
+  isSynchronized: boolean
+  driftMs: number
 }

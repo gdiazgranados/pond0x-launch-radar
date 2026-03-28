@@ -12,6 +12,8 @@ import { RecentAlerts } from "./components/radar/RecentAlerts"
 import { TrendGraph } from "./components/radar/TrendGraph"
 import { useSentinelData } from "./hooks/useSentinelData"
 import { SentinelPanel } from "./components/radar/SentinelPanel"
+import { evaluateAlpha } from "./lib/alpha"
+import { AlphaPanel } from "./components/AlphaPanel"
 import {
   clampPercent,
   getHeartbeatStatus,
@@ -33,6 +35,22 @@ type RadarPattern =
       reasons?: string[]
     }
 
+function formatSnapshotId(snapshotId?: string | null) {
+  if (!snapshotId) return "..."
+
+  const match = snapshotId.match(/^(\d{4}-\d{2}-\d{2})_(\d{2})(\d{2})(\d{2})$/)
+
+  if (!match) return snapshotId
+
+  const [, datePart, hh, mm, ss] = match
+  return (
+    <>
+      <span className="block">{datePart}</span>
+      <span className="mt-1 block">{`${hh}:${mm}:${ss}`}</span>
+    </>
+  )
+}
+
 function TrendBadge({
   trendDirection,
   trend,
@@ -47,8 +65,8 @@ function TrendBadge({
     direction === "UP"
       ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
       : direction === "DOWN"
-      ? "border-red-500/30 bg-red-500/10 text-red-300"
-      : "border-white/10 bg-white/5 text-slate-300"
+        ? "border-red-500/30 bg-red-500/10 text-red-300"
+        : "border-white/10 bg-white/5 text-slate-300"
 
   const arrow = direction === "UP" ? "↑" : direction === "DOWN" ? "↓" : "→"
 
@@ -77,10 +95,10 @@ function Gauge({
     tone === "yellow"
       ? "bg-yellow-400"
       : tone === "emerald"
-      ? "bg-emerald-400"
-      : tone === "orange"
-      ? "bg-orange-400"
-      : "bg-cyan-400"
+        ? "bg-emerald-400"
+        : tone === "orange"
+          ? "bg-orange-400"
+          : "bg-cyan-400"
 
   return (
     <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
@@ -89,10 +107,7 @@ function Gauge({
         <span className="text-slate-300">{value}%</span>
       </div>
       <div className="h-3 w-full rounded-full bg-white/10">
-        <div
-          className={`h-3 rounded-full ${barTone}`}
-          style={{ width: `${clampPercent(value)}%` }}
-        />
+        <div className={`h-3 rounded-full ${barTone}`} style={{ width: `${clampPercent(value)}%` }} />
       </div>
     </div>
   )
@@ -153,6 +168,34 @@ function getPriorityMode(data: any) {
   }
 }
 
+function getAlphaClassTone(alphaClass: string) {
+  switch (alphaClass) {
+    case "CRITICAL":
+      return "text-red-300"
+    case "ACTIONABLE":
+      return "text-orange-300"
+    case "SETUP":
+      return "text-yellow-300"
+    case "WATCH":
+      return "text-cyan-300"
+    default:
+      return "text-slate-300"
+  }
+}
+
+function getTriggerStateTone(triggerState: string) {
+  switch (triggerState) {
+    case "TRIGGERED":
+      return "text-red-300"
+    case "ARMED":
+      return "text-orange-300"
+    case "WATCHING":
+      return "text-cyan-300"
+    default:
+      return "text-slate-300"
+  }
+}
+
 export default function Home() {
   const { data, history, alerts, loading, heartbeatData } = useRadarData()
   const { latestEvent } = useSentinelData()
@@ -178,43 +221,50 @@ export default function Home() {
     [prioritizedData?.level]
   )
 
-  const signalType = useMemo(
-    () => getSignalType(prioritizedData),
-    [prioritizedData]
-  )
+  const signalType = useMemo(() => getSignalType(prioritizedData), [prioritizedData])
 
   const launchProbability = useMemo(
     () => getLaunchProbability(prioritizedData),
     [prioritizedData]
   )
 
-  const narrative = useMemo(
-    () => buildNarrative(prioritizedData),
-    [prioritizedData]
-  )
+  const activationProbability = useMemo(() => {
+    return Number(prioritizedData?.activationProbability ?? data?.activationProbability ?? 0)
+  }, [prioritizedData, data])
+
+  const narrative = useMemo(() => buildNarrative(prioritizedData), [prioritizedData])
+
+  const effectiveFreshnessDate = useMemo(() => {
+    const hb = heartbeatData?.lastSuccessAt || heartbeatData?.lastRunAt
+    const hist = history?.[0]?.generatedAt
+
+    const hbTs = hb ? new Date(hb).getTime() : 0
+    const histTs = hist ? new Date(hist).getTime() : 0
+
+    if (!hbTs && !histTs) return undefined
+    return new Date(Math.max(hbTs, histTs)).toISOString()
+  }, [heartbeatData?.lastSuccessAt, heartbeatData?.lastRunAt, history])
 
   const heartbeat = getHeartbeatStatus(
-    heartbeatData?.lastSuccessAt || heartbeatData?.lastRunAt || undefined,
+    effectiveFreshnessDate,
     heartbeatData?.scheduleMinutes || 5
   )
 
   const previousPollAt = useMemo(() => {
-    const lastSuccess = heartbeatData?.lastSuccessAt
-    if (!lastSuccess) return null
-    const dt = new Date(lastSuccess)
+    if (!effectiveFreshnessDate) return null
+    const dt = new Date(effectiveFreshnessDate)
     return Number.isNaN(dt.getTime()) ? null : dt.toISOString()
-  }, [heartbeatData?.lastSuccessAt])
+  }, [effectiveFreshnessDate])
 
   const nextPollAt = useMemo(() => {
-    const lastRun = heartbeatData?.lastRunAt
     const scheduleMinutes = Number(heartbeatData?.scheduleMinutes ?? 5)
-    if (!lastRun) return null
+    if (!effectiveFreshnessDate) return null
 
-    const dt = new Date(lastRun)
+    const dt = new Date(effectiveFreshnessDate)
     if (Number.isNaN(dt.getTime())) return null
 
     return new Date(dt.getTime() + scheduleMinutes * 60 * 1000).toISOString()
-  }, [heartbeatData?.lastRunAt, heartbeatData?.scheduleMinutes])
+  }, [effectiveFreshnessDate, heartbeatData?.scheduleMinutes])
 
   const nextSweepCountdown = useMemo(() => {
     if (!nextPollAt) return null
@@ -249,70 +299,88 @@ export default function Home() {
     }).length
   }, [history])
 
-const confidenceScore = useMemo(() => {
-  const score = Number(prioritizedData?.score ?? data?.score ?? 0)
-  const movement = Number(prioritizedData?.movementPct ?? data?.movementPct ?? 0)
-  const trend = Number(prioritizedData?.trend ?? data?.trend ?? 0)
+  const confidenceScore = useMemo(() => {
+    const score = Number(prioritizedData?.score ?? data?.score ?? 0)
+    const movement = Number(prioritizedData?.movementPct ?? data?.movementPct ?? 0)
+    const trend = Number(prioritizedData?.trend ?? data?.trend ?? 0)
 
-  const raw = score * 0.6 + movement * 0.2 + trend * 2
-  return Math.max(0, Math.min(100, Math.round(raw)))
-}, [prioritizedData, data])
+    const raw = score * 0.6 + movement * 0.2 + trend * 2
+    return Math.max(0, Math.min(100, Math.round(raw)))
+  }, [prioritizedData, data])
 
-const readinessState = useMemo(() => {
-  const score = Number(prioritizedData?.score ?? data?.score ?? 0)
-  const movement = Number(prioritizedData?.movementPct ?? data?.movementPct ?? 0)
-  const trend = Number(prioritizedData?.trend ?? data?.trend ?? 0)
-  const tags = prioritizedData?.tags || data?.tags || []
-  const signals = prioritizedData?.signals || data?.signals || []
-
-  const hasRewards =
-    tags.includes("REWARDS") ||
-    signals.includes("reward") ||
-    signals.includes("claim")
-
-  const hasWalletConnect =
-    signals.includes("connect") &&
-    (signals.includes("ethereum") || signals.includes("solana"))
-
-  const confidence =
-    Math.max(0, Math.min(100, Math.round(score * 0.6 + movement * 0.2 + trend * 2)))
-
-  if (
-    score >= 80 ||
-    confidence >= 75 ||
-    (hasRewards && hasWalletConnect && burstCount >= 2)
-  ) {
-    return {
-      label: "ARMED",
-      tone: "text-red-300",
-      badge: "border-red-500/30 bg-red-500/10 text-red-200",
-      note: "critical launch modules aligned",
-    }
-  }
-
-  if (
-    score >= 35 ||
-    confidence >= 45 ||
-    movement >= 10 ||
-    trend >= 3 ||
-    hasRewards ||
-    hasWalletConnect
-  ) {
-    return {
-      label: "BUILDING",
-      tone: "text-yellow-300",
-      badge: "border-yellow-500/30 bg-yellow-500/10 text-yellow-200",
-      note: "stacking pre-launch conditions",
-    }
-  }
-
-  return {
-    label: "STANDBY",
-    tone: "text-emerald-300",
-    badge: "border-emerald-500/30 bg-emerald-500/10 text-emerald-200",
-    note: "monitoring baseline activity",
-  }
+  const alpha = useMemo(() => {
+  return evaluateAlpha({
+    score: Number(prioritizedData?.score ?? data?.score ?? 0),
+    movementPct: Number(prioritizedData?.movementPct ?? data?.movementPct ?? 0),
+    trend: Number(prioritizedData?.trend ?? data?.trend ?? 0),
+    level: prioritizedData?.level ?? data?.level ?? "LOW",
+    tags: prioritizedData?.tags ?? data?.tags ?? [],
+    signals: prioritizedData?.signals ?? data?.signals ?? [],
+    activationProbability: Number(
+      prioritizedData?.activationProbability ?? data?.activationProbability ?? 0
+    ),
+    patternBoost: Number(
+      prioritizedData?.breakdown?.patternBoost ?? data?.breakdown?.patternBoost ?? 0
+    ),
+    burstCount,
+  })
 }, [prioritizedData, data, burstCount])
+
+  const readinessState = useMemo(() => {
+    const score = Number(prioritizedData?.score ?? data?.score ?? 0)
+    const movement = Number(prioritizedData?.movementPct ?? data?.movementPct ?? 0)
+    const trend = Number(prioritizedData?.trend ?? data?.trend ?? 0)
+    const tags = prioritizedData?.tags || data?.tags || []
+    const signals = prioritizedData?.signals || data?.signals || []
+
+    const hasRewards =
+      tags.includes("REWARDS") || signals.includes("reward") || signals.includes("claim")
+
+    const hasWalletConnect =
+      signals.includes("connect") &&
+      (signals.includes("ethereum") || signals.includes("solana"))
+
+    const confidence = Math.max(
+      0,
+      Math.min(100, Math.round(score * 0.6 + movement * 0.2 + trend * 2))
+    )
+
+    if (
+      score >= 80 ||
+      confidence >= 75 ||
+      (hasRewards && hasWalletConnect && burstCount >= 2)
+    ) {
+      return {
+        label: "ARMED",
+        tone: "text-red-300",
+        badge: "border-red-500/30 bg-red-500/10 text-red-200",
+        note: "critical launch modules aligned",
+      }
+    }
+
+    if (
+      score >= 35 ||
+      confidence >= 45 ||
+      movement >= 10 ||
+      trend >= 3 ||
+      hasRewards ||
+      hasWalletConnect
+    ) {
+      return {
+        label: "BUILDING",
+        tone: "text-yellow-300",
+        badge: "border-yellow-500/30 bg-yellow-500/10 text-yellow-200",
+        note: "stacking pre-launch conditions",
+      }
+    }
+
+    return {
+      label: "STANDBY",
+      tone: "text-emerald-300",
+      badge: "border-emerald-500/30 bg-emerald-500/10 text-emerald-200",
+      note: "monitoring baseline activity",
+    }
+  }, [prioritizedData, data, burstCount])
 
   const tickerItems = useMemo(() => {
     const latestItem = prioritizedData
@@ -337,14 +405,21 @@ const readinessState = useMemo(() => {
       label: "HIST",
     }))
 
-    const alertItems = alerts.slice(0, 5).map((alert, index) => ({
-      id: `alert-${alert.id || index}-${alert.sentAt}-${index}`,
-      time: shortTime(alert.sentAt),
-      level: alert.level || "LOW",
-      signalType: getSignalType(alert),
-      probability: probabilityFromLevel(alert.level),
-      label: "ALERT",
-    }))
+    const alertItems = alerts
+      .slice(0, 5)
+      .map((alert, index) => {
+        const alertTimestamp = alert.sentAt || alert.generatedAt || null
+
+        return {
+          id: `alert-${alert.id || index}-${alertTimestamp || "no-ts"}-${index}`,
+          time: alertTimestamp ? shortTime(alertTimestamp) : "no-ts",
+          level: alert.level || "LOW",
+          signalType: getSignalType(alert),
+          probability: probabilityFromLevel(alert.level),
+          label: "ALERT",
+        }
+      })
+      .filter((item) => item.time !== "no-ts")
 
     return [...latestItem, ...alertItems, ...historyItems].slice(0, 10)
   }, [prioritizedData, tapeHistory, alerts])
@@ -383,12 +458,10 @@ const readinessState = useMemo(() => {
                   {priorityMode.mode === "CRITICAL"
                     ? "🚨"
                     : priorityMode.mode === "VERY_HIGH"
-                    ? "⚠️"
-                    : "📡"}
+                      ? "⚠️"
+                      : "📡"}
                 </span>
-                <span className="font-semibold">
-                  {narrative?.headline || priorityMode.title}
-                </span>
+                <span className="font-semibold">{narrative?.headline || priorityMode.title}</span>
               </div>
 
               <div className="flex flex-wrap items-center gap-3 text-xs">
@@ -442,8 +515,8 @@ const readinessState = useMemo(() => {
               <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                 <MetricCard
                   label="Snapshot"
-                  value={data?.id || "..."}
-                  valueClassName="break-all text-lg sm:text-xl text-white leading-tight"
+                  value={formatSnapshotId(data?.id)}
+                  valueClassName="font-mono text-lg sm:text-xl text-white leading-tight"
                 />
                 <MetricCard
                   label="Score"
@@ -453,7 +526,7 @@ const readinessState = useMemo(() => {
                 <MetricCard
                   label="Signal Type"
                   value={signalType}
-                  valueClassName="text-cyan-300"
+                  valueClassName="text-cyan-300 text-[clamp(1.75rem,3vw,3rem)] leading-tight"
                 />
                 <MetricCard
                   label="Launch Probability"
@@ -492,9 +565,7 @@ const readinessState = useMemo(() => {
                   Activation Probability
                 </div>
                 <div className="mt-2 flex items-center justify-between gap-4">
-                  <div className="text-2xl font-bold text-white">
-                    {data?.activationProbability ?? 0}%
-                  </div>
+                  <div className="text-2xl font-bold text-white">{activationProbability}%</div>
                   <div className="text-right text-xs text-slate-400">
                     pattern-driven signal confidence
                   </div>
@@ -502,7 +573,7 @@ const readinessState = useMemo(() => {
                 <div className="mt-3 h-2 w-full rounded-full bg-white/10">
                   <div
                     className="h-2 rounded-full bg-orange-400"
-                    style={{ width: `${clampPercent(data?.activationProbability ?? 0)}%` }}
+                    style={{ width: `${clampPercent(activationProbability)}%` }}
                   />
                 </div>
               </div>
@@ -557,24 +628,23 @@ const readinessState = useMemo(() => {
             previousPollAt={previousPollAt}
             nextSweepCountdown={nextSweepCountdown}
             source={heartbeatData?.source}
-            freshnessDate={heartbeatData?.lastSuccessAt || heartbeatData?.lastRunAt || undefined}
+            freshnessDate={effectiveFreshnessDate}
           />
-          <CheckInTape items={checkInHistory.map((item) => ({
-            id: `${item.id}-${item.generatedAt}`,
-            time: shortTime(item.generatedAt),
-            full: formatDate(item.generatedAt),
-            level: item.level || "LOW",
-          }))} />
+          <CheckInTape
+            items={checkInHistory.map((item) => ({
+              id: `${item.id}-${item.generatedAt}`,
+              time: shortTime(item.generatedAt),
+              full: formatDate(item.generatedAt),
+              level: item.level || "LOW",
+            }))}
+          />
         </section>
 
         <section className="grid gap-5 xl:grid-cols-[1fr_1fr]">
           {isPriorityView && (
-            <div className="space-y-5 mb-5">
+            <div className="mb-5 space-y-5">
               <div className="rounded-3xl border border-orange-500/30 bg-orange-500/10 p-5">
-                <SectionTitle
-                  title="Priority Readout"
-                  subtitle="Immediate signal interpretation"
-                />
+                <SectionTitle title="Priority Readout" subtitle="Immediate signal interpretation" />
 
                 <div className="grid gap-4 lg:grid-cols-2">
                   <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
@@ -604,7 +674,7 @@ const readinessState = useMemo(() => {
                 />
 
                 <div className="flex flex-wrap gap-3">
-                  {(data?.patterns || []).slice(0, 4).map((p: any, i: number) => {
+                  {(data?.patterns || []).slice(0, 4).map((p: RadarPattern, i: number) => {
                     const label = typeof p === "string" ? p : p?.tag || "UNKNOWN"
                     return (
                       <span
@@ -659,16 +729,8 @@ const readinessState = useMemo(() => {
                   value={Number(prioritizedData?.score ?? data?.score ?? 0)}
                   tone="cyan"
                 />
-                <Gauge
-                  label="Activation Probability"
-                  value={Number(data?.activationProbability ?? 0)}
-                  tone="orange"
-                />
-                <Gauge
-                  label="Changed %"
-                  value={Number(data?.changedPct ?? 0)}
-                  tone="yellow"
-                />
+                <Gauge label="Activation Probability" value={Number(activationProbability)} tone="orange" />
+                <Gauge label="Changed %" value={Number(data?.changedPct ?? 0)} tone="yellow" />
                 <Gauge
                   label="Movement %"
                   value={Number(prioritizedData?.movementPct ?? data?.movementPct ?? 0)}
@@ -732,9 +794,7 @@ const readinessState = useMemo(() => {
                       <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">
                         Generated
                       </div>
-                      <div className="mt-2 text-sm text-slate-300">
-                        {formatDate(data?.generatedAt)}
-                      </div>
+                      <div className="mt-2 text-sm text-slate-300">{formatDate(data?.generatedAt)}</div>
                     </div>
                   </div>
                 </div>
@@ -745,8 +805,7 @@ const readinessState = useMemo(() => {
                     subtitle="Human-readable interpretation layer"
                     right={
                       <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-300">
-                        Confidence{" "}
-                        {data?.confidence ? `${Math.round(data.confidence * 100)}%` : "0%"}
+                        Confidence {data?.confidence ? `${Math.round(data.confidence * 100)}%` : "0%"}
                       </span>
                     }
                   />
@@ -755,9 +814,7 @@ const readinessState = useMemo(() => {
                     <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">
                       Summary
                     </div>
-                    <p className="mt-2 text-sm leading-7 text-slate-300">
-                      {data?.summary || "..."}
-                    </p>
+                    <p className="mt-2 text-sm leading-7 text-slate-300">{data?.summary || "..."}</p>
                   </div>
 
                   <div className="mt-4 rounded-2xl border border-cyan-500/20 bg-cyan-500/[0.04] p-4">
@@ -791,10 +848,20 @@ const readinessState = useMemo(() => {
                   <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">
                     Terminal Status
                   </div>
-                  <div className="mt-2 text-lg font-semibold text-white">
-                    {palette.label}
-                  </div>
+                  <div className="mt-2 text-lg font-semibold text-white">{palette.label}</div>
                 </div>
+
+                <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                  <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">
+                    Readiness State
+                  </div>
+                  <div className={`mt-2 text-lg font-semibold ${readinessState.tone}`}>
+                    {readinessState.label}
+                  </div>
+                  <div className="mt-1 text-xs text-slate-400">{readinessState.note}</div>
+                </div>
+
+                <AlphaPanel alpha={alpha} />
 
                 <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
                   <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">
@@ -817,39 +884,23 @@ const readinessState = useMemo(() => {
             </div>
 
             <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-              <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">
-                Velocity
-              </div>
+              <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">Velocity</div>
               <div className="mt-2 text-2xl font-semibold text-cyan-300">
                 {velocity > 0 ? `+${velocity}` : velocity}
               </div>
-              <div className="mt-1 text-xs text-slate-400">
-                score change vs previous sweep
-              </div>
+              <div className="mt-1 text-xs text-slate-400">score change vs previous sweep</div>
             </div>
 
             <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-              <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">
-                Burst / 5m
-              </div>
-              <div className="mt-2 text-2xl font-semibold text-orange-300">
-                {burstCount}
-              </div>
-              <div className="mt-1 text-xs text-slate-400">
-                recent events in last 5 minutes
-              </div>
+              <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">Burst / 5m</div>
+              <div className="mt-2 text-2xl font-semibold text-orange-300">{burstCount}</div>
+              <div className="mt-1 text-xs text-slate-400">recent events in last 5 minutes</div>
             </div>
 
             <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-              <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">
-                Confidence
-              </div>
-              <div className="mt-2 text-2xl font-semibold text-emerald-300">
-                {confidenceScore}%
-              </div>
-              <div className="mt-1 text-xs text-slate-400">
-                weighted launch confidence
-              </div>
+              <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">Confidence</div>
+              <div className="mt-2 text-2xl font-semibold text-emerald-300">{confidenceScore}%</div>
+              <div className="mt-1 text-xs text-slate-400">weighted launch confidence</div>
             </div>
 
             <TrendGraph values={recentHistory.map((h) => h.score)} />

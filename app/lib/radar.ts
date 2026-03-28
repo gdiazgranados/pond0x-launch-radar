@@ -1,4 +1,5 @@
 import { minutesSince } from "./date"
+import type { RadarProbability } from "../types/radar"
 
 export function clampPercent(value?: number) {
   const n = Number(value ?? 0)
@@ -56,8 +57,10 @@ export function buildLinePoints(
 
   return values
     .map((value, index) => {
-      const x = values.length === 1 ? width / 2 : (index / (values.length - 1)) * width
-      const y = height - (value / Math.max(maxValue, 1)) * height
+      const safeValue = Number(value ?? 0)
+      const x =
+        values.length === 1 ? width / 2 : (index / (values.length - 1)) * width
+      const y = height - (safeValue / Math.max(maxValue, 1)) * height
       return `${x},${y}`
     })
     .join(" ")
@@ -87,7 +90,7 @@ export function getLevelPalette(level?: string) {
         text: "text-yellow-300",
         bar: "bg-yellow-400",
         dot: "bg-yellow-400",
-        label: "BUILDUP",
+        label: "BUILDING",
       }
     default:
       return {
@@ -135,32 +138,23 @@ export function getLaunchProbability(data?: {
   movementPct?: number
   tags?: string[]
   signals?: string[]
-} | null) {
+} | null): RadarProbability {
   if (!data) return "STANDBY"
 
-  const score = data.score ?? 0
-  const movementPct = data.movementPct ?? 0
+  const score = Number(data.score ?? 0)
+  const movementPct = Number(data.movementPct ?? 0)
   const tags = data.tags || []
   const signals = data.signals || []
   const signalType = getSignalType(data)
-  const trend = data.trend ?? 0
+  const trend = Number(data.trend ?? 0)
 
-  if (
-    score === 0 &&
-    movementPct === 0 &&
-    tags.length === 0 &&
-    signals.length === 0
-  ) {
+  if (score === 0 && movementPct === 0 && tags.length === 0 && signals.length === 0) {
     return "STANDBY"
   }
 
   if (data.level === "VERY HIGH") return "VERY HIGH"
 
-  if (
-    data.level === "HIGH" ||
-    score >= 60 ||
-    (movementPct >= 30 && trend >= 5)
-  ) {
+  if (data.level === "HIGH" || score >= 60 || (movementPct >= 30 && trend >= 5)) {
     return "HIGH"
   }
 
@@ -175,6 +169,8 @@ export function getLaunchProbability(data?: {
     return "MEDIUM"
   }
 
+  if (data.level === "LOW") return "LOW"
+
   return "LOW"
 }
 
@@ -186,14 +182,15 @@ export function probabilityClass(probability: string) {
       return "border-orange-500/40 bg-orange-500/10 text-orange-200"
     case "MEDIUM":
       return "border-yellow-500/40 bg-yellow-500/10 text-yellow-200"
-    case "DORMANT":
+    case "STANDBY":
       return "border-slate-500/30 bg-slate-500/10 text-slate-300"
+    case "LOW":
     default:
       return "border-emerald-500/30 bg-emerald-500/10 text-emerald-200"
   }
 }
 
-export function probabilityFromLevel(level?: string) {
+export function probabilityFromLevel(level?: string): RadarProbability {
   if (level === "VERY HIGH") return "VERY HIGH"
   if (level === "HIGH") return "HIGH"
   if (level === "MEDIUM") return "MEDIUM"
@@ -215,6 +212,7 @@ export function getTickerTone(level?: string) {
       return "text-emerald-300"
   }
 }
+
 export function prioritizeLaunchSignals<
   T extends {
     level?: string
@@ -226,9 +224,11 @@ export function prioritizeLaunchSignals<
     trendDirection?: string
     id?: string
     generatedAt?: string
-    breakdown?: any
+    breakdown?: unknown
   }
->(data?: T | null): (T & {
+>(
+  data?: T | null
+): (T & {
   score: number
   movementPct: number
   trend: number
@@ -256,7 +256,8 @@ export function prioritizeLaunchSignals<
     "verify",
   ]
 
-  const matchedSignals = signals.filter((s) => criticalSignals.includes(s))
+  const matchedSignals = signals.filter((signal) => criticalSignals.includes(signal))
+
   const hasRewardsTag = tags.includes("REWARDS")
   const hasLaunchTag = tags.includes("LAUNCH_IMMINENT")
 
@@ -312,9 +313,11 @@ export function buildNarrative(data?: {
 
   if (tags.includes("REWARDS")) context.push("REWARD_FLOW")
   if (signals.includes("connect")) context.push("UI_ARMING")
-  if (signals.includes("ethereum") || signals.includes("solana")) context.push("CHAIN_ACTIVITY")
-  if ((data.movementPct ?? 0) > 20) context.push("BEHAVIOR_SPIKE")
-  if ((data.trend ?? 0) > 5) context.push("TREND_ACCELERATION")
+  if (signals.includes("ethereum") || signals.includes("solana")) {
+    context.push("CHAIN_ACTIVITY")
+  }
+  if (Number(data.movementPct ?? 0) > 20) context.push("BEHAVIOR_SPIKE")
+  if (Number(data.trend ?? 0) > 5) context.push("TREND_ACCELERATION")
 
   return { headline, context }
 }

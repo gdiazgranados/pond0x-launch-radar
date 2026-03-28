@@ -6,33 +6,30 @@ export function TrendGraph({
 }: {
   values: number[]
 }) {
+  const safeValues = values
+    .map((value) => Number(value ?? 0))
+    .filter((value) => Number.isFinite(value))
+
   const width = 600
   const height = 120
-  const maxValue = Math.max(...values, 1)
-
-  const points = buildLinePoints(values, width, height, maxValue)
+  const maxValue = Math.max(...safeValues, 1)
+  const points = buildLinePoints(safeValues, width, height, maxValue)
 
   return (
     <section className="mt-5 rounded-2xl border border-white/10 bg-[#05070a] p-5">
-      <SectionTitle
-        title="Trend Graph"
-        subtitle="Movement score evolution"
-      />
+      <SectionTitle title="Trend Graph" subtitle="Movement score evolution" />
 
-      {values.length > 0 ? (
+      {safeValues.length > 0 ? (
         <div className="overflow-x-auto">
           <svg
             width={width}
             height={height}
             viewBox={`0 0 ${width} ${height}`}
-            className="w-full"
+            className="w-full min-w-[600px]"
+            role="img"
+            aria-label="Trend graph of movement score evolution"
           >
-            <polyline
-              fill="none"
-              stroke="#22d3ee"
-              strokeWidth="2"
-              points={points}
-            />
+            <polyline fill="none" stroke="#22d3ee" strokeWidth="2" points={points} />
           </svg>
         </div>
       ) : (

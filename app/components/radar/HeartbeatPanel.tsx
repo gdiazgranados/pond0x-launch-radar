@@ -8,6 +8,26 @@ type HeartbeatTone = {
   dot: string
 }
 
+type HeartbeatPanelProps = {
+  heartbeat: HeartbeatTone
+  nextPollAt: string | null
+  previousPollAt: string | null
+  nextSweepCountdown: string | null
+  source?: string | null
+  freshnessDate?: string
+}
+
+function formatMexicoCityDate(value: string | null) {
+  if (!value) return "—"
+
+  const dt = new Date(value)
+  if (Number.isNaN(dt.getTime())) return "—"
+
+  return dt.toLocaleString("es-MX", {
+    timeZone: "America/Mexico_City",
+  })
+}
+
 export function HeartbeatPanel({
   heartbeat,
   nextPollAt,
@@ -15,14 +35,9 @@ export function HeartbeatPanel({
   nextSweepCountdown,
   source,
   freshnessDate,
-}: {
-  heartbeat: HeartbeatTone
-  nextPollAt: string | null
-  previousPollAt: string | null
-  nextSweepCountdown: string | null
-  source?: string | null
-  freshnessDate?: string
-}) {
+}: HeartbeatPanelProps) {
+  const isOverdue = nextSweepCountdown === "overdue"
+
   return (
     <div className="rounded-2xl border border-white/10 bg-[#05070a] p-5">
       <SectionTitle
@@ -39,10 +54,10 @@ export function HeartbeatPanel({
           {heartbeat.label === "FRESH"
             ? "within schedule"
             : heartbeat.label === "LAGGING"
-            ? "delayed sweep"
-            : heartbeat.label === "STALE"
-            ? "active monitor"
-            : "no signal"}
+              ? "delayed sweep"
+              : heartbeat.label === "STALE"
+                ? "active monitor"
+                : "no signal"}
         </span>
       </div>
 
@@ -51,23 +66,11 @@ export function HeartbeatPanel({
           <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">
             Next expected sweep
           </div>
-          <div className="mt-2 text-sm font-medium text-white">
-            {nextPollAt
-              ? new Date(nextPollAt).toLocaleString("es-MX", {
-                  timeZone: "America/Mexico_City",
-                })
-              : "—"}
-          </div>
+          <div className="mt-2 text-sm font-medium text-white">{formatMexicoCityDate(nextPollAt)}</div>
           <div
-            className={`mt-2 text-xs ${
-              nextSweepCountdown === "overdue"
-                ? "text-yellow-400 animate-pulse"
-                : "text-slate-500"
-            }`}
+            className={`mt-2 text-xs ${isOverdue ? "animate-pulse text-yellow-400" : "text-slate-500"}`}
           >
-            {nextSweepCountdown === "overdue"
-              ? "Next sweep overdue"
-              : `Next sweep in: ${nextSweepCountdown ?? "—"}`}
+            {isOverdue ? "Next sweep overdue" : `Next sweep in: ${nextSweepCountdown ?? "—"}`}
           </div>
         </div>
 
@@ -76,18 +79,12 @@ export function HeartbeatPanel({
             Last success
           </div>
           <div className="mt-2 text-sm font-medium text-white">
-            {previousPollAt
-              ? new Date(previousPollAt).toLocaleString("es-MX", {
-                  timeZone: "America/Mexico_City",
-                })
-              : "—"}
+            {formatMexicoCityDate(previousPollAt)}
           </div>
         </div>
 
         <div className="rounded-xl border border-white/10 bg-black/20 p-4">
-          <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">
-            Freshness
-          </div>
+          <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">Freshness</div>
           <div className="mt-2 text-sm font-medium text-white">
             {formatRelativeMinutes(freshnessDate)}
           </div>
@@ -95,7 +92,7 @@ export function HeartbeatPanel({
 
         <div className="rounded-xl border border-white/10 bg-black/20 p-4">
           <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">Source</div>
-          <div className="mt-2 text-sm font-medium text-cyan-300">
+          <div className="mt-2 break-words text-sm font-medium text-cyan-300">
             {source || "github-actions"}
           </div>
         </div>

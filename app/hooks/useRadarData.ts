@@ -1,26 +1,110 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
-import type { RadarData, AlertItem, HeartbeatData } from "../types/radar"
+import type {
+  RadarData,
+  AlertItem,
+  HeartbeatData,
+  RadarApiSyncMeta,
+} from "../types/radar"
 
 type RadarApiResponse = {
   data?: RadarData | null
   latest?: RadarData | null
   latestData?: RadarData | null
-
   history?: RadarData[]
   historyData?: RadarData[]
-
   alerts?: AlertItem[]
   sentinelEvents?: AlertItem[]
   alertsHistory?: AlertItem[]
-
   heartbeatData?: HeartbeatData | null
   heartbeat?: HeartbeatData | null
+  meta?: RadarApiSyncMeta
 }
 
 function apiRadarUrl(cacheBust: number) {
   return `/api/radar?ts=${cacheBust}`
+}
+
+function getSafeTime(value?: string | null) {
+  if (!value) return 0
+  const ts = new Date(value).getTime()
+  return Number.isNaN(ts) ? 0 : ts
+}
+
+function normalizeRadarItem(item: RadarData): RadarData {
+  return {
+    ...item,
+    id: item.id || "unknown-snapshot",
+    totalFiles: Number(item.totalFiles ?? 0),
+    added: Number(item.added ?? 0),
+    changed: Number(item.changed ?? 0),
+    movementCount: Number(item.movementCount ?? 0),
+    movementPct: Number(item.movementPct ?? 0),
+    addedPct: Number(item.addedPct ?? 0),
+    changedPct: Number(item.changedPct ?? 0),
+    patternScore: Number(item.patternScore ?? 0),
+    activationProbability: Number(item.activationProbability ?? 0),
+    score: Number(item.score ?? 0),
+    rarityScore: Number(item.rarityScore ?? 0),
+    confidence: Number(item.confidence ?? 0),
+    signals: Array.isArray(item.signals) ? item.signals : [],
+    patterns: Array.isArray(item.patterns) ? item.patterns : [],
+    focusAreas: Array.isArray(item.focusAreas) ? item.focusAreas : [],
+    sensitiveHits: Array.isArray(item.sensitiveHits) ? item.sensitiveHits : [],
+    changeTypes: Array.isArray(item.changeTypes) ? item.changeTypes : [],
+    tags: Array.isArray(item.tags) ? item.tags : [],
+    changedFiles: Array.isArray(item.changedFiles) ? item.changedFiles : [],
+    generatedAt: item.generatedAt || "",
+    insight: item.insight || "",
+    summary: item.summary || "",
+    note: item.note || "",
+    significance: item.significance || "",
+    level: item.level || "LOW",
+  }
+}
+
+function normalizeAlertItem(item: AlertItem): AlertItem {
+  return {
+    ...item,
+    id: item.id || undefined,
+    sentAt: item.sentAt || undefined,
+    generatedAt: item.generatedAt || undefined,
+    score: Number(item.score ?? 0),
+    trend: Number(item.trend ?? 0),
+    movementPct: Number(item.movementPct ?? 0),
+    level: item.level || "LOW",
+    tags: Array.isArray(item.tags) ? item.tags : [],
+    patterns: Array.isArray(item.patterns) ? item.patterns : [],
+    summary: item.summary || "",
+    insight: item.insight || "",
+    focusAreas: Array.isArray(item.focusAreas) ? item.focusAreas : [],
+    signals: Array.isArray(item.signals) ? item.signals : [],
+  }
+}
+
+function normalizeHeartbeatData(item: HeartbeatData | null): HeartbeatData | null {
+  if (!item) return null
+
+  return {
+    source: item.source || "github-actions",
+    lastRunAt: item.lastRunAt || null,
+    lastSuccessAt: item.lastSuccessAt || null,
+    status: item.status || "unknown",
+    scheduleMinutes: Number(item.scheduleMinutes ?? 60),
+  }
+}
+
+function sortRadarHistory(items: RadarData[]) {
+  return [...items].sort((a, b) => getSafeTime(b.generatedAt) - getSafeTime(a.generatedAt))
+}
+
+function sortAlerts(items: AlertItem[]) {
+  return [...items].sort((a, b) => {
+    const aTs = getSafeTime(a.sentAt || a.generatedAt)
+    const bTs = getSafeTime(b.sentAt || b.generatedAt)
+    return bTs - aTs
+  })
 }
 
 export function useRadarData() {
@@ -30,6 +114,7 @@ export function useRadarData() {
   const [loading, setLoading] = useState(true)
   const [heartbeatData, setHeartbeatData] = useState<HeartbeatData | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [meta, setMeta] = useState<RadarApiSyncMeta | null>(null)
 
   const loadRemoteRadar = useCallback(async (signal?: AbortSignal) => {
     const cacheBust = Date.now()
@@ -45,37 +130,41 @@ export function useRadarData() {
 
     const json: RadarApiResponse = await res.json()
 
-    const nextData =
-      json?.data ??
-      json?.latest ??
-      json?.latestData ??
-      null
+    const rawData = json?.data ?? json?.latest ?? json?.latestData ?? null
 
-    const nextHistory =
-      Array.isArray(json?.history)
-        ? json.history
-        : Array.isArray(json?.historyData)
+    const rawHistory = Array.isArray(json?.history)
+      ? json.history
+      : Array.isArray(json?.historyData)
         ? json.historyData
         : []
 
-    const nextHeartbeat =
-      json?.heartbeatData ??
-      json?.heartbeat ??
-      null
+    const rawHeartbeat = json?.heartbeatData ?? json?.heartbeat ?? null
 
-    const nextAlerts =
-      Array.isArray(json?.alerts)
-        ? json.alerts
-        : Array.isArray(json?.sentinelEvents)
+    const rawAlerts = Array.isArray(json?.alerts)
+      ? json.alerts
+      : Array.isArray(json?.sentinelEvents)
         ? json.sentinelEvents
         : Array.isArray(json?.alertsHistory)
-        ? json.alertsHistory
-        : []
+          ? json.alertsHistory
+          : []
 
-    setData(nextData)
-    setHistory(nextHistory)
-    setHeartbeatData(nextHeartbeat)
-    setAlerts(nextAlerts)
+    const normalizedData = rawData ? normalizeRadarItem(rawData) : null
+
+    const normalizedHistory = sortRadarHistory(
+      rawHistory.filter((item): item is RadarData => !!item).map(normalizeRadarItem)
+    )
+
+    const normalizedAlerts = sortAlerts(
+      rawAlerts.filter((item): item is AlertItem => !!item).map(normalizeAlertItem)
+    )
+
+    const normalizedHeartbeat = normalizeHeartbeatData(rawHeartbeat)
+
+    setData(normalizedData)
+    setHistory(normalizedHistory)
+    setHeartbeatData(normalizedHeartbeat)
+    setAlerts(normalizedAlerts)
+    setMeta(json?.meta || null)
   }, [])
 
   const refresh = useCallback(
@@ -89,30 +178,33 @@ export function useRadarData() {
           setError("No se pudieron cargar los datos del radar")
         }
       } finally {
-        setLoading(false)
+        if (!signal?.aborted) {
+          setLoading(false)
+        }
       }
     },
     [loadRemoteRadar]
   )
 
   useEffect(() => {
-    const controller = new AbortController()
     let isMounted = true
 
-    async function fetchData() {
+    async function fetchData(signal?: AbortSignal) {
       if (!isMounted) return
-      await refresh(controller.signal)
+      await refresh(signal)
     }
 
-    fetchData()
+    const initialController = new AbortController()
+    fetchData(initialController.signal)
 
     const fetchInterval = setInterval(() => {
-      fetchData()
+      const intervalController = new AbortController()
+      fetchData(intervalController.signal)
     }, 60_000)
 
     return () => {
       isMounted = false
-      controller.abort()
+      initialController.abort()
       clearInterval(fetchInterval)
     }
   }, [refresh])
@@ -124,6 +216,7 @@ export function useRadarData() {
     loading,
     heartbeatData,
     error,
+    meta,
     refresh,
   }
 }
