@@ -92,10 +92,15 @@ jobs:
           echo "Heartbeat after success:"
           cat public/data/heartbeat.json
 
-      - name: Commit and push
+            - name: Commit and push
         run: |
           git config --global user.name "radar-bot"
           git config --global user.email "bot@radar.ai"
+
+          git fetch origin radar-data || true
+          git checkout -B radar-data
+          git reset --hard origin/radar-data || true
+
           git add public/data/latest.json public/data/history.json public/data/alerts-history.json public/data/heartbeat.json public/data/sentinel-events.json public/data/sentinel-state.json public/data/discovery.json watcher/last-alert.json
           git commit -m "Auto radar update" || echo "No changes to commit"
-          git push origin HEAD:radar-data
+          git push origin radar-data
