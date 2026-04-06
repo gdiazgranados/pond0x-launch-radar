@@ -43,7 +43,7 @@ function scoreSignals(text) {
 }
 
 async function loadLatestSnapshots() {
-  const snapshotsDir = path.join(__dirname, "snapshots");
+  const snapshotsDir = path.join(process.cwd(), "snapshots");
 
   if (!(await fs.pathExists(snapshotsDir))) {
     throw new Error(`No existe el directorio de snapshots: ${snapshotsDir}`);

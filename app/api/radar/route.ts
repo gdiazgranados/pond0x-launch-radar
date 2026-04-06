@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server"
+import fs from "fs/promises"
+import path from "path"
 
 const OWNER = "gdiazgranados"
 const REPO = "pond0x-launch-radar"
@@ -10,9 +12,9 @@ function getSafeTime(value?: string | null) {
   return Number.isNaN(ts) ? 0 : ts
 }
 
-async function fetchGitHubFile(path: string) {
+async function fetchGitHubFile(filePath: string) {
   const token = process.env.GITHUB_TOKEN
-  const url = `https://raw.githubusercontent.com/${OWNER}/${REPO}/${BRANCH}/${path}`
+  const url = `https://raw.githubusercontent.com/${OWNER}/${REPO}/${BRANCH}/${filePath}`
 
   const res = await fetch(url, {
     headers: token
@@ -24,10 +26,31 @@ async function fetchGitHubFile(path: string) {
   })
 
   if (!res.ok) {
-    throw new Error(`Failed to fetch ${path}: ${res.status}`)
+    throw new Error(`Failed to fetch ${filePath}: ${res.status}`)
   }
 
   return res.json()
+}
+
+async function readLocalJson(filePath: string) {
+  const absolutePath = path.join(process.cwd(), filePath)
+  const raw = await fs.readFile(absolutePath, "utf-8")
+  return JSON.parse(raw)
+}
+
+async function readLocalJsonWithFallback(primaryPath: string, fallbackPath: string) {
+  try {
+    return await readLocalJson(primaryPath)
+  } catch {
+    return readLocalJson(fallbackPath)
+  }
+}
+
+async function loadJson(devPrimaryPath: string, devFallbackPath: string, prodPath: string) {
+  if (process.env.NODE_ENV === "development") {
+    return readLocalJsonWithFallback(devPrimaryPath, devFallbackPath)
+  }
+  return fetchGitHubFile(prodPath)
 }
 
 function normalizeLatest(json: any) {
@@ -121,11 +144,31 @@ export async function GET() {
   try {
     const [latestRaw, historyRaw, heartbeatRaw, sentinelStateRaw, sentinelEventsRaw] =
       await Promise.all([
-        fetchGitHubFile("public/data/latest.json"),
-        fetchGitHubFile("public/data/history.json"),
-        fetchGitHubFile("public/data/heartbeat.json"),
-        fetchGitHubFile("public/data/sentinel-state.json"),
-        fetchGitHubFile("public/data/sentinel-events.json"),
+        loadJson(
+          "public/data/latest.json",
+          "watcher/output/latest.json",
+          "public/data/latest.json"
+        ),
+        loadJson(
+          "public/data/history.json",
+          "watcher/output/history.json",
+          "public/data/history.json"
+        ),
+        loadJson(
+          "public/data/heartbeat.json",
+          "public/data/heartbeat.json",
+          "public/data/heartbeat.json"
+        ),
+        loadJson(
+          "public/data/sentinel-state.json",
+          "watcher/output/sentinel-state.json",
+          "public/data/sentinel-state.json"
+        ),
+        loadJson(
+          "public/data/sentinel-events.json",
+          "watcher/output/sentinel-events.json",
+          "public/data/sentinel-events.json"
+        ),
       ])
 
     const latest = normalizeLatest(latestRaw)
