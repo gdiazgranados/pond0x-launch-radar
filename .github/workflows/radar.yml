@@ -101,6 +101,6 @@ jobs:
           git checkout -B radar-data
           git reset --hard origin/radar-data || true
 
-          git add public/data/latest.json public/data/history.json public/data/alerts-history.json public/data/heartbeat.json public/data/sentinel-events.json public/data/sentinel-state.json public/data/discovery.json watcher/last-alert.json
+          git add public/data/*.json watcher/output/*.json watcher/last-alert.json || true
           git commit -m "Auto radar update" || echo "No changes to commit"
           git push origin radar-data
