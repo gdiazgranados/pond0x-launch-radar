@@ -1,24 +1,250 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🛰️ Pond0x Launch Radar
 
-## Getting Started
+> Real-time intelligence terminal for detecting activation signals across Pond0x surfaces.
 
-First, run the development server:
+---
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## ⚡ What is this?
+
+**Pond0x Launch Radar** is a monitoring and signal-detection system that:
+
+* Tracks frontend changes across Pond0x surfaces
+* Detects activation patterns (wallets, rewards, system readiness)
+* Scores and classifies signals in real-time
+* Generates alerts (Telegram)
+* Visualizes everything in a terminal-style UI
+
+---
+
+## 🧠 System Philosophy
+
+This is **not just a dashboard**.
+
+It is a **dual-layer intelligence system**:
+
+| Layer    | Role                                          |
+| -------- | --------------------------------------------- |
+| Backend  | Detects, scores, and classifies signals       |
+| Frontend | Interprets, visualizes, and amplifies signals |
+
+---
+
+## 🔄 System Flow
+
+```text
+sentinel → capture → radar → discovery → notify
+                      ↓
+               public/data/*.json
+                      ↓
+                   API (/api/radar)
+                      ↓
+                 useRadarData()
+                      ↓
+                    UI
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## ⚙️ Architecture
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 🛰️ Sentinel Layer
+
+* Monitors portal surfaces
+* Detects external changes
+* Outputs:
+
+  * `sentinel-events.json`
+  * `sentinel-state.json`
+
+---
+
+### 📸 Capture Layer
+
+* Captures HTML snapshots
+* Stores historical versions for diffing
+
+---
+
+### 🧠 Radar Engine (Core)
+
+* Compares snapshots
+* Detects signals
+* Computes:
+
+  * Score
+  * Trend
+  * Movement
+  * Alpha
+  * Event Type
+  * Signal Regime
+  * Priority
+  * ETA
+
+📌 **This is the source of truth**
+
+---
+
+### 🧪 Discovery Layer
+
+* Extracts visible UI signals
+* Finds semantic changes
+
+---
+
+### 🚨 Notify Layer
+
+* Sends Telegram alerts
+* Prevents duplicates via signature
+* Stores alert history
+
+---
+
+### 🌐 API Layer
+
+* Aggregates JSON outputs
+* Exposes unified endpoint
+
+---
+
+### 🎨 Frontend Terminal
+
+* Real-time UI
+* Signal tape
+* Alpha panel
+* Alerts + history
+* Narrative layer
+
+---
+
+## 🧠 Intelligence Layers
+
+### 🔴 Backend (Canonical)
+
+Generated in `watcher/radar.js`:
+
+* alphaScore
+* alphaClass
+* triggerState
+* eventType
+* signalRegime
+* signalFusion
+* priority
+* eta
+
+---
+
+### 🟣 Frontend (Editorial)
+
+Generated in `lib/alpha.ts` and `lib/radar.ts`:
+
+* Narrative
+* Visual prioritization
+* UI interpretation
+* Signal amplification
+
+---
+
+## 📊 Data Sources
+
+All runtime data lives in:
+
+```
+/public/data/
+```
+
+Key files:
+
+* `latest.json`
+* `history.json`
+* `alerts-history.json`
+* `heartbeat.json`
+* `sentinel-events.json`
+* `discovery.json`
+
+---
+
+## 🚀 Features
+
+* 🔍 Frontend diff detection
+* 🧠 Signal classification engine
+* 📈 Alpha scoring system
+* 🚨 Telegram alerts
+* 📊 Terminal-style dashboard
+* ⚡ Real-time updates (5 min cadence)
+
+---
+
+## 🧪 Status
+
+| Component       | Status       |
+| --------------- | ------------ |
+| Radar Engine    | ✅ Stable     |
+| Alerts          | ✅ Active     |
+| Sentinel        | ✅ Active     |
+| UI              | ✅ Live       |
+| Types alignment | ⚠️ Improving |
+
+---
+
+## ⚠️ Technical Notes
+
+* Backend is the **source of truth**
+* Frontend adds **interpretation layer**
+* Some logic exists in both layers (intentional for UX)
+
+---
+
+## 🔮 Roadmap
+
+* [ ] Full type alignment with backend contract
+* [ ] Remove legacy fallbacks in hooks
+* [ ] Optional: unify alpha computation
+* [ ] Expand signal classification
+
+---
+
+## 🧩 Why this matters
+
+This system enables:
+
+* Early detection of product activation
+* Signal-based monitoring instead of speculation
+* Real-time operational awareness
+
+---
+
+## 🧠 Philosophy
+
+> Data → Signals → Interpretation → Action
+
+---
+
+## 📡 Live Radar
+
+👉 https://pond0x-launch-radar.vercel.app/
+
+---
+
+## 🛠️ Built with
+
+* Node.js
+* Playwright
+* Next.js
+* TypeScript
+* Tailwind
+* GitHub Actions
+
+---
+
+## ⚠️ Disclaimer
+
+This is an experimental intelligence system.
+Not financial advice.
+
+---
+
+## 🐽 Powered by Pond0x
+vercel.com/font), a new font family for Vercel.
 
 ## Learn More
 
