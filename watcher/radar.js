@@ -29,6 +29,9 @@ const SIGNAL_GROUPS = {
   SYSTEM: ["enabled", "disabled", "portal", "launch"],
 };
 
+const MAX_HISTORY = 200;
+const TRIGGER_PRIORITIES = new Set(["HIGH", "VERY HIGH", "CRITICAL"]);
+
 function scoreSignals(text) {
   const lower = String(text || "").toLowerCase();
   const hits = [];
@@ -224,18 +227,377 @@ function buildInsight(movementPct, signals, detectedGroups) {
   return { insight, confidence };
 }
 
+function ensureArray(value) {
+  return Array.isArray(value) ? value : [];
+}
+
+async function readJsonArraySafe(filePath) {
+  if (!(await fs.pathExists(filePath))) return [];
+  try {
+    const data = await fs.readJson(filePath);
+    return Array.isArray(data) ? data : [];
+  } catch {
+    return [];
+  }
+}
+
+function dedupeById(items) {
+  return items.filter((item, index, arr) => {
+    if (!item || !item.id) return false;
+    return arr.findIndex((x) => x && x.id === item.id) === index;
+  });
+}
+
+function normalizePatternEntry(pattern) {
+  if (typeof pattern === "string") {
+    return {
+      tag: pattern,
+      boost: 0,
+      confidence: "INFO",
+      reasons: [],
+    };
+  }
+
+  return {
+    tag: pattern?.tag || "UNKNOWN",
+    boost: pattern?.boost ?? 0,
+    confidence: pattern?.confidence || "INFO",
+    reasons: ensureArray(pattern?.reasons),
+  };
+}
+
+function round(n) {
+  return Math.round(Number(n || 0) * 100) / 100;
+}
+
+function evaluateAlpha(latest) {
+  const score = Number(latest.score || 0);
+  const movementPct = Number(latest.movementPct || 0);
+  const trend = Number(latest.trend || 0);
+  const patternBoost = Number(latest?.breakdown?.patternBoost || 0);
+
+  const tags = latest.tags || [];
+  const signals = latest.signals || [];
+
+  let alphaRaw =
+    score * 0.35 +
+    movementPct * 0.15 +
+    trend * 1.5 +
+    patternBoost * 0.6;
+
+  const hasRewards =
+    tags.includes("REWARDS") ||
+    signals.includes("reward") ||
+    signals.includes("claim") ||
+    signals.includes("payout");
+
+  const hasWalletStack =
+    signals.includes("connect") &&
+    (signals.includes("ethereum") || signals.includes("solana"));
+
+  const hasAuth =
+    tags.includes("AUTH") ||
+    signals.includes("verify") ||
+    signals.includes("account") ||
+    signals.includes("auth");
+
+  if (hasRewards) alphaRaw += 12;
+  if (hasWalletStack) alphaRaw += 10;
+  if (hasAuth) alphaRaw += 6;
+
+  const alphaScore = Math.max(0, Math.min(100, Math.round(alphaRaw)));
+
+  let alphaClass = "NOISE";
+  if (alphaScore >= 85) alphaClass = "CRITICAL";
+  else if (alphaScore >= 70) alphaClass = "ACTIONABLE";
+  else if (alphaScore >= 50) alphaClass = "SETUP";
+  else if (alphaScore >= 25) alphaClass = "WATCH";
+
+  let triggerState = "IDLE";
+  if (alphaScore >= 85) triggerState = "TRIGGERED";
+  else if (alphaScore >= 70) triggerState = "ARMED";
+  else if (alphaScore >= 25) triggerState = "WATCHING";
+
+  let suggestedAction = "Ignore noise and continue baseline monitoring.";
+
+  if (alphaClass === "WATCH") {
+    suggestedAction = "Watch closely and wait for confirmation.";
+  } else if (alphaClass === "SETUP") {
+    suggestedAction = "Track closely, compare against previous sweeps, and prepare alerts.";
+  } else if (alphaClass === "ACTIONABLE") {
+    suggestedAction = "High-conviction setup. Escalate alerts and monitor aggressively.";
+  } else if (alphaClass === "CRITICAL") {
+    suggestedAction = "Critical signal. Treat as imminent event candidate and escalate immediately.";
+  }
+
+  return {
+    alphaScore,
+    alphaClass,
+    triggerState,
+    suggestedAction,
+  };
+}
+
+function detectEventType(latest) {
+  const tags = latest.tags || [];
+  const signals = latest.signals || [];
+  const score = Number(latest.score || 0);
+  const movementPct = Number(latest.movementPct || 0);
+  const level = latest.level || "LOW";
+
+  const hasRewards =
+    tags.includes("REWARDS") ||
+    signals.includes("reward") ||
+    signals.includes("claim") ||
+    signals.includes("payout") ||
+    signals.includes("airdrop");
+
+  const hasWallet =
+    signals.includes("connect") ||
+    signals.includes("ethereum") ||
+    signals.includes("solana") ||
+    tags.includes("CHAIN");
+
+  const hasAuth =
+    tags.includes("AUTH") ||
+    signals.includes("verify") ||
+    signals.includes("account") ||
+    signals.includes("auth");
+
+  const hasPortal =
+    tags.includes("SYSTEM") ||
+    signals.includes("portal");
+
+  if (hasRewards && hasWallet && score >= 70) {
+    return "REWARD ACTIVATION";
+  }
+
+  if (hasWallet && hasAuth && movementPct >= 10) {
+    return "WALLET ENABLEMENT";
+  }
+
+  if (hasAuth && score >= 45) {
+    return "AUTH STACK CHANGE";
+  }
+
+  if (hasPortal && movementPct >= 10) {
+    return "PORTAL ARMING";
+  }
+
+  if (level === "VERY HIGH") {
+    return "HIGH-PRIORITY SYSTEM EVENT";
+  }
+
+  if (level === "HIGH") {
+    return "ELEVATED SIGNAL EVENT";
+  }
+
+  return "NOISE";
+}
+
+function classifySignalRegime(latest, alpha, eventType) {
+  const score = Number(latest.score || 0);
+  const movementPct = Number(latest.movementPct || 0);
+  const trend = Number(latest.trend || 0);
+  const tags = latest.tags || [];
+  const signals = latest.signals || [];
+
+  const hasRewards =
+    tags.includes("REWARDS") ||
+    signals.includes("reward") ||
+    signals.includes("claim") ||
+    signals.includes("payout") ||
+    signals.includes("airdrop");
+
+  const hasWallet =
+    signals.includes("connect") ||
+    signals.includes("ethereum") ||
+    signals.includes("solana") ||
+    tags.includes("CHAIN");
+
+  const hasAuth =
+    tags.includes("AUTH") ||
+    signals.includes("verify") ||
+    signals.includes("account") ||
+    signals.includes("auth");
+
+  const hasPortal =
+    tags.includes("SYSTEM") ||
+    signals.includes("portal");
+
+  if (
+    alpha.triggerState === "TRIGGERED" &&
+    alpha.alphaClass === "CRITICAL" &&
+    (
+      eventType === "REWARD ACTIVATION" ||
+      (hasRewards && hasWallet && hasAuth) ||
+      (score >= 75 && movementPct >= 15 && trend >= 3)
+    )
+  ) {
+    return "PRE-LAUNCH REAL";
+  }
+
+  if (
+    alpha.alphaClass === "ACTIONABLE" ||
+    alpha.triggerState === "ARMED" ||
+    eventType === "WALLET ENABLEMENT" ||
+    eventType === "PORTAL ARMING"
+  ) {
+    return "HIGH-CONVICTION SETUP";
+  }
+
+  if (
+    alpha.alphaClass === "SETUP" ||
+    alpha.alphaClass === "WATCH" ||
+    hasPortal ||
+    hasAuth
+  ) {
+    return "TRANSITIONAL SIGNAL";
+  }
+
+  return "NOISE DISGUISED AS SIGNAL";
+}
+
+function detectSignalFusion(latest, alpha, eventType, signalRegime) {
+  const tags = latest.tags || [];
+  const signals = latest.signals || [];
+  const score = Number(latest.score || 0);
+  const movementPct = Number(latest.movementPct || 0);
+  const patternBoost = Number(latest?.breakdown?.patternBoost || 0);
+
+  const hasRewards =
+    tags.includes("REWARDS") ||
+    signals.includes("reward") ||
+    signals.includes("claim") ||
+    signals.includes("payout") ||
+    signals.includes("airdrop");
+
+  const hasWallet =
+    signals.includes("connect") ||
+    signals.includes("ethereum") ||
+    signals.includes("solana") ||
+    tags.includes("CHAIN");
+
+  const hasAuth =
+    tags.includes("AUTH") ||
+    signals.includes("verify") ||
+    signals.includes("account") ||
+    signals.includes("auth");
+
+  const hasPortal =
+    tags.includes("SYSTEM") ||
+    signals.includes("portal");
+
+  const strongAlpha =
+    alpha.alphaClass === "CRITICAL" ||
+    alpha.alphaClass === "ACTIONABLE" ||
+    alpha.triggerState === "TRIGGERED" ||
+    alpha.triggerState === "ARMED";
+
+  if (
+    hasRewards &&
+    hasWallet &&
+    hasAuth &&
+    strongAlpha &&
+    score >= 70 &&
+    patternBoost >= 20
+  ) {
+    return "FULL ACTIVATION STACK";
+  }
+
+  if (
+    hasRewards &&
+    hasWallet &&
+    hasAuth
+  ) {
+    return "REWARD + WALLET + AUTH CLUSTER";
+  }
+
+  if (
+    hasPortal &&
+    hasWallet &&
+    (signalRegime === "HIGH-CONVICTION SETUP" || signalRegime === "PRE-LAUNCH REAL")
+  ) {
+    return "PORTAL READINESS CLUSTER";
+  }
+
+  if (
+    eventType !== "NOISE" &&
+    (score >= 45 || movementPct >= 10 || Number(latest.trend || 0) >= 3)
+  ) {
+    return "ELEVATED MULTI-SIGNAL EVENT";
+  }
+
+  return "UNCLASSIFIED SIGNAL MIX";
+}
+
+function getPriority(latest) {
+  const tags = latest.tags || [];
+
+  if (tags.includes("LAUNCH_IMMINENT")) return "CRITICAL";
+  if (tags.includes("CONFIRMED_ACTIVATION")) return "CRITICAL";
+  if (latest.level === "VERY HIGH") return "VERY HIGH";
+  if (latest.level === "HIGH") return "HIGH";
+  if (latest.level === "MEDIUM") return "MEDIUM";
+  return "LOW";
+}
+
+function getEta(latest) {
+  const tags = latest.tags || [];
+  const score = Number(latest.score || 0);
+  const movementPct = Number(latest.movementPct || 0);
+  const trend = String(latest.trendDirection || "FLAT");
+
+  if (tags.includes("LAUNCH_IMMINENT")) return "< 2h";
+  if (tags.includes("CONFIRMED_ACTIVATION")) return "< 6h";
+  if (score >= 80 && movementPct >= 20 && trend === "UP") return "< 24h";
+  if (score >= 65) return "24h - 72h";
+  if (score >= 45) return "monitoring";
+  return "unknown";
+}
+
+function getTopPatterns(latest, limit = 3) {
+  return Array.isArray(latest.patterns) ? latest.patterns.slice(0, limit) : [];
+}
+
+function buildSignature(latest) {
+  const tags = (latest.tags || []).slice().sort().join("|");
+  const patternTags = getTopPatterns(latest, 5)
+    .map((p) => (typeof p === "string" ? p : p?.tag || "UNKNOWN"))
+    .sort()
+    .join("|");
+  const level = latest.level || "LOW";
+  const scoreBand = Math.floor(Number(latest.score || 0) / 5) * 5;
+  return `${level}::${scoreBand}::${tags}::${patternTags}`;
+}
+
+async function persistDetectionOutputs({ publicDir, result }) {
+  const latestPath = path.join(publicDir, "latest.json");
+  const historyPath = path.join(publicDir, "history.json");
+  const lastTriggeredPath = path.join(publicDir, "last-triggered.json");
+
+  await fs.ensureDir(publicDir);
+
+  const existingHistory = await readJsonArraySafe(historyPath);
+
+  await fs.writeJson(latestPath, result, { spaces: 2 });
+
+  const nextHistory = dedupeById([result, ...existingHistory]).slice(0, MAX_HISTORY);
+  await fs.writeJson(historyPath, nextHistory, { spaces: 2 });
+
+  if (TRIGGER_PRIORITIES.has(result.priority)) {
+    await fs.writeJson(lastTriggeredPath, result, { spaces: 2 });
+  }
+}
+
 async function main() {
   const { oldDir, newDir } = await loadLatestSnapshots();
 
   const oldFiles = oldDir ? await readAssets(oldDir) : [];
   const newFiles = await readAssets(newDir);
 
-  const oldMap = new Map(
-    oldFiles.map((file) => [toAssetRelative(oldDir, file), file])
-  );
-  const newMap = new Map(
-    newFiles.map((file) => [toAssetRelative(newDir, file), file])
-  );
+  const oldMap = new Map(oldFiles.map((file) => [toAssetRelative(oldDir, file), file]));
+  const newMap = new Map(newFiles.map((file) => [toAssetRelative(newDir, file), file]));
 
   let added = 0;
   let changed = 0;
@@ -266,28 +628,16 @@ async function main() {
 
   const totalFiles = newFiles.length;
   const movementCount = added + changed;
-
-  const movementPct =
-    totalFiles > 0 ? Number(((movementCount / totalFiles) * 100).toFixed(2)) : 0;
-  const addedPct =
-    totalFiles > 0 ? Number(((added / totalFiles) * 100).toFixed(2)) : 0;
-  const changedPct =
-    totalFiles > 0 ? Number(((changed / totalFiles) * 100).toFixed(2)) : 0;
+  const movementPct = totalFiles > 0 ? Number(((movementCount / totalFiles) * 100).toFixed(2)) : 0;
+  const addedPct = totalFiles > 0 ? Number(((added / totalFiles) * 100).toFixed(2)) : 0;
+  const changedPct = totalFiles > 0 ? Number(((changed / totalFiles) * 100).toFixed(2)) : 0;
 
   const combinedText = changedContents.join("\n\n");
   const recentChangesCount = movementCount;
 
-  const historyFile = path.join(__dirname, "..", "public", "data", "history.json");
-  let existingHistory = [];
-
-  if (await fs.pathExists(historyFile)) {
-    try {
-      existingHistory = await fs.readJson(historyFile);
-      if (!Array.isArray(existingHistory)) existingHistory = [];
-    } catch {
-      existingHistory = [];
-    }
-  }
+  const publicDir = path.join(__dirname, "..", "public", "data");
+  const historyPath = path.join(publicDir, "history.json");
+  const existingHistory = await readJsonArraySafe(historyPath);
 
   const advancedSignals = buildSignals({
     combinedText,
@@ -298,10 +648,7 @@ async function main() {
 
   const signals = [...allSignals];
   const detectedGroups = detectGroups(signals);
-  const radarScore = computeRadarScore(
-    advancedSignals,
-    Array.isArray(existingHistory) ? existingHistory : []
-   );
+  const radarScore = computeRadarScore(advancedSignals, existingHistory);
 
   const draftSnapshot = {
     id: path.basename(newDir),
@@ -316,7 +663,7 @@ async function main() {
     tags: detectedGroups,
     changedFiles,
   };
-  
+
   const { insight, confidence } = buildInsight(movementPct, signals, detectedGroups);
 
   const summary = !oldDir
@@ -341,8 +688,13 @@ async function main() {
     ? "Actividad de desarrollo visible."
     : "Sin señales fuertes por ahora.";
 
-  const result = {
-    id: path.basename(newDir),
+  const snapshotId = path.basename(newDir);
+  const generatedAt = new Date().toISOString();
+  const normalizedPatterns = ensureArray(radarScore.patterns).map(normalizePatternEntry);
+
+  const baseResult = {
+    id: `${snapshotId}__${generatedAt}`,
+    snapshotId,
     totalFiles,
     added,
     changed,
@@ -352,45 +704,85 @@ async function main() {
     changedPct,
     signals,
     patternScore: intelligence.patternScore,
-    patterns: radarScore.patterns,
+    patterns: normalizedPatterns,
     activationProbability: intelligence.activationProbability,
     score: radarScore.score,
     level: radarScore.level,
     significance: intelligence.significance,
     rarityScore: intelligence.rarityScore,
-    focusAreas: intelligence.focusAreas,
-    sensitiveHits: intelligence.sensitiveHits,
-    changeTypes: intelligence.changeTypes,
+    focusAreas: ensureArray(intelligence.focusAreas),
+    sensitiveHits: ensureArray(intelligence.sensitiveHits),
+    changeTypes: ensureArray(intelligence.changeTypes),
     insight,
     confidence,
-    tags: [...new Set([...detectedGroups, ...radarScore.tags])],
+    tags: [...new Set([...detectedGroups, ...ensureArray(radarScore.tags)])],
     summary,
     note,
     changedFiles,
-    generatedAt: new Date().toISOString(),
+    generatedAt,
     trend: radarScore.trend,
     trendDirection: radarScore.trendDirection,
-    breakdown: radarScore.breakdown,
+    breakdown: radarScore.breakdown || {},
     advancedSignals,
-    whyItMatters: intelligence.whyItMatters,
+    whyItMatters: intelligence.whyItMatters || "",
   };
 
-  draftSnapshot.summary = summary;
-  draftSnapshot.insight = insight;
-  draftSnapshot.note = note;
+  const alpha = evaluateAlpha(baseResult);
+  const eventType = detectEventType(baseResult);
+  const signalRegime = classifySignalRegime(baseResult, alpha, eventType);
+  const signalFusion = detectSignalFusion(baseResult, alpha, eventType, signalRegime);
+  const priority = getPriority(baseResult);
+  const eta = getEta(baseResult);
 
-  const publicDir = path.join(__dirname, "..", "public", "data");
-  const publicFile = path.join(publicDir, "latest.json");
+  const result = {
+    ...baseResult,
+    alphaScore: alpha.alphaScore,
+    alphaClass: alpha.alphaClass,
+    triggerState: alpha.triggerState,
+    suggestedAction: alpha.suggestedAction,
+    eventType,
+    signalRegime,
+    signalFusion,
+    priority,
+    eta,
+  };
 
-  await fs.ensureDir(publicDir);
-  await fs.writeJson(publicFile, result, { spaces: 2 });
+  result.signature = buildSignature(result);
 
-  const nextHistory = [...existingHistory, result].slice(-200);
-  await fs.writeJson(historyFile, nextHistory, { spaces: 2 });
+  await persistDetectionOutputs({
+    publicDir,
+    result,
+  });
 
   console.log("Archivo generado:");
-  console.log(publicFile);
+  console.log(path.join(publicDir, "latest.json"));
   console.log(JSON.stringify(result, null, 2));
+
+  console.log("=== SYNC_STATUS ===");
+  console.log(
+    JSON.stringify(
+      {
+        id: result.id,
+        snapshotId: result.snapshotId,
+        generatedAt: result.generatedAt,
+        score: round(result.score),
+        level: result.level,
+        priority: result.priority,
+        alphaScore: result.alphaScore,
+        alphaClass: result.alphaClass,
+        triggerState: result.triggerState,
+        eventType: result.eventType,
+        signalFusion: result.signalFusion,
+        signalRegime: result.signalRegime,
+        eta: result.eta,
+        wroteLatest: true,
+        wroteHistory: true,
+        wroteLastTriggered: TRIGGER_PRIORITIES.has(result.priority),
+      },
+      null,
+      2
+    )
+  );
 }
 
 main().catch((err) => {
