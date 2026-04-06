@@ -243,7 +243,7 @@ Not financial advice.
 
 ---
 
-## 🐽 Powered by Pond0x
+## 🐽 Powered by Memorama
 vercel.com/font), a new font family for Vercel.
 
 ## Learn More
