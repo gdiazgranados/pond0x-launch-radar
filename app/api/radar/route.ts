@@ -14,7 +14,7 @@ function getSafeTime(value?: string | null) {
 
 async function fetchGitHubFile(filePath: string) {
   const token = process.env.GITHUB_TOKEN
-  const url = `https://raw.githubusercontent.com/${OWNER}/${REPO}/${BRANCH}/${filePath}`
+  const url = `https://raw.githubusercontent.com/${OWNER}/${REPO}/${BRANCH}/${filePath}?t=${Date.now()}`
 
   const res = await fetch(url, {
     headers: token
@@ -147,27 +147,27 @@ export async function GET() {
         loadJson(
           "public/data/latest.json",
           "watcher/output/latest.json",
-          "public/data/latest.json"
+          "data/latest.json"
         ),
         loadJson(
           "public/data/history.json",
           "watcher/output/history.json",
-          "public/data/history.json"
+          "data/history.json"
         ),
         loadJson(
           "public/data/heartbeat.json",
           "public/data/heartbeat.json",
-          "public/data/heartbeat.json"
+          "data/heartbeat.json"
         ),
         loadJson(
           "public/data/sentinel-state.json",
           "watcher/output/sentinel-state.json",
-          "public/data/sentinel-state.json"
+          "data/sentinel-state.json"
         ),
         loadJson(
           "public/data/sentinel-events.json",
           "watcher/output/sentinel-events.json",
-          "public/data/sentinel-events.json"
+          "data/sentinel-events.json"
         ),
       ])
 
