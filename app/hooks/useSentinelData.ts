@@ -3,8 +3,14 @@
 import { useCallback, useEffect, useState } from "react"
 import type { SentinelEvent } from "../types/radar"
 
-function remoteJsonUrl(filename: string, cacheBust: number) {
-  return `/data/${filename}?t=${cacheBust}`
+const RADAR_DATA_BASE =
+  process.env.NEXT_PUBLIC_RADAR_DATA_BASE ||
+  "https://raw.githubusercontent.com/gdiazgranados/pond0x-launch-radar/radar-data/data";
+
+function remoteJsonUrl(file: string, cacheBust = true) {
+  const cleanFile = file.replace(/^\/+/, "");
+  const url = `${RADAR_DATA_BASE}/${cleanFile}`;
+  return cacheBust ? `${url}?t=${Date.now()}` : url;
 }
 
 function getSafeTime(value?: string | null) {
@@ -56,7 +62,7 @@ export function useSentinelData() {
   const loadSentinel = useCallback(async (signal?: AbortSignal) => {
     try {
       const cacheBust = Date.now()
-      const res = await fetch(remoteJsonUrl("sentinel-events.json", cacheBust), {
+      const res = await fetch(remoteJsonUrl("sentinel-events.json", true), {
         cache: "no-store",
         signal,
       })

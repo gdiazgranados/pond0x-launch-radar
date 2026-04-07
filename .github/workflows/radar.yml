@@ -34,20 +34,13 @@ jobs:
       - name: Install Playwright browser
         run: npx playwright install chromium
 
-      - name: Prepare radar-data branch workspace
+      - name: Prepare workspace
         run: |
-          git fetch origin
-
-          if git ls-remote --exit-code --heads origin radar-data; then
-            git checkout radar-data || git checkout -b radar-data origin/radar-data
-            git pull origin radar-data
-          else
-            git checkout -b radar-data
-          fi
-
           mkdir -p public/data
           mkdir -p snapshots
           mkdir -p watcher/output
+          mkdir -p .publish/data
+          mkdir -p .publish/snapshots
 
       - name: Write heartbeat start
         run: |
@@ -108,17 +101,43 @@ jobs:
           echo "Heartbeat after success:"
           cat public/data/heartbeat.json
 
-      - name: Commit and push
+      - name: Prepare publish bundle
         run: |
-          git config --global user.name "radar-bot"
-          git config --global user.email "bot@radar.ai"
+          mkdir -p .publish/data
+          mkdir -p .publish/snapshots
 
-          git add public/data/*.json || true
-          git add watcher/output/*.json || true
-          git add watcher/last-alert.json || true
-          git add snapshots || true
+          cp public/data/*.json .publish/data/ 2>/dev/null || true
+          cp watcher/output/*.json .publish/data/ 2>/dev/null || true
+          cp watcher/last-alert.json .publish/data/last-alert.json 2>/dev/null || true
+
+          if [ -d snapshots ]; then
+            rsync -a --delete snapshots/ .publish/snapshots/
+          fi
+
+      - name: Publish to radar-data branch
+        run: |
+          git fetch origin radar-data || true
+
+          rm -rf /tmp/radar-data
+          if git ls-remote --exit-code --heads origin radar-data; then
+            git worktree add /tmp/radar-data origin/radar-data
+          else
+            git worktree add -b radar-data /tmp/radar-data
+          fi
+
+          mkdir -p /tmp/radar-data/data
+          mkdir -p /tmp/radar-data/snapshots
+
+          rsync -a --delete .publish/data/ /tmp/radar-data/data/
+          rsync -a --delete .publish/snapshots/ /tmp/radar-data/snapshots/
+
+          cd /tmp/radar-data
+          git config user.name "radar-bot"
+          git config user.email "bot@radar.ai"
+
+          git add data snapshots
 
           git status --short
 
-          git commit -m "Auto radar update" || echo "No changes to commit"
-          git push origin radar-data
+          git commit -m "Auto radar data update" || echo "No changes to commit"
+          git push origin HEAD:radar-data
