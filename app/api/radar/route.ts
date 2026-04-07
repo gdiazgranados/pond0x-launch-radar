@@ -18,9 +18,7 @@ async function fetchGitHubFile(filePath: string) {
 
   const res = await fetch(url, {
     headers: token
-      ? {
-          Authorization: `Bearer ${token}`,
-        }
+      ? { Authorization: `Bearer ${token}` }
       : {},
     cache: "no-store",
   })
@@ -29,6 +27,13 @@ async function fetchGitHubFile(filePath: string) {
     throw new Error(`Failed to fetch ${filePath}: ${res.status}`)
   }
 
+  return res.json()
+}
+
+async function fetchHeartbeat() {
+  const url = `https://raw.githubusercontent.com/${OWNER}/${REPO}/${BRANCH}/data/heartbeat.json?t=${Date.now()}`
+  const res = await fetch(url, { cache: "no-store" })
+  if (!res.ok) return null
   return res.json()
 }
 
@@ -80,7 +85,7 @@ function normalizeHeartbeat(json: any) {
     lastRunAt: heartbeat?.lastRunAt || null,
     lastSuccessAt: heartbeat?.lastSuccessAt || null,
     status: heartbeat?.status || "unknown",
-    scheduleMinutes: Number(heartbeat?.scheduleMinutes ?? 60),
+    scheduleMinutes: Number(heartbeat?.scheduleMinutes ?? 5),
   }
 }
 
@@ -142,34 +147,19 @@ function buildSyncMeta({
 
 export async function GET() {
   try {
-    const [latestRaw, historyRaw, heartbeatRaw, sentinelStateRaw, sentinelEventsRaw] =
-      await Promise.all([
-        loadJson(
-          "public/data/latest.json",
-          "watcher/output/latest.json",
-          "data/latest.json"
-        ),
-        loadJson(
-          "public/data/history.json",
-          "watcher/output/history.json",
-          "data/history.json"
-        ),
-        loadJson(
-          "public/data/heartbeat.json",
-          "public/data/heartbeat.json",
-          "data/heartbeat.json"
-        ),
-        loadJson(
-          "public/data/sentinel-state.json",
-          "watcher/output/sentinel-state.json",
-          "data/sentinel-state.json"
-        ),
-        loadJson(
-          "public/data/sentinel-events.json",
-          "watcher/output/sentinel-events.json",
-          "data/sentinel-events.json"
-        ),
-      ])
+    const [
+      latestRaw,
+      historyRaw,
+      heartbeatRaw,
+      sentinelStateRaw,
+      sentinelEventsRaw,
+    ] = await Promise.all([
+      loadJson("public/data/latest.json", "watcher/output/latest.json", "data/latest.json"),
+      loadJson("public/data/history.json", "watcher/output/history.json", "data/history.json"),
+      fetchHeartbeat(), // 🔥 FIX REAL AQUÍ
+      loadJson("public/data/sentinel-state.json", "watcher/output/sentinel-state.json", "data/sentinel-state.json"),
+      loadJson("public/data/sentinel-events.json", "watcher/output/sentinel-events.json", "data/sentinel-events.json"),
+    ])
 
     const latest = normalizeLatest(latestRaw)
     const history = normalizeHistory(historyRaw)
