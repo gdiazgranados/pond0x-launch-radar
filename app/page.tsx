@@ -198,8 +198,15 @@ function getTriggerStateTone(triggerState: string) {
 
 export default function Home() {
   const { data, history, alerts, loading, heartbeatData } = useRadarData()
-  const { latestEvent } = useSentinelData()
-  const [now, setNow] = useState(Date.now())
+
+  // 🔥 FIX: eliminar duplicados en history
+  const cleanHistory = useMemo(() => {
+    return Array.from(
+      new Map(history.map(item => [item.id, item])).values()
+    )
+  }, [history])
+    const { latestEvent } = useSentinelData()
+    const [now, setNow] = useState(Date.now())
 
   useEffect(() => {
     const clockInterval = setInterval(() => {
@@ -236,7 +243,7 @@ export default function Home() {
 
   const effectiveFreshnessDate = useMemo(() => {
     const hb = heartbeatData?.lastSuccessAt || heartbeatData?.lastRunAt
-    const hist = history?.[0]?.generatedAt
+    const hist = cleanHistory?.[0]?.generatedAt
 
     const hbTs = hb ? new Date(hb).getTime() : 0
     const histTs = hist ? new Date(hist).getTime() : 0
@@ -282,9 +289,9 @@ export default function Home() {
     return `${minutes}m ${seconds}s`
   }, [nextPollAt, now])
 
-  const recentHistory = useMemo(() => history.slice(0, 12), [history])
-  const tapeHistory = useMemo(() => history.slice(0, 5), [history])
-  const checkInHistory = useMemo(() => history.slice(0, 8), [history])
+  const recentHistory = useMemo(() => cleanHistory.slice(0, 12), [cleanHistory])
+  const tapeHistory = useMemo(() => cleanHistory.slice(0, 5), [cleanHistory])
+  const checkInHistory = useMemo(() => cleanHistory.slice(0, 8), [cleanHistory])
 
   const velocity = useMemo(() => {
     if (recentHistory.length < 2) return 0
@@ -293,11 +300,11 @@ export default function Home() {
 
   const burstCount = useMemo(() => {
     const nowTs = Date.now()
-    return history.filter((item) => {
+    return cleanHistory.filter((item) => {
       const ts = new Date(item.generatedAt || 0).getTime()
       return Number.isFinite(ts) && nowTs - ts <= 5 * 60 * 1000
     }).length
-  }, [history])
+  }, [cleanHistory])
 
   const confidenceScore = useMemo(() => {
     const score = Number(prioritizedData?.score ?? data?.score ?? 0)
@@ -411,7 +418,7 @@ export default function Home() {
         const alertTimestamp = alert.sentAt || alert.generatedAt || null
 
         return {
-          id: `alert-${alert.id || index}-${alertTimestamp || "no-ts"}-${index}`,
+          id: `alert-${alert.id || alertTimestamp}`,
           time: alertTimestamp ? shortTime(alertTimestamp) : "no-ts",
           level: alert.level || "LOW",
           signalType: getSignalType(alert),
@@ -421,7 +428,13 @@ export default function Home() {
       })
       .filter((item) => item.time !== "no-ts")
 
-    return [...latestItem, ...alertItems, ...historyItems].slice(0, 10)
+    const merged = [...latestItem, ...alertItems, ...historyItems]
+
+    const unique = Array.from(
+      new Map(merged.map(item => [item.id, item])).values()
+    )
+
+    return unique.slice(0, 10)
   }, [prioritizedData, tapeHistory, alerts])
 
   const breakdown = prioritizedData?.breakdown ?? data?.breakdown
