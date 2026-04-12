@@ -40,15 +40,32 @@ function normalizeRadarItem(item: RadarData): RadarData {
     added: Number(item.added ?? 0),
     changed: Number(item.changed ?? 0),
     movementCount: Number(item.movementCount ?? 0),
+
     movementPct: Number(item.movementPct ?? 0),
+    movementPercent: Number(item.movementPercent ?? item.movementPct ?? 0),
+
     addedPct: Number(item.addedPct ?? 0),
+    addedPercent: Number(item.addedPercent ?? item.addedPct ?? 0),
+
     changedPct: Number(item.changedPct ?? 0),
+    changedPercent: Number(item.changedPercent ?? item.changedPct ?? 0),
+
     patternScore: Number(item.patternScore ?? 0),
     activationProbability: Number(item.activationProbability ?? 0),
-    score: Number(item.scorePercent ?? item.score ?? 0),
+
+    // Mantener bruto
+    score: Number(item.score ?? 0),
+
+    // Mantener normalizado por separado
+    scorePercent: Number(item.scorePercent ?? 0),
     rawScore: Number(item.rawScore ?? item.score ?? 0),
+
     rarityScore: Number(item.rarityScore ?? 0),
     confidence: Number(item.confidence ?? 0),
+
+    intensityClass: item.intensityClass || undefined,
+    overdrive: Boolean(item.overdrive),
+
     signals: Array.isArray(item.signals) ? item.signals : [],
     patterns: Array.isArray(item.patterns) ? item.patterns : [],
     focusAreas: Array.isArray(item.focusAreas) ? item.focusAreas : [],
