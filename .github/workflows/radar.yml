@@ -75,6 +75,13 @@ jobs:
       - name: Copy watcher output to public data
         run: |
           mkdir -p public/data
+
+          # CORE FILES (CRÍTICOS)
+          cp watcher/output/latest.json public/data/latest.json || true
+          cp watcher/output/history.json public/data/history.json || true
+          cp watcher/output/alerts-history.json public/data/alerts-history.json || true
+
+          # SENTINEL / AUX
           cp watcher/output/sentinel-events.json public/data/sentinel-events.json || true
           cp watcher/output/sentinel-state.json public/data/sentinel-state.json || true
           cp watcher/output/discovery.json public/data/discovery.json || true
