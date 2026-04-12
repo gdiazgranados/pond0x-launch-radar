@@ -3,7 +3,7 @@ const fs = require("fs-extra");
 const path = require("path");
 const crypto = require("crypto");
 
-const URL = "https://www.pond0x.com";
+const TARGET_URL = "https://www.pond0x.com";
 
 function sha256(data) {
   return crypto.createHash("sha256").update(data).digest("hex");
@@ -34,30 +34,30 @@ async function main() {
 
   page.on("response", async (response) => {
     try {
-      const url = response.url();
+      const responseUrl = response.url();
       const status = response.status();
       const headers = response.headers();
       const contentType = headers["content-type"] || "";
 
       const interesting =
-        url.endsWith(".js") ||
-        url.endsWith(".css") ||
-        url.endsWith(".map") ||
+        responseUrl.endsWith(".js") ||
+        responseUrl.endsWith(".css") ||
+        responseUrl.endsWith(".map") ||
         contentType.includes("javascript") ||
         contentType.includes("css") ||
         contentType.includes("json") ||
         contentType.includes("source-map");
 
-      if (!interesting || seen.has(url)) return;
-      seen.add(url);
+      if (!interesting || seen.has(responseUrl)) return;
+      seen.add(responseUrl);
 
       const body = await response.body();
       const hash = sha256(body);
 
       let filename;
       try {
-        const u = new URL(url);
-        filename = sanitizeFilename(u.pathname.replace(/^\/+/, "") || "root");
+        const parsed = new global.URL(responseUrl);
+        filename = sanitizeFilename(parsed.pathname.replace(/^\/+/, "") || "root");
         if (!path.extname(filename)) {
           if (contentType.includes("javascript")) filename += ".js";
           else if (contentType.includes("css")) filename += ".css";
@@ -74,7 +74,7 @@ async function main() {
       await fs.writeFile(savePath, body);
 
       captured.push({
-        url,
+        url: responseUrl,
         status,
         contentType,
         file: path.relative(outDir, savePath),
@@ -86,7 +86,7 @@ async function main() {
     }
   });
 
-  await page.goto(URL, { waitUntil: "networkidle", timeout: 90000 });
+  await page.goto(TARGET_URL, { waitUntil: "networkidle", timeout: 90000 });
 
   const html = await page.content();
   await fs.writeFile(path.join(outDir, "index.html"), html, "utf8");
@@ -102,7 +102,16 @@ async function main() {
   );
 
   await fs.writeJson(path.join(outDir, "urls.json"), captured, { spaces: 2 });
-  await fs.writeJson(path.join(outDir, "manifest.json"), { url: URL, title, capturedAt: new Date().toISOString(), links }, { spaces: 2 });
+  await fs.writeJson(
+    path.join(outDir, "manifest.json"),
+    {
+      url: TARGET_URL,
+      title,
+      capturedAt: new Date().toISOString(),
+      links,
+    },
+    { spaces: 2 }
+  );
 
   await browser.close();
 

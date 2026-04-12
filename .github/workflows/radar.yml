@@ -61,13 +61,32 @@ jobs:
           fs.writeFileSync(path, JSON.stringify(data, null, 2));
           '
 
-      - name: Run watcher pipeline
+      - name: Run sentinel
+        run: node watcher/sentinel.js
+
+      - name: Run capture
+        run: node watcher/capture.js
+
+      - name: Debug snapshots after capture
         run: |
-          node watcher/sentinel.js
-          node watcher/capture.js
-          node watcher/radar.js
-          node watcher/discovery.js
-          node watcher/notify.js
+          echo "=== snapshots root ==="
+          ls -la snapshots || true
+
+          echo ""
+          echo "=== newest snapshot dirs ==="
+          find snapshots -maxdepth 1 -mindepth 1 -type d | sort || true
+
+      - name: Run radar
+        run: node watcher/radar.js
+
+      - name: Run discovery
+        run: node watcher/discovery.js
+
+      - name: Run notify
+        run: node watcher/notify.js
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         env:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
