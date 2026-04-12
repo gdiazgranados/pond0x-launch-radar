@@ -478,7 +478,9 @@ export default function Home() {
               </div>
 
               <div className="flex flex-wrap items-center gap-3 text-xs">
-                <span>Score {prioritizedData?.score ?? data?.score}</span>
+                <span>
+                  Score {prioritizedData?.scorePercent ?? data?.scorePercent ?? 0}%
+                </span>
                 <span>Trend {prioritizedData?.trendDirection ?? data?.trendDirection}</span>
                 <span>ETA {getEta(prioritizedData || data)}</span>
                 {(narrative?.context || []).map((item, i) => (
@@ -569,7 +571,9 @@ export default function Home() {
                   <span className={`rounded-full border px-2 py-0.5 text-xs ${palette.badge}`}>
                     {prioritizedData?.level || data?.level || "LOW"}
                   </span>
-                  <span>{prioritizedData?.score ?? data?.score ?? 0}/100 intensity</span>
+                  <span>
+                    {prioritizedData?.scorePercent ?? data?.scorePercent ?? 0}/100 intensity
+                  </span>
                 </div>
               </div>
 
@@ -720,18 +724,18 @@ export default function Home() {
                 <MetricCard
                   label="Added"
                   value={data?.added ?? 0}
-                  subvalue={`${data?.addedPct ?? 0}% of surface`}
+                  subvalue={`${data?.addedPercent ?? data?.addedPct ?? 0}% of surface`}
                   valueClassName="text-cyan-300"
                 />
                 <MetricCard
                   label="Changed"
                   value={data?.changed ?? 0}
-                  subvalue={`${data?.changedPct ?? 0}% of surface`}
+                  subvalue={`${data?.changedPercent ?? data?.changedPct ?? 0}% of surface`}
                   valueClassName="text-yellow-300"
                 />
                 <MetricCard
                   label="Movement"
-                  value={`${prioritizedData?.movementPct ?? data?.movementPct ?? 0}%`}
+                  value={`${prioritizedData?.movementPercent ?? data?.movementPercent ?? prioritizedData?.movementPct ?? data?.movementPct ?? 0}%`}
                   valueClassName="text-emerald-300"
                 />
               </div>
@@ -739,8 +743,7 @@ export default function Home() {
               <div className="mt-4 grid gap-4 lg:grid-cols-2">
                 <Gauge
                   label="Radar Score"
-                  value={Number(prioritizedData?.score ?? data?.score ?? 0)}
-                  tone="cyan"
+                  value={Number(prioritizedData?.scorePercent ?? data?.scorePercent ?? 0)}
                 />
                 <Gauge label="Activation Probability" value={Number(activationProbability)} tone="orange" />
                 <Gauge label="Changed %" value={Number(data?.changedPct ?? 0)} tone="yellow" />

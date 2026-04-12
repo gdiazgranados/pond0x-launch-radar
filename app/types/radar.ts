@@ -55,14 +55,28 @@ export type RadarData = {
   added: number
   changed: number
   movementCount: number
+
   movementPct: number
+  movementPercent?: number
+
   addedPct: number
+  addedPercent?: number
+
   changedPct: number
+  changedPercent?: number
+
   signals: string[]
   patternScore: number
   patterns: RadarPattern[]
+
   activationProbability: number
+
   score: number
+  rawScore?: number
+  scorePercent?: number
+  intensityClass?: string
+  overdrive?: boolean
+
   level: RadarLevel | string
   significance: string
   rarityScore: number
