@@ -86,7 +86,15 @@ async function main() {
     }
   });
 
-  await page.goto(TARGET_URL, { waitUntil: "networkidle", timeout: 90000 });
+  console.log("Navigating to:", TARGET_URL);
+
+  await page.goto(TARGET_URL, { waitUntil: "domcontentloaded", timeout: 90000 });
+
+  console.log("Page loaded, waiting for network activity...");
+
+  await page.waitForTimeout(8000); // 👈 FORZAR CAPTURA REAL
+
+  console.log("Capture window complete");
 
   const html = await page.content();
   await fs.writeFile(path.join(outDir, "index.html"), html, "utf8");
