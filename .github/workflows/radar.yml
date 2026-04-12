@@ -108,6 +108,15 @@ jobs:
           echo "Heartbeat after success:"
           cat public/data/heartbeat.json
 
+            - name: Debug latest before publish
+        run: |
+          echo "public/data/latest.json:"
+          cat public/data/latest.json || echo "missing public/data/latest.json"
+
+          echo ""
+          echo "watcher/output/latest.json:"
+          cat watcher/output/latest.json || echo "missing watcher/output/latest.json"    
+
       - name: Prepare publish bundle
         run: |
           mkdir -p .publish/data
