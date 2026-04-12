@@ -535,7 +535,8 @@ export default function Home() {
                 />
                 <MetricCard
                   label="Score"
-                  value={prioritizedData?.score ?? data?.score ?? 0}
+                  value={prioritizedData?.scorePercent ?? data?.scorePercent ?? 0}
+                  subvalue={`raw: ${prioritizedData?.rawScore ?? data?.rawScore ?? prioritizedData?.score ?? data?.score ?? 0}`}
                   valueClassName={palette.text}
                 />
                 <MetricCard
@@ -573,6 +574,9 @@ export default function Home() {
                   </span>
                   <span>
                     {prioritizedData?.scorePercent ?? data?.scorePercent ?? 0}/100 intensity
+                  </span>
+                  <span className="text-xs opacity-70">
+                    raw: {prioritizedData?.rawScore ?? data?.rawScore ?? prioritizedData?.score ?? data?.score ?? 0}
                   </span>
                 </div>
               </div>
@@ -736,6 +740,7 @@ export default function Home() {
                 <MetricCard
                   label="Movement"
                   value={`${prioritizedData?.movementPercent ?? data?.movementPercent ?? prioritizedData?.movementPct ?? data?.movementPct ?? 0}%`}
+                  subvalue={`raw: ${prioritizedData?.movementPct ?? data?.movementPct ?? 0}%`}
                   valueClassName="text-emerald-300"
                 />
               </div>
@@ -746,10 +751,14 @@ export default function Home() {
                   value={Number(prioritizedData?.scorePercent ?? data?.scorePercent ?? 0)}
                 />
                 <Gauge label="Activation Probability" value={Number(activationProbability)} tone="orange" />
-                <Gauge label="Changed %" value={Number(data?.changedPct ?? 0)} tone="yellow" />
+                <Gauge
+                  label="Changed %"
+                  value={Number(data?.changedPercent ?? data?.changedPct ?? 0)}
+                  tone="yellow"
+                />
                 <Gauge
                   label="Movement %"
-                  value={Number(prioritizedData?.movementPct ?? data?.movementPct ?? 0)}
+                  value={Number(prioritizedData?.movementPercent ?? data?.movementPercent ?? prioritizedData?.movementPct ?? data?.movementPct ?? 0)}
                   tone="emerald"
                 />
               </div>
