@@ -504,7 +504,7 @@ export default function Home() {
 
               <div className="mt-2 flex flex-wrap items-center gap-3">
                 <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-                  Pond0x Launch Radar
+                  Pond0x Launch Radar TEST-DEPLOY-999
                 </h1>
                 <span
                   className={`rounded-full border px-3 py-1 text-xs ${
@@ -573,7 +573,10 @@ export default function Home() {
                     {prioritizedData?.level || data?.level || "LOW"}
                   </span>
                   <span>
-                    {prioritizedData?.scorePercent ?? data?.scorePercent ?? 0}/100 intensity
+                    {Math.min(
+                     100,
+                     prioritizedData?.scorePercent ?? data?.scorePercent ?? 0
+                    )}/100 intensity
                   </span>
                   <span className="text-xs opacity-70">
                     raw: {prioritizedData?.rawScore ?? data?.rawScore ?? prioritizedData?.score ?? data?.score ?? 0}
