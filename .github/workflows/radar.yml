@@ -72,6 +72,15 @@ jobs:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
 
+      - name: Debug timestamps after watcher pipeline
+        run: |
+          echo "=== Search latest.json references ==="
+          find . -name "latest.json" -type f -print
+
+          echo ""
+          echo "=== Search heartbeat.json references ==="
+          find . -name "heartbeat.json" -type f -print
+
       - name: Copy watcher output to public data
         run: |
           mkdir -p public/data
@@ -108,14 +117,22 @@ jobs:
           echo "Heartbeat after success:"
           cat public/data/heartbeat.json
 
-      - name: Debug latest before publish
+      - name: Debug outputs after watcher pipeline
         run: |
-          echo "public/data/latest.json:"
-          cat public/data/latest.json || echo "missing public/data/latest.json"
+          echo "=== watcher/output files ==="
+          ls -la watcher/output || true
 
           echo ""
-          echo "watcher/output/latest.json:"
+          echo "=== public/data files ==="
+          ls -la public/data || true
+
+          echo ""
+          echo "=== watcher/output/latest.json ==="
           cat watcher/output/latest.json || echo "missing watcher/output/latest.json"
+
+          echo ""
+          echo "=== public/data/latest.json ==="
+          cat public/data/latest.json || echo "missing public/data/latest.json"
 
       - name: Prepare publish bundle
         run: |
