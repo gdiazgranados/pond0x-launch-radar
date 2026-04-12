@@ -270,6 +270,35 @@ function round(n) {
   return Math.round(Number(n || 0) * 100) / 100;
 }
 
+function clampPercent(value) {
+  const n = Number(value || 0);
+  if (!Number.isFinite(n)) return 0;
+  return Math.max(0, Math.min(100, round(n)));
+}
+
+function normalizeScoreToPercent(rawScore) {
+  const n = Number(rawScore || 0);
+  if (!Number.isFinite(n) || n <= 0) return 0;
+
+  // Escala logarítmica suave para visualización
+  // 10 -> ~52
+  // 50 -> ~85
+  // 100 -> 100
+  // >100 -> sigue en 100 visualmente
+  const normalized = Math.log10(n + 1) * 50;
+  return clampPercent(normalized);
+}
+
+function classifyIntensity(rawScore) {
+  const n = Number(rawScore || 0);
+
+  if (n >= 100) return "EXTREME";
+  if (n >= 70) return "VERY HIGH";
+  if (n >= 40) return "HIGH";
+  if (n >= 15) return "MEDIUM";
+  return "LOW";
+}
+
 function evaluateAlpha(latest) {
   const score = Number(latest.score || 0);
   const movementPct = Number(latest.movementPct || 0);
@@ -691,6 +720,14 @@ async function main() {
   const snapshotId = path.basename(newDir);
   const generatedAt = new Date().toISOString();
   const normalizedPatterns = ensureArray(radarScore.patterns).map(normalizePatternEntry);
+  const rawScore = round(radarScore.score);
+  const scorePercent = normalizeScoreToPercent(rawScore);
+  const movementPercent = clampPercent(movementPct);
+  const addedPercent = clampPercent(addedPct);
+  const changedPercent = clampPercent(changedPct);
+  const activationPercent = clampPercent(intelligence.activationProbability);
+  const intensityClass = classifyIntensity(rawScore);
+  const overdrive = rawScore > 100;
 
   const baseResult = {
     id: `${snapshotId}__${generatedAt}`,
@@ -699,14 +736,31 @@ async function main() {
     added,
     changed,
     movementCount,
+
+    // métricas crudas reales
     movementPct,
     addedPct,
     changedPct,
+    rawScore,
+    rawActivationProbability: round(intelligence.activationProbability),
+
+    // métricas normalizadas para UI
+    movementPercent,
+    addedPercent,
+    changedPercent,
+    scorePercent,
+    activationProbability: activationPercent,
+
+    // score legacy para no romper compatibilidad
+    score: rawScore,
+
+    // clasificación visual
+    intensityClass,
+    overdrive,
+
     signals,
     patternScore: intelligence.patternScore,
     patterns: normalizedPatterns,
-    activationProbability: intelligence.activationProbability,
-    score: radarScore.score,
     level: radarScore.level,
     significance: intelligence.significance,
     rarityScore: intelligence.rarityScore,
@@ -765,7 +819,12 @@ async function main() {
         id: result.id,
         snapshotId: result.snapshotId,
         generatedAt: result.generatedAt,
-        score: round(result.score),
+        rawScore: round(result.rawScore ?? result.score),
+        scorePercent: round(result.scorePercent),
+        movementPercent: round(result.movementPercent),
+        activationProbability: round(result.activationProbability),
+        intensityClass: result.intensityClass,
+        overdrive: !!result.overdrive,
         level: result.level,
         priority: result.priority,
         alphaScore: result.alphaScore,

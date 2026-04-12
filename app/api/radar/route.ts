@@ -26,6 +26,30 @@ async function loadRemoteJson(file: string) {
   }
 }
 
+function clampPercent(value: number) {
+  const n = Number(value || 0)
+  if (!Number.isFinite(n)) return 0
+  return Math.max(0, Math.min(100, Math.round(n * 100) / 100))
+}
+
+function normalizeScoreToPercent(rawScore: number) {
+  const n = Number(rawScore || 0)
+  if (!Number.isFinite(n) || n <= 0) return 0
+
+  const normalized = Math.log10(n + 1) * 50
+  return clampPercent(normalized)
+}
+
+function classifyIntensity(rawScore: number) {
+  const n = Number(rawScore || 0)
+
+  if (n >= 100) return "EXTREME"
+  if (n >= 70) return "VERY HIGH"
+  if (n >= 40) return "HIGH"
+  if (n >= 15) return "MEDIUM"
+  return "LOW"
+}
+
 export async function GET() {
   try {
     const [latest, history, heartbeat, sentinelState, sentinelEvents] =
@@ -37,8 +61,28 @@ export async function GET() {
         loadRemoteJson("sentinel-events.json"),
       ])
 
+    const normalizedLatest = latest
+      ? {
+          ...latest,
+          rawScore: Number(latest.rawScore ?? latest.score ?? 0),
+          scorePercent: normalizeScoreToPercent(
+            Number(latest.rawScore ?? latest.score ?? 0)
+          ),
+          movementPercent: clampPercent(Number(latest.movementPct ?? 0)),
+          addedPercent: clampPercent(Number(latest.addedPct ?? 0)),
+          changedPercent: clampPercent(Number(latest.changedPct ?? 0)),
+          activationProbability: clampPercent(
+            Number(latest.activationProbability ?? 0)
+          ),
+          intensityClass: classifyIntensity(
+            Number(latest.rawScore ?? latest.score ?? 0)
+          ),
+          overdrive: Number(latest.rawScore ?? latest.score ?? 0) > 100,
+        }
+      : null
+
     return NextResponse.json({
-      latest,
+      latest: normalizedLatest,
       history,
       heartbeat,
       sentinelState,
