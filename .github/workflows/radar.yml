@@ -113,8 +113,13 @@ jobs:
           mkdir -p .publish/data
           mkdir -p .publish/snapshots
 
+          # Source of truth for core published data
           cp public/data/*.json .publish/data/ 2>/dev/null || true
-          cp watcher/output/*.json .publish/data/ 2>/dev/null || true
+
+          # Copy only auxiliary watcher outputs that are not already core published files
+          cp watcher/output/sentinel-events.json .publish/data/sentinel-events.json 2>/dev/null || true
+          cp watcher/output/sentinel-state.json .publish/data/sentinel-state.json 2>/dev/null || true
+          cp watcher/output/discovery.json .publish/data/discovery.json 2>/dev/null || true
           cp watcher/last-alert.json .publish/data/last-alert.json 2>/dev/null || true
 
           if [ -d snapshots ]; then
