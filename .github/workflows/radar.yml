@@ -76,7 +76,7 @@ jobs:
         run: |
           mkdir -p public/data
 
-          # CORE FILES (CRÍTICOS)
+          # CORE FILES
           cp watcher/output/latest.json public/data/latest.json || true
           cp watcher/output/history.json public/data/history.json || true
           cp watcher/output/alerts-history.json public/data/alerts-history.json || true
@@ -108,14 +108,14 @@ jobs:
           echo "Heartbeat after success:"
           cat public/data/heartbeat.json
 
-            - name: Debug latest before publish
+      - name: Debug latest before publish
         run: |
           echo "public/data/latest.json:"
           cat public/data/latest.json || echo "missing public/data/latest.json"
 
           echo ""
           echo "watcher/output/latest.json:"
-          cat watcher/output/latest.json || echo "missing watcher/output/latest.json"    
+          cat watcher/output/latest.json || echo "missing watcher/output/latest.json"
 
       - name: Prepare publish bundle
         run: |
@@ -157,7 +157,6 @@ jobs:
           git config user.email "bot@radar.ai"
 
           git add data snapshots
-
           git status --short
 
           git commit -m "Auto radar data update" || echo "No changes to commit"
