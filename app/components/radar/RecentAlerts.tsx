@@ -42,8 +42,14 @@ export function RecentAlerts({
             const alertSignalType = getSignalType(alert)
             const alertProbability = getAlertProbability(alert.level)
             const alertTimestamp = getAlertTimestamp(alert)
-            const score = Number(alert.score ?? 0)
+
+            const rawScore = Number(alert.rawScore ?? alert.score ?? 0)
+            const scorePercent = Number(alert.scorePercent ?? alert.score ?? 0)
+
             const movementPct = Number(alert.movementPct ?? 0)
+            const movementPercent = Number(
+              alert.movementPercent ?? alert.movementPct ?? 0
+            )
 
             return (
               <div
@@ -78,18 +84,22 @@ export function RecentAlerts({
                   <div>
                     Launch:{" "}
                     <span
-                      className={`rounded-full border px-2 py-0.5 ${probabilityClass(alertProbability)}`}
+                      className={`rounded-full border px-2 py-0.5 ${probabilityClass(
+                        alertProbability
+                      )}`}
                     >
                       {alertProbability}
                     </span>
                   </div>
 
                   <div>
-                    Score: <span className="text-white">{score}</span>
+                    Score: <span className="text-white">{scorePercent}/100</span>
+                    <span className="ml-2 text-xs text-slate-500">raw: {rawScore}</span>
                   </div>
 
                   <div>
-                    Movement: <span className="text-emerald-300">{movementPct}%</span>
+                    Movement: <span className="text-emerald-300">{movementPercent}%</span>
+                    <span className="ml-2 text-xs text-slate-500">raw: {movementPct}%</span>
                   </div>
                 </div>
 
