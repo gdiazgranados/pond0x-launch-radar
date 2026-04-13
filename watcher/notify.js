@@ -64,20 +64,101 @@ function getTopPatterns(latest, limit = 3) {
   return Array.isArray(latest.patterns) ? latest.patterns.slice(0, limit) : [];
 }
 
+function getStableSignature(latest) {
+  return latest.alertSignature || latest.signature || "NO_SIGNATURE";
+}
+
 function buildDecision(latest, lastAlert) {
-  const signature = latest.signature || "NO_SIGNATURE";
+  const signature = getStableSignature(latest);
   const priority = latest.priority || "LOW";
   const triggerState = latest.triggerState || "IDLE";
   const score = Number(latest.score || 0);
   const movementPct = Number(latest.movementPct || 0);
 
-  if (triggerState === "TRIGGERED") {
-    const mins = lastAlert ? minutesSince(lastAlert.sentAt) : Number.POSITIVE_INFINITY;
+  // 1) REGLA MAESTRA:
+  // si el estado actual es igual al último alertado, NO enviar
+  if (lastAlert && lastAlert.signature === signature) {
+    return {
+      send: false,
+      reason: "Unchanged state vs previous alert",
+      signature,
+      priority,
+    };
+  }
 
-    if (lastAlert && lastAlert.signature === signature && mins < 10) {
+  // 2) filtro base de ruido
+  if (priority === "LOW" && score < 45) {
+    return {
+      send: false,
+      reason: "Signal too weak",
+      signature,
+      priority,
+    };
+  }
+
+  // 3) primera alerta
+  if (!lastAlert) {
+    return {
+      send: true,
+      reason: "First alert",
+      signature,
+      priority,
+    };
+  }
+
+  // 4) reglas de prioridad, pero solo si YA cambió la firma
+  if (triggerState === "TRIGGERED") {
+    return {
+      send: true,
+      reason: "Alpha state changed and trigger is TRIGGERED",
+      signature,
+      priority,
+    };
+  }
+
+  if (priority === "CRITICAL") {
+    return {
+      send: true,
+      reason: "Critical state changed",
+      signature,
+      priority,
+    };
+  }
+
+  if (priority === "VERY HIGH") {
+    return {
+      send: true,
+      reason: "Very high state changed",
+      signature,
+      priority,
+    };
+  }
+
+  if (priority === "HIGH") {
+    if (movementPct >= 15 || score >= 70) {
+      return {
+        send: true,
+        reason: "High signal changed with enough movement",
+        signature,
+        priority,
+      };
+    }
+
+    return {
+      send: false,
+      reason: "High but not urgent enough",
+      signature,
+      priority,
+    };
+  }
+
+  if (priority === "MEDIUM") {
+    const mins = minutesSince(lastAlert.sentAt);
+
+    if (mins < 180) {
       return {
         send: false,
-        reason: "Duplicate Alpha trigger within 10m",
+        reason: "Medium changed but still inside cooldown window",
         signature,
         priority,
       };
@@ -85,55 +166,18 @@ function buildDecision(latest, lastAlert) {
 
     return {
       send: true,
-      reason: "Alpha TRIGGERED override",
+      reason: "Medium signal changed after cooldown",
       signature,
       priority,
     };
   }
 
-  if (priority === "LOW" && score < 45) {
-    return { send: false, reason: "Signal too weak", signature, priority };
-  }
-
-  if (!lastAlert) {
-    return { send: true, reason: "First alert", signature, priority };
-  }
-
-  const sameSignature = lastAlert.signature === signature;
-  const mins = minutesSince(lastAlert.sentAt);
-
-  if (priority === "CRITICAL") {
-    if (sameSignature && mins < 15) {
-      return { send: false, reason: "Duplicate CRITICAL within 15m", signature, priority };
-    }
-    return { send: true, reason: "Critical signal", signature, priority };
-  }
-
-  if (priority === "VERY HIGH") {
-    if (sameSignature && mins < 30) {
-      return { send: false, reason: "Duplicate VERY HIGH within 30m", signature, priority };
-    }
-    return { send: true, reason: "Very high signal", signature, priority };
-  }
-
-  if (priority === "HIGH") {
-    if (sameSignature && mins < 60) {
-      return { send: false, reason: "Duplicate HIGH within 60m", signature, priority };
-    }
-    if (movementPct >= 15 || score >= 70) {
-      return { send: true, reason: "High signal with movement", signature, priority };
-    }
-    return { send: false, reason: "High but not urgent enough", signature, priority };
-  }
-
-  if (priority === "MEDIUM") {
-    if (sameSignature && mins < 180) {
-      return { send: false, reason: "Duplicate MEDIUM within 180m", signature, priority };
-    }
-    return { send: true, reason: "Medium signal", signature, priority };
-  }
-
-  return { send: false, reason: "No notification rule matched", signature, priority };
+  return {
+    send: false,
+    reason: "No notification rule matched",
+    signature,
+    priority,
+  };
 }
 
 function buildTelegramMessage(latest, decision) {
@@ -156,17 +200,17 @@ function buildTelegramMessage(latest, decision) {
     latest.trendDirection === "UP"
       ? "↑"
       : latest.trendDirection === "DOWN"
-      ? "↓"
-      : "→";
+        ? "↓"
+        : "→";
 
   const title =
     decision.priority === "CRITICAL"
       ? "🚨 POND0X RADAR — CRITICAL"
       : decision.priority === "VERY HIGH"
-      ? "⚠️ POND0X RADAR — VERY HIGH"
-      : decision.priority === "HIGH"
-      ? "📡 POND0X RADAR — HIGH"
-      : "🛰️ POND0X RADAR — MEDIUM";
+        ? "⚠️ POND0X RADAR — VERY HIGH"
+        : decision.priority === "HIGH"
+          ? "📡 POND0X RADAR — HIGH"
+          : "🛰️ POND0X RADAR — MEDIUM";
 
   return [
     `<b>${title}</b>`,
@@ -195,6 +239,7 @@ function buildTelegramMessage(latest, decision) {
     `<b>Insight:</b> ${escapeHtml(latest.insight || "No insight available")}`,
     `<b>Summary:</b> ${escapeHtml(latest.summary || "No summary available")}`,
     ``,
+    `<b>Decision:</b> ${escapeHtml(decision.reason)}`,
     `<b>Generated:</b> ${escapeHtml(latest.generatedAt || new Date().toISOString())}`,
   ].join("\n");
 }
@@ -256,6 +301,8 @@ function buildAlertRecord(latest, decision) {
     priority: decision.priority,
     reason: decision.reason,
     signature: decision.signature,
+    alertSignature: latest.alertSignature || null,
+    legacySignature: latest.signature || null,
     score: latest.score,
     level: latest.level,
     significance: latest.significance,
@@ -303,7 +350,7 @@ async function main() {
   const decision = buildDecision(latest, lastAlert);
 
   console.log(
-    `Notify decision: send=${decision.send} | priority=${decision.priority} | reason=${decision.reason}`
+    `Notify decision: send=${decision.send} | priority=${decision.priority} | reason=${decision.reason} | signature=${decision.signature}`
   );
 
   if (!decision.send) {
