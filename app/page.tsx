@@ -114,14 +114,14 @@ function Gauge({
 }
 
 function getEta(data: any) {
-  const score = Number(data?.score || 0)
-  const movement = Number(data?.movementPct || 0)
+  const score = Number(data?.scorePercent ?? data?.score ?? 0)
+  const movement = Number(data?.movementPercent ?? data?.movementPct ?? 0)
   const trendDirection = data?.trendDirection
   const trend = typeof data?.trend === "number" ? data.trend : 0
 
   if (score >= 85 && movement >= 25 && (trendDirection === "UP" || trend >= 8)) return "< 6h"
   if (score >= 75 && movement >= 20) return "< 24h"
-  if (score >= 60) return "24h – 72h"
+  if (score >= 60) return "24h - 72h"
   return "monitoring"
 }
 
@@ -218,6 +218,27 @@ export default function Home() {
 
   const prioritizedData = useMemo(() => prioritizeLaunchSignals(data), [data])
 
+    const uiScore = useMemo(
+    () => Number(prioritizedData?.scorePercent ?? data?.scorePercent ?? 0),
+    [prioritizedData, data]
+  )
+
+  const rawScore = useMemo(
+    () => Number(prioritizedData?.rawScore ?? data?.rawScore ?? prioritizedData?.score ?? data?.score ?? 0),
+    [prioritizedData, data]
+  )
+
+  const uiMovement = useMemo(
+    () => Number(
+      prioritizedData?.movementPercent ??
+        data?.movementPercent ??
+        prioritizedData?.movementPct ??
+        data?.movementPct ??
+        0
+    ),
+    [prioritizedData, data]
+  )
+
   const priorityMode = getPriorityMode(prioritizedData)
   const isElevated = priorityMode.mode !== "NORMAL"
   const isPriorityView =
@@ -306,36 +327,36 @@ export default function Home() {
     }).length
   }, [cleanHistory])
 
-  const confidenceScore = useMemo(() => {
-    const score = Number(prioritizedData?.score ?? data?.score ?? 0)
-    const movement = Number(prioritizedData?.movementPct ?? data?.movementPct ?? 0)
+    const confidenceScore = useMemo(() => {
+    const score = uiScore
+    const movement = uiMovement
     const trend = Number(prioritizedData?.trend ?? data?.trend ?? 0)
 
     const raw = score * 0.6 + movement * 0.2 + trend * 2
     return Math.max(0, Math.min(100, Math.round(raw)))
-  }, [prioritizedData, data])
+  }, [uiScore, uiMovement, prioritizedData, data])
 
-  const alpha = useMemo(() => {
-  return evaluateAlpha({
-    score: Number(prioritizedData?.score ?? data?.score ?? 0),
-    movementPct: Number(prioritizedData?.movementPct ?? data?.movementPct ?? 0),
-    trend: Number(prioritizedData?.trend ?? data?.trend ?? 0),
-    level: prioritizedData?.level ?? data?.level ?? "LOW",
-    tags: prioritizedData?.tags ?? data?.tags ?? [],
-    signals: prioritizedData?.signals ?? data?.signals ?? [],
-    activationProbability: Number(
-      prioritizedData?.activationProbability ?? data?.activationProbability ?? 0
-    ),
-    patternBoost: Number(
-      prioritizedData?.breakdown?.patternBoost ?? data?.breakdown?.patternBoost ?? 0
-    ),
-    burstCount,
-  })
-}, [prioritizedData, data, burstCount])
+    const alpha = useMemo(() => {
+    return evaluateAlpha({
+      score: uiScore,
+      movementPct: uiMovement,
+      trend: Number(prioritizedData?.trend ?? data?.trend ?? 0),
+      level: prioritizedData?.level ?? data?.level ?? "LOW",
+      tags: prioritizedData?.tags ?? data?.tags ?? [],
+      signals: prioritizedData?.signals ?? data?.signals ?? [],
+      activationProbability: Number(
+        prioritizedData?.activationProbability ?? data?.activationProbability ?? 0
+      ),
+      patternBoost: Number(
+        prioritizedData?.breakdown?.patternBoost ?? data?.breakdown?.patternBoost ?? 0
+      ),
+      burstCount,
+    })
+  }, [uiScore, uiMovement, prioritizedData, data, burstCount])
 
-  const readinessState = useMemo(() => {
-    const score = Number(prioritizedData?.score ?? data?.score ?? 0)
-    const movement = Number(prioritizedData?.movementPct ?? data?.movementPct ?? 0)
+    const readinessState = useMemo(() => {
+    const score = uiScore
+    const movement = uiMovement
     const trend = Number(prioritizedData?.trend ?? data?.trend ?? 0)
     const tags = prioritizedData?.tags || data?.tags || []
     const signals = prioritizedData?.signals || data?.signals || []
@@ -387,7 +408,7 @@ export default function Home() {
       badge: "border-emerald-500/30 bg-emerald-500/10 text-emerald-200",
       note: "monitoring baseline activity",
     }
-  }, [prioritizedData, data, burstCount])
+  }, [uiScore, uiMovement, prioritizedData, data, burstCount])
 
   const tickerItems = useMemo(() => {
     const latestItem = prioritizedData
@@ -479,7 +500,7 @@ export default function Home() {
 
               <div className="flex flex-wrap items-center gap-3 text-xs">
                 <span>
-                  Score {prioritizedData?.scorePercent ?? data?.scorePercent ?? 0}%
+                  Score {uiScore}%
                 </span>
                 <span>Trend {prioritizedData?.trendDirection ?? data?.trendDirection}</span>
                 <span>ETA {getEta(prioritizedData || data)}</span>
@@ -504,7 +525,7 @@ export default function Home() {
 
               <div className="mt-2 flex flex-wrap items-center gap-3">
                 <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-                  Pond0x Launch Radar TEST-DEPLOY-999
+                  Pond0x Launch Radar
                 </h1>
                 <span
                   className={`rounded-full border px-3 py-1 text-xs ${
@@ -535,8 +556,8 @@ export default function Home() {
                 />
                 <MetricCard
                   label="Score"
-                  value={prioritizedData?.scorePercent ?? data?.scorePercent ?? 0}
-                  subvalue={`raw: ${prioritizedData?.rawScore ?? data?.rawScore ?? prioritizedData?.score ?? data?.score ?? 0}`}
+                  value={uiScore}
+                  subvalue={`raw: ${rawScore}`}
                   valueClassName={palette.text}
                 />
                 <MetricCard
@@ -742,7 +763,7 @@ export default function Home() {
                 />
                 <MetricCard
                   label="Movement"
-                  value={`${prioritizedData?.movementPercent ?? data?.movementPercent ?? prioritizedData?.movementPct ?? data?.movementPct ?? 0}%`}
+                  value={`${uiMovement}%`}
                   subvalue={`raw: ${prioritizedData?.movementPct ?? data?.movementPct ?? 0}%`}
                   valueClassName="text-emerald-300"
                 />
@@ -761,7 +782,7 @@ export default function Home() {
                 />
                 <Gauge
                   label="Movement %"
-                  value={Number(prioritizedData?.movementPercent ?? data?.movementPercent ?? prioritizedData?.movementPct ?? data?.movementPct ?? 0)}
+                  value={uiMovement}
                   tone="emerald"
                 />
               </div>
@@ -833,7 +854,7 @@ export default function Home() {
                     subtitle="Human-readable interpretation layer"
                     right={
                       <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-300">
-                        Confidence {data?.confidence ? `${Math.round(data.confidence * 100)}%` : "0%"}
+                        Confidence {confidenceScore}%
                       </span>
                     }
                   />
