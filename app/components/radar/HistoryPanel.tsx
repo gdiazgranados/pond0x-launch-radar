@@ -32,9 +32,14 @@ export function HistoryPanel({
           history.map((item, index) => {
             const palette = getLevelPalette(item.level)
             const probability = getLaunchProbability(item)
-            const movementPct = Number(item.movementPct ?? 0)
+
             const rawScore = Number(item.rawScore ?? item.score ?? 0)
-            const scorePercent = Number(item.scorePercent ?? 0)
+            const scorePercent = Number(item.scorePercent ?? item.score ?? 0)
+
+            const movementPct = Number(item.movementPct ?? 0)
+            const movementPercent = Number(
+              item.movementPercent ?? item.movementPct ?? 0
+            )
 
             return (
               <div
@@ -42,7 +47,9 @@ export function HistoryPanel({
                 className="rounded-xl border border-white/10 bg-black/20 p-4"
               >
                 <div className="flex items-center justify-between gap-3 text-xs">
-                  <span className="text-slate-400">{formatMexicoCityDate(item.generatedAt)}</span>
+                  <span className="text-slate-400">
+                    {formatMexicoCityDate(item.generatedAt)}
+                  </span>
 
                   <span className={`rounded-full border px-2 py-0.5 ${palette.badge}`}>
                     {item.level || "LOW"}
@@ -51,7 +58,8 @@ export function HistoryPanel({
 
                 <div className="mt-3 flex items-center justify-between gap-3">
                   <div className="text-sm text-white">
-                    Score: <span className="font-semibold">{scorePercent}/100</span>
+                    Score:{" "}
+                    <span className="font-semibold">{scorePercent}/100</span>
                     <span className="ml-2 text-xs text-slate-500">
                       raw: {rawScore}
                     </span>
@@ -83,9 +91,13 @@ export function HistoryPanel({
                   <div
                     className={`h-2 rounded-full ${palette.bar}`}
                     style={{
-                      width: `${clampPercent(movementPct)}%`,
+                      width: `${clampPercent(movementPercent)}%`,
                     }}
                   />
+                </div>
+
+                <div className="mt-2 text-xs text-slate-500">
+                  Movement: {movementPercent}% (raw: {movementPct}%)
                 </div>
               </div>
             )
