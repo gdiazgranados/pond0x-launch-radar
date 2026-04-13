@@ -7,6 +7,7 @@ const { computeRadarScore } = require("./lib/scoring-engine");
 
 const KEY_SIGNALS = [
   "claim",
+  "claim now",
   "reward",
   "rewards",
   "verify",
@@ -21,13 +22,55 @@ const KEY_SIGNALS = [
   "launch",
   "portal",
   "airdrop",
+
+  // nuevas señales críticas
+  "eligible",
+  "active",
+  "canclaim",
+  "isenabled",
+  "available rewards",
+  "wallet",
+  "signin",
+  "signmessage",
+  "verifysignature",
+  "nonce",
 ];
 
 const SIGNAL_GROUPS = {
-  AUTH: ["verify", "account", "login"],
-  REWARDS: ["claim", "reward", "airdrop"],
-  CHAIN: ["ethereum", "solana", "connect"],
-  SYSTEM: ["enabled", "disabled", "portal", "launch"],
+  AUTH: [
+    "verify",
+    "account",
+    "login",
+    "signin",
+    "signmessage",
+    "verifysignature",
+    "nonce",
+  ],
+  REWARDS: [
+    "claim",
+    "claim now",
+    "reward",
+    "rewards",
+    "airdrop",
+    "payout",
+    "eligible",
+    "available rewards",
+    "canclaim",
+  ],
+  CHAIN: [
+    "ethereum",
+    "solana",
+    "connect",
+    "wallet",
+  ],
+  SYSTEM: [
+    "enabled",
+    "disabled",
+    "isenabled",
+    "portal",
+    "launch",
+    "active",
+  ],
 };
 
 const MAX_HISTORY = 200;
@@ -135,21 +178,91 @@ function buildSignals({ combinedText = "", changedFiles = [], movementPct = 0, r
   const behaviorHits = [];
   const onchainHits = [];
 
-  const walletKeywords = ["wallet", "connect wallet", "solana", "ethereum", "phantom", "metamask"];
-  const rewardKeywords = ["reward", "rewards", "claim", "distribution", "points", "epoch", "airdrop", "payout"];
-  const ctaKeywords = ["connect", "launch", "enter", "start", "claim now", "portal"];
-  const disabledKeywords = ["disabled", "aria-disabled", "pointer-events-none", "opacity-50"];
+  const walletKeywords = [
+    "wallet",
+    "connect wallet",
+    "solana",
+    "ethereum",
+    "phantom",
+    "metamask",
+    "account",
+  ];
+
+  const rewardKeywords = [
+    "reward",
+    "rewards",
+    "claim",
+    "claim now",
+    "distribution",
+    "points",
+    "epoch",
+    "airdrop",
+    "payout",
+    "eligible",
+    "available rewards",
+  ];
+
+  const rewardActivationKeywords = [
+    "claim",
+    "claim now",
+    "eligible",
+    "available rewards",
+    "canclaim",
+    "isenabled",
+    "active",
+  ];
+
+  const authKeywords = [
+    "verify",
+    "signin",
+    "signmessage",
+    "verifysignature",
+    "nonce",
+    "account",
+  ];
+
+  const ctaKeywords = [
+    "connect",
+    "launch",
+    "enter",
+    "start",
+    "claim now",
+    "portal",
+    "available rewards",
+  ];
+
+  const disabledKeywords = [
+    "disabled",
+    "aria-disabled",
+    "pointer-events-none",
+    "opacity-50",
+  ];
+
+  const enabledKeywords = [
+    "enabled",
+    "isenabled",
+    "active",
+    "canclaim",
+  ];
 
   const hasWalletStrings = includesAny(combinedText, walletKeywords);
   const hasRewardLogic = includesAny(combinedText, rewardKeywords);
+  const hasRewardActivation = includesAny(combinedText, rewardActivationKeywords);
+  const hasAuthSignals = includesAny(combinedText, authKeywords);
   const hasConnectUI = includesAny(combinedText, ctaKeywords);
   const hasDisabledState = includesAny(combinedText, disabledKeywords);
+  const hasEnabledState = includesAny(combinedText, enabledKeywords);
   const hasVisibleCTAChange = includesAny(combinedText, ["connect", "claim", "launch", "portal"]);
+  const hasClaimSignal = includesAny(combinedText, ["claim", "claim now", "canclaim"]);
+  const hasEligibilitySignal = includesAny(combinedText, ["eligible", "available rewards"]);
+  const hasActiveSignal = includesAny(combinedText, ["active", "enabled", "isenabled"]);
 
   if (hasWalletStrings) frontendHits.push("wallet_strings");
   if (hasConnectUI) frontendHits.push("connect_ui");
   if (hasDisabledState) frontendHits.push("disabled_state");
+  if (hasEnabledState) frontendHits.push("enabled_state");
   if (hasVisibleCTAChange) frontendHits.push("cta_change");
+  if (hasAuthSignals) frontendHits.push("auth_flow");
 
   const hasNewChunks = changedFiles.some((file) =>
     file.includes("_next/static") || file.endsWith(".js") || file.endsWith(".css")
@@ -161,8 +274,18 @@ function buildSignals({ combinedText = "", changedFiles = [], movementPct = 0, r
   if (changedFiles.length >= 4) behaviorHits.push("multi_file_burst");
 
   if (hasRewardLogic) rewardsHits.push("reward_logic");
+  if (hasRewardActivation) rewardsHits.push("reward_activation");
+  if (hasClaimSignal) rewardsHits.push("claim_signal");
+  if (hasEligibilitySignal) rewardsHits.push("eligibility_signal");
+  if (hasActiveSignal) rewardsHits.push("active_signal");
+
   if (movementPct >= 10) behaviorHits.push("movement_spike");
   if (recentChangesCount >= 3) behaviorHits.push("recent_change_cluster");
+  if (hasEnabledState && !hasDisabledState) behaviorHits.push("enabled_without_disabled");
+  if (hasClaimSignal && hasEligibilitySignal) behaviorHits.push("claim_eligibility_convergence");
+  if (hasWalletStrings && hasAuthSignals && hasRewardActivation) {
+    behaviorHits.push("wallet_auth_reward_convergence");
+  }
 
   const hasOnchainMovement = false;
 
@@ -188,7 +311,13 @@ function buildSignals({ combinedText = "", changedFiles = [], movementPct = 0, r
     hasWalletStrings,
     hasConnectUI,
     hasDisabledState,
+    hasEnabledState,
     hasRewardLogic,
+    hasRewardActivation,
+    hasAuthSignals,
+    hasClaimSignal,
+    hasEligibilitySignal,
+    hasActiveSignal,
     hasOnchainMovement,
     hasNewChunks,
     hasVisibleCTAChange,
@@ -211,7 +340,22 @@ function buildInsight(movementPct, signals, detectedGroups) {
   let insight = "No significant activity detected";
   let confidence = 0.2;
 
-  if (movementPct > 30 && signals.includes("claim")) {
+  const hasClaim = signals.includes("claim") || signals.includes("claim now") || signals.includes("canclaim");
+  const hasEligible = signals.includes("eligible") || signals.includes("available rewards");
+  const hasActive = signals.includes("active") || signals.includes("enabled") || signals.includes("isenabled");
+  const hasWallet = signals.includes("connect") || signals.includes("wallet") || signals.includes("solana") || signals.includes("ethereum");
+  const hasAuth = signals.includes("verify") || signals.includes("signin") || signals.includes("signmessage") || signals.includes("verifysignature") || signals.includes("nonce");
+
+  if (movementPct > 20 && hasClaim && hasEligible && hasActive) {
+    insight = "Eligibility, claim, and activation signals are converging strongly";
+    confidence = 0.95;
+  } else if (movementPct > 15 && hasClaim && hasEligible) {
+    insight = "Claim readiness and eligibility indicators detected";
+    confidence = 0.9;
+  } else if (movementPct > 15 && hasWallet && hasAuth && hasClaim) {
+    insight = "Wallet-auth-reward stack appears to be converging toward activation";
+    confidence = 0.88;
+  } else if (movementPct > 30 && hasClaim) {
     insight = "Strong indicators of claim or reward activation";
     confidence = 0.9;
   } else if (movementPct > 20 && detectedGroups.includes("AUTH")) {
@@ -220,6 +364,9 @@ function buildInsight(movementPct, signals, detectedGroups) {
   } else if (movementPct > 20 && detectedGroups.includes("CHAIN")) {
     insight = "Blockchain connection flow evolving (wallet or network activity)";
     confidence = 0.7;
+  } else if (movementPct > 10 && hasActive) {
+    insight = "Activation-related state changes detected in frontend flow";
+    confidence = 0.68;
   } else if (movementPct > 10) {
     insight = "Moderate frontend activity detected";
     confidence = 0.55;
@@ -281,11 +428,6 @@ function normalizeScoreToPercent(rawScore) {
   const n = Number(rawScore || 0);
   if (!Number.isFinite(n) || n <= 0) return 0;
 
-  // Escala logarítmica suave para visualización
-  // 10 -> ~52
-  // 50 -> ~85
-  // 100 -> 100
-  // >100 -> sigue en 100 visualmente
   const normalized = Math.log10(n + 1) * 50;
   return clampPercent(normalized);
 }
@@ -319,21 +461,36 @@ function evaluateAlpha(latest) {
     tags.includes("REWARDS") ||
     signals.includes("reward") ||
     signals.includes("claim") ||
-    signals.includes("payout");
+    signals.includes("payout") ||
+    signals.includes("eligible") ||
+    signals.includes("canclaim");
 
   const hasWalletStack =
-    signals.includes("connect") &&
+    (signals.includes("connect") || signals.includes("wallet")) &&
     (signals.includes("ethereum") || signals.includes("solana"));
 
   const hasAuth =
     tags.includes("AUTH") ||
     signals.includes("verify") ||
     signals.includes("account") ||
-    signals.includes("auth");
+    signals.includes("auth") ||
+    signals.includes("signin") ||
+    signals.includes("signmessage") ||
+    signals.includes("verifysignature") ||
+    signals.includes("nonce");
+
+  const hasActivation =
+    signals.includes("enabled") ||
+    signals.includes("isenabled") ||
+    signals.includes("active");
 
   if (hasRewards) alphaRaw += 12;
   if (hasWalletStack) alphaRaw += 10;
   if (hasAuth) alphaRaw += 6;
+  if (hasActivation) alphaRaw += 8;
+  if (signals.includes("claim")) alphaRaw += 10;
+  if (signals.includes("eligible")) alphaRaw += 8;
+  if (signals.includes("canclaim")) alphaRaw += 8;
 
   const alphaScore = Math.max(0, Math.min(100, Math.round(alphaRaw)));
 
@@ -380,10 +537,13 @@ function detectEventType(latest) {
     signals.includes("reward") ||
     signals.includes("claim") ||
     signals.includes("payout") ||
-    signals.includes("airdrop");
+    signals.includes("airdrop") ||
+    signals.includes("eligible") ||
+    signals.includes("canclaim");
 
   const hasWallet =
     signals.includes("connect") ||
+    signals.includes("wallet") ||
     signals.includes("ethereum") ||
     signals.includes("solana") ||
     tags.includes("CHAIN");
@@ -392,14 +552,31 @@ function detectEventType(latest) {
     tags.includes("AUTH") ||
     signals.includes("verify") ||
     signals.includes("account") ||
-    signals.includes("auth");
+    signals.includes("auth") ||
+    signals.includes("signin") ||
+    signals.includes("signmessage") ||
+    signals.includes("verifysignature") ||
+    signals.includes("nonce");
 
   const hasPortal =
     tags.includes("SYSTEM") ||
     signals.includes("portal");
 
-  if (hasRewards && hasWallet && score >= 70) {
+  const hasActivation =
+    signals.includes("enabled") ||
+    signals.includes("isenabled") ||
+    signals.includes("active");
+
+  if (hasRewards && hasWallet && hasAuth && hasActivation && score >= 70) {
     return "REWARD ACTIVATION";
+  }
+
+  if (
+    hasRewards &&
+    (signals.includes("claim") || signals.includes("eligible") || signals.includes("canclaim")) &&
+    score >= 60
+  ) {
+    return "CLAIM READINESS";
   }
 
   if (hasWallet && hasAuth && movementPct >= 10) {
@@ -437,10 +614,13 @@ function classifySignalRegime(latest, alpha, eventType) {
     signals.includes("reward") ||
     signals.includes("claim") ||
     signals.includes("payout") ||
-    signals.includes("airdrop");
+    signals.includes("airdrop") ||
+    signals.includes("eligible") ||
+    signals.includes("canclaim");
 
   const hasWallet =
     signals.includes("connect") ||
+    signals.includes("wallet") ||
     signals.includes("ethereum") ||
     signals.includes("solana") ||
     tags.includes("CHAIN");
@@ -449,17 +629,18 @@ function classifySignalRegime(latest, alpha, eventType) {
     tags.includes("AUTH") ||
     signals.includes("verify") ||
     signals.includes("account") ||
-    signals.includes("auth");
-
-  const hasPortal =
-    tags.includes("SYSTEM") ||
-    signals.includes("portal");
+    signals.includes("auth") ||
+    signals.includes("signin") ||
+    signals.includes("signmessage") ||
+    signals.includes("verifysignature") ||
+    signals.includes("nonce");
 
   if (
     alpha.triggerState === "TRIGGERED" &&
     alpha.alphaClass === "CRITICAL" &&
     (
       eventType === "REWARD ACTIVATION" ||
+      eventType === "CLAIM READINESS" ||
       (hasRewards && hasWallet && hasAuth) ||
       (score >= 75 && movementPct >= 15 && trend >= 3)
     )
@@ -471,7 +652,8 @@ function classifySignalRegime(latest, alpha, eventType) {
     alpha.alphaClass === "ACTIONABLE" ||
     alpha.triggerState === "ARMED" ||
     eventType === "WALLET ENABLEMENT" ||
-    eventType === "PORTAL ARMING"
+    eventType === "PORTAL ARMING" ||
+    eventType === "CLAIM READINESS"
   ) {
     return "HIGH-CONVICTION SETUP";
   }
@@ -479,7 +661,6 @@ function classifySignalRegime(latest, alpha, eventType) {
   if (
     alpha.alphaClass === "SETUP" ||
     alpha.alphaClass === "WATCH" ||
-    hasPortal ||
     hasAuth
   ) {
     return "TRANSITIONAL SIGNAL";
@@ -500,10 +681,13 @@ function detectSignalFusion(latest, alpha, eventType, signalRegime) {
     signals.includes("reward") ||
     signals.includes("claim") ||
     signals.includes("payout") ||
-    signals.includes("airdrop");
+    signals.includes("airdrop") ||
+    signals.includes("eligible") ||
+    signals.includes("canclaim");
 
   const hasWallet =
     signals.includes("connect") ||
+    signals.includes("wallet") ||
     signals.includes("ethereum") ||
     signals.includes("solana") ||
     tags.includes("CHAIN");
@@ -512,11 +696,16 @@ function detectSignalFusion(latest, alpha, eventType, signalRegime) {
     tags.includes("AUTH") ||
     signals.includes("verify") ||
     signals.includes("account") ||
-    signals.includes("auth");
+    signals.includes("auth") ||
+    signals.includes("signin") ||
+    signals.includes("signmessage") ||
+    signals.includes("verifysignature") ||
+    signals.includes("nonce");
 
-  const hasPortal =
-    tags.includes("SYSTEM") ||
-    signals.includes("portal");
+  const hasActivation =
+    signals.includes("enabled") ||
+    signals.includes("isenabled") ||
+    signals.includes("active");
 
   const strongAlpha =
     alpha.alphaClass === "CRITICAL" ||
@@ -528,6 +717,7 @@ function detectSignalFusion(latest, alpha, eventType, signalRegime) {
     hasRewards &&
     hasWallet &&
     hasAuth &&
+    hasActivation &&
     strongAlpha &&
     score >= 70 &&
     patternBoost >= 20
@@ -537,14 +727,6 @@ function detectSignalFusion(latest, alpha, eventType, signalRegime) {
 
   if (hasRewards && hasWallet && hasAuth) {
     return "REWARD + WALLET + AUTH CLUSTER";
-  }
-
-  if (
-    hasPortal &&
-    hasWallet &&
-    (signalRegime === "HIGH-CONVICTION SETUP" || signalRegime === "PRE-LAUNCH REAL")
-  ) {
-    return "PORTAL READINESS CLUSTER";
   }
 
   if (
@@ -708,6 +890,20 @@ async function main() {
   const detectedGroups = detectGroups(signals);
   const radarScore = computeRadarScore(advancedSignals, existingHistory);
 
+  let weightedRawScore = Number(radarScore.score || 0);
+
+  if (signals.includes("claim")) weightedRawScore += 10;
+  if (signals.includes("claim now")) weightedRawScore += 8;
+  if (signals.includes("eligible")) weightedRawScore += 8;
+  if (signals.includes("active")) weightedRawScore += 6;
+  if (signals.includes("canclaim")) weightedRawScore += 8;
+  if (signals.includes("isenabled")) weightedRawScore += 8;
+  if (signals.includes("enabled")) weightedRawScore += 5;
+  if (signals.includes("available rewards")) weightedRawScore += 6;
+  if (signals.includes("signmessage")) weightedRawScore += 4;
+  if (signals.includes("verifysignature")) weightedRawScore += 4;
+  if (signals.includes("nonce")) weightedRawScore += 3;
+
   const draftSnapshot = {
     id: path.basename(newDir),
     totalFiles,
@@ -728,7 +924,7 @@ async function main() {
     ? `Primera captura base generada con ${totalFiles} archivos. Aún no hay comparación histórica.`
     : movementCount === 0
       ? `No se detectaron cambios en ${totalFiles} archivos analizados.`
-      : `${movementCount} de ${totalFiles} archivos muestran movimiento (${movementPct}%). ${added} nuevos (${addedPct}%) y ${changed} modificados (${changedPct}%).${
+      : `${movementCount} de ${totalFiles} archivos muestran movimiento (${movementPct}%). ${added} nuevos (${addedPct}%) y ${changed} modificados (${changedPct}).${
           signals.length ? ` Señales: ${signals.join(", ")}.` : " Sin señales relevantes."
         }`;
 
@@ -736,20 +932,22 @@ async function main() {
 
   const note = !oldDir
     ? "Primera corrida base. El siguiente snapshot permitirá detectar cambios."
-    : radarScore.level === "CRITICAL"
-      ? "Señales muy fuertes de posible launch imminente."
-      : radarScore.level === "VERY HIGH"
-        ? "Señales fuertes de activación o pre-launch."
-        : radarScore.level === "HIGH"
-          ? "Cambios importantes en frontend y señales relevantes."
-          : radarScore.level === "MEDIUM"
-            ? "Actividad de desarrollo visible."
-            : "Sin señales fuertes por ahora.";
+    : weightedRawScore >= 100
+      ? "Señales muy fuertes de activación real o launch inminente."
+      : radarScore.level === "CRITICAL"
+        ? "Señales muy fuertes de posible launch imminente."
+        : radarScore.level === "VERY HIGH"
+          ? "Señales fuertes de activación o pre-launch."
+          : radarScore.level === "HIGH"
+            ? "Cambios importantes en frontend y señales relevantes."
+            : radarScore.level === "MEDIUM"
+              ? "Actividad de desarrollo visible."
+              : "Sin señales fuertes por ahora.";
 
   const snapshotId = path.basename(newDir);
   const generatedAt = new Date().toISOString();
   const normalizedPatterns = ensureArray(radarScore.patterns).map(normalizePatternEntry);
-  const rawScore = round(radarScore.score);
+  const rawScore = round(weightedRawScore);
   const scorePercent = normalizeScoreToPercent(rawScore);
   const movementPercent = clampPercent(movementPct);
   const addedPercent = clampPercent(addedPct);
@@ -758,6 +956,13 @@ async function main() {
   const intensityClass = classifyIntensity(rawScore);
   const overdrive = rawScore > 100;
 
+  let effectiveLevel = radarScore.level;
+  if (rawScore >= 100) effectiveLevel = "CRITICAL";
+  else if (rawScore >= 70) effectiveLevel = "VERY HIGH";
+  else if (rawScore >= 40) effectiveLevel = "HIGH";
+  else if (rawScore >= 15) effectiveLevel = "MEDIUM";
+  else effectiveLevel = "LOW";
+
   const baseResult = {
     id: `${snapshotId}__${generatedAt}`,
     snapshotId,
@@ -765,32 +970,23 @@ async function main() {
     added,
     changed,
     movementCount,
-
-    // métricas crudas reales
     movementPct,
     addedPct,
     changedPct,
     rawScore,
     rawActivationProbability: round(intelligence.activationProbability),
-
-    // métricas normalizadas para UI
     movementPercent,
     addedPercent,
     changedPercent,
     scorePercent,
     activationProbability: activationPercent,
-
-    // score legacy para no romper compatibilidad
     score: rawScore,
-
-    // clasificación visual
     intensityClass,
     overdrive,
-
     signals,
     patternScore: intelligence.patternScore,
     patterns: normalizedPatterns,
-    level: radarScore.level,
+    level: effectiveLevel,
     significance: intelligence.significance,
     rarityScore: intelligence.rarityScore,
     focusAreas: ensureArray(intelligence.focusAreas),
@@ -805,7 +1001,10 @@ async function main() {
     generatedAt,
     trend: radarScore.trend,
     trendDirection: radarScore.trendDirection,
-    breakdown: radarScore.breakdown || {},
+    breakdown: {
+      ...(radarScore.breakdown || {}),
+      weightedBoost: round(rawScore - Number(radarScore.score || 0)),
+    },
     advancedSignals,
     whyItMatters: intelligence.whyItMatters || "",
   };
@@ -830,11 +1029,7 @@ async function main() {
     eta,
   };
 
-  // Firma legacy para UI / agrupación
   result.signature = buildSignature(result);
-
-  // Firma estable para anti-spam de alertas
-  // Ignora generatedAt e id únicos de cada corrida
   result.alertSignature = buildAlertSignatureStable(result);
 
   await persistDetectionOutputs({
