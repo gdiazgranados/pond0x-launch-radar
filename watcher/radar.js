@@ -275,6 +275,7 @@ function buildSignals({
   movementPct = 0,
   recentChangesCount = 0,
   discovery = {},
+  backendSignals = [],
 }) {
   const frontendHits = [];
   const infraHits = [];
@@ -353,11 +354,14 @@ function buildSignals({
   const discoveryApiRoutes = uniqueSortedStrings(discovery.newApiRoutes);
   const discoveryCandidate = String(discovery.keyFunctionCandidate || "").toLowerCase();
 
+  const backendSignalsText = uniqueSortedStrings(backendSignals).join(" ");
+
   const discoveryText = [
     combinedText,
     discoveryKeywords.join(" "),
     discoveryApiRoutes.join(" "),
     discoveryCandidate,
+    backendSignalsText,
   ].join("\n");
 
   const hasWalletStrings = includesAny(discoveryText, walletKeywords);
@@ -369,13 +373,19 @@ function buildSignals({
   const hasEnabledState = includesAny(discoveryText, enabledKeywords);
   const hasVisibleCTAChange = includesAny(discoveryText, ["connect", "claim", "launch", "portal"]);
   const hasClaimSignal = includesAny(discoveryText, ["claim", "claim now", "canclaim"]);
-  const hasEligibilitySignal = includesAny(discoveryText, ["eligible", "available rewards"]);
-  const hasActiveSignal = includesAny(discoveryText, ["active", "enabled", "isenabled"]);
+  const hasEligibilitySignal = includesAny(discoveryText, ["eligible", "available rewards", "eligible_true"]);
+  const hasActiveSignal = includesAny(discoveryText, ["active", "enabled", "isenabled", "active_true", "enabled_true"]);
   const hasApiSurface = discoveryApiRoutes.length > 0;
   const hasClaimApi = discoveryApiRoutes.some((x) => x.includes("claim"));
   const hasRewardApi = discoveryApiRoutes.some((x) => x.includes("reward"));
   const hasAuthApi = discoveryApiRoutes.some((x) => x.includes("auth") || x.includes("verify") || x.includes("nonce"));
   const hasAccountApi = discoveryApiRoutes.some((x) => x.includes("account") || x.includes("user") || x.includes("wallet"));
+
+  const hasEligibleTrue = backendSignals.includes("eligible_true");
+  const hasCanClaimTrue = backendSignals.includes("canclaim_true");
+  const hasEnabledTrue = backendSignals.includes("enabled_true");
+  const hasActiveTrue = backendSignals.includes("active_true");
+  const hasRewardsArray = backendSignals.includes("rewards_array");
 
   if (hasWalletStrings) frontendHits.push("wallet_strings");
   if (hasConnectUI) frontendHits.push("connect_ui");
@@ -406,6 +416,11 @@ function buildSignals({
   if (hasActiveSignal) rewardsHits.push("active_signal");
   if (hasClaimApi) rewardsHits.push("claim_api_signal");
   if (hasRewardApi) rewardsHits.push("reward_api_signal");
+  if (hasEligibleTrue) rewardsHits.push("eligible_true_signal");
+  if (hasCanClaimTrue) rewardsHits.push("canclaim_true_signal");
+  if (hasEnabledTrue) rewardsHits.push("enabled_true_signal");
+  if (hasActiveTrue) rewardsHits.push("active_true_signal");
+  if (hasRewardsArray) rewardsHits.push("rewards_array_signal");
 
   if (movementPct >= 10) behaviorHits.push("movement_spike");
   if (recentChangesCount >= 3) behaviorHits.push("recent_change_cluster");
@@ -416,6 +431,9 @@ function buildSignals({
   }
   if (discoveryKeywords.length >= 2) behaviorHits.push("discovery_keyword_cluster");
   if (hasApiSurface && discoveryCandidate) behaviorHits.push("api_surface_candidate");
+  if (hasEligibleTrue && hasCanClaimTrue) behaviorHits.push("backend_claim_activation");
+  if (hasEnabledTrue || hasActiveTrue) behaviorHits.push("backend_enabled_state");
+  if (hasRewardsArray) behaviorHits.push("backend_rewards_payload");
 
   const hasOnchainMovement = false;
 
@@ -453,13 +471,18 @@ function buildSignals({
     hasRewardApi,
     hasAuthApi,
     hasAccountApi,
+    hasEligibleTrue,
+    hasCanClaimTrue,
+    hasEnabledTrue,
+    hasActiveTrue,
+    hasRewardsArray,
     hasOnchainMovement,
     hasNewChunks,
     hasVisibleCTAChange,
   };
 }
 
-function buildInsight(movementPct, signals, detectedGroups, discovery = {}) {
+function buildInsight(movementPct, signals, detectedGroups, discovery = {}, backendSignals = []) {
   let insight = "No significant activity detected";
   let confidence = 0.2;
 
@@ -485,10 +508,22 @@ function buildInsight(movementPct, signals, detectedGroups, discovery = {}) {
     discoveryKeywords.includes("enabled") ||
     discoveryKeywords.includes("isenabled") ||
     discoveryKeywords.includes("canclaim");
+
   const hasApiCandidate = candidate.startsWith("api:");
   const hasCriticalCandidate = candidate.startsWith("critical:");
+  const hasEligibleTrue = backendSignals.includes("eligible_true");
+  const hasCanClaimTrue = backendSignals.includes("canclaim_true");
+  const hasEnabledTrue = backendSignals.includes("enabled_true");
+  const hasActiveTrue = backendSignals.includes("active_true");
+  const hasRewardsArray = backendSignals.includes("rewards_array");
 
-  if ((hasClaim || hasDiscoveryClaim) && (hasEligible || hasDiscoveryEligible) && (hasActive || hasDiscoveryActive)) {
+  if (hasEligibleTrue && hasCanClaimTrue) {
+    insight = "Backend indicates eligibility and claim activation directly";
+    confidence = 0.99;
+  } else if ((hasEnabledTrue || hasActiveTrue) && hasRewardsArray) {
+    insight = "Backend payload suggests active rewards state with claimable context";
+    confidence = 0.96;
+  } else if ((hasClaim || hasDiscoveryClaim) && (hasEligible || hasDiscoveryEligible) && (hasActive || hasDiscoveryActive)) {
     insight = "Eligibility, claim, and activation signals are converging strongly";
     confidence = 0.96;
   } else if (discoveryApiRoutes.length > 0 && (hasApiCandidate || hasCriticalCandidate)) {
@@ -529,6 +564,7 @@ function evaluateAlpha(latest) {
   const tags = latest.tags || [];
   const signals = latest.signals || [];
   const discovery = latest.discovery || {};
+  const backendSignals = latest.backendSignals || [];
 
   let alphaRaw =
     score * 0.35 +
@@ -574,6 +610,11 @@ function evaluateAlpha(latest) {
   if (ensureArray(discovery.criticalKeywords).length >= 2) alphaRaw += 6;
   if (String(discovery.keyFunctionCandidate || "").startsWith("api:")) alphaRaw += 6;
   if (String(discovery.keyFunctionCandidate || "").startsWith("critical:")) alphaRaw += 8;
+  if (backendSignals.includes("eligible_true")) alphaRaw += 15;
+  if (backendSignals.includes("canclaim_true")) alphaRaw += 20;
+  if (backendSignals.includes("enabled_true")) alphaRaw += 10;
+  if (backendSignals.includes("active_true")) alphaRaw += 8;
+  if (backendSignals.includes("rewards_array")) alphaRaw += 8;
 
   const alphaScore = Math.max(0, Math.min(100, Math.round(alphaRaw)));
 
@@ -612,6 +653,7 @@ function detectEventType(latest) {
   const tags = latest.tags || [];
   const signals = latest.signals || [];
   const discovery = latest.discovery || {};
+  const backendSignals = latest.backendSignals || [];
   const score = Number(latest.score || 0);
   const movementPct = Number(latest.movementPct || 0);
   const level = latest.level || "LOW";
@@ -656,24 +698,26 @@ function detectEventType(latest) {
   const hasRewardApi = discoveryApiRoutes.some((x) => String(x).includes("reward"));
   const hasAccountApi = discoveryApiRoutes.some((x) => String(x).includes("account") || String(x).includes("user") || String(x).includes("wallet"));
 
-  if (hasRewards && hasWallet && hasAuth && hasActivation && score >= 70) {
+  const hasEligibleTrue = backendSignals.includes("eligible_true");
+  const hasCanClaimTrue = backendSignals.includes("canclaim_true");
+  const hasEnabledTrue = backendSignals.includes("enabled_true");
+  const hasActiveTrue = backendSignals.includes("active_true");
+  const hasRewardsArray = backendSignals.includes("rewards_array");
+
+  if ((hasEligibleTrue && hasCanClaimTrue) || (hasEnabledTrue && hasRewardsArray && score >= 70)) {
     return "REWARD ACTIVATION";
   }
 
   if (
-    (hasClaimApi || hasRewardApi) &&
-    (signals.includes("claim") || signals.includes("eligible") || signals.includes("canclaim")) &&
+    (hasClaimApi || hasRewardApi || hasEligibleTrue) &&
+    (signals.includes("claim") || signals.includes("eligible") || signals.includes("canclaim") || hasCanClaimTrue) &&
     score >= 60
   ) {
     return "CLAIM READINESS";
   }
 
-  if (
-    hasRewards &&
-    (signals.includes("claim") || signals.includes("eligible") || signals.includes("canclaim")) &&
-    score >= 60
-  ) {
-    return "CLAIM READINESS";
+  if (hasRewards && hasWallet && hasAuth && hasActivation && score >= 70) {
+    return "REWARD ACTIVATION";
   }
 
   if (hasWallet && (hasAuth || hasAccountApi) && movementPct >= 10) {
@@ -705,6 +749,7 @@ function classifySignalRegime(latest, alpha, eventType) {
   const trend = Number(latest.trend || 0);
   const tags = latest.tags || [];
   const signals = latest.signals || [];
+  const backendSignals = latest.backendSignals || [];
 
   const hasRewards =
     tags.includes("REWARDS") ||
@@ -732,12 +777,19 @@ function classifySignalRegime(latest, alpha, eventType) {
     signals.includes("verifysignature") ||
     signals.includes("nonce");
 
+  const backendActivation =
+    backendSignals.includes("eligible_true") ||
+    backendSignals.includes("canclaim_true") ||
+    backendSignals.includes("enabled_true") ||
+    backendSignals.includes("active_true");
+
   if (
     alpha.triggerState === "TRIGGERED" &&
     alpha.alphaClass === "CRITICAL" &&
     (
       eventType === "REWARD ACTIVATION" ||
       eventType === "CLAIM READINESS" ||
+      backendActivation ||
       (hasRewards && hasWallet && hasAuth) ||
       (score >= 75 && movementPct >= 15 && trend >= 3)
     )
@@ -770,6 +822,7 @@ function detectSignalFusion(latest, alpha, eventType, signalRegime) {
   const tags = latest.tags || [];
   const signals = latest.signals || [];
   const discovery = latest.discovery || {};
+  const backendSignals = latest.backendSignals || [];
   const score = Number(latest.score || 0);
   const movementPct = Number(latest.movementPct || 0);
   const patternBoost = Number(latest?.breakdown?.patternBoost || 0);
@@ -806,6 +859,11 @@ function detectSignalFusion(latest, alpha, eventType, signalRegime) {
     signals.includes("active");
 
   const hasApiSurface = ensureArray(discovery.newApiRoutes).length > 0;
+  const backendActivation =
+    backendSignals.includes("eligible_true") ||
+    backendSignals.includes("canclaim_true") ||
+    backendSignals.includes("enabled_true") ||
+    backendSignals.includes("active_true");
 
   const strongAlpha =
     alpha.alphaClass === "CRITICAL" ||
@@ -817,7 +875,7 @@ function detectSignalFusion(latest, alpha, eventType, signalRegime) {
     hasRewards &&
     hasWallet &&
     hasAuth &&
-    hasActivation &&
+    (hasActivation || backendActivation) &&
     strongAlpha &&
     score >= 70 &&
     patternBoost >= 20
@@ -906,6 +964,7 @@ function buildAlertSignatureStable(latest) {
     tags: normalizeList(latest.tags),
     signals: normalizeList(latest.signals),
     patterns: normalizeList(latest.patterns),
+    backendSignals: normalizeList(latest.backendSignals || []),
     discoveryCriticalKeywords: normalizeList(latest.discovery?.criticalKeywords || []),
     discoveryApiRoutes: normalizeList(latest.discovery?.newApiRoutes || []),
     discoveryCandidate: String(latest.discovery?.keyFunctionCandidate || ""),
@@ -981,6 +1040,7 @@ async function main() {
   const publicDir = path.join(__dirname, "..", "public", "data");
   const historyPath = path.join(publicDir, "history.json");
   const discoveryPath = path.join(publicDir, "discovery.json");
+  const apiFile = path.join(newDir, "api.json");
 
   const existingHistory = await readJsonArraySafe(historyPath);
   const discovery = await readJsonSafe(discoveryPath, {
@@ -995,6 +1055,15 @@ async function main() {
     newKeywords: [],
     criticalKeywords: [],
   });
+  const apiData = await readJsonSafe(apiFile, []);
+
+  const backendSignals = [];
+  for (const entry of ensureArray(apiData)) {
+    for (const sig of ensureArray(entry.backendSignals)) {
+      backendSignals.push(sig);
+    }
+  }
+  const uniqueBackendSignals = uniqueSortedStrings(backendSignals);
 
   const advancedSignals = buildSignals({
     combinedText,
@@ -1002,6 +1071,7 @@ async function main() {
     movementPct,
     recentChangesCount,
     discovery,
+    backendSignals: uniqueBackendSignals,
   });
 
   uniqueSortedStrings(discovery.criticalKeywords)
@@ -1015,6 +1085,12 @@ async function main() {
   if (discoveryApiRoutes.some((x) => x.includes("nonce"))) allSignals.add("nonce");
   if (discoveryApiRoutes.some((x) => x.includes("account") || x.includes("user"))) allSignals.add("account");
   if (discoveryApiRoutes.some((x) => x.includes("wallet"))) allSignals.add("wallet");
+
+  if (uniqueBackendSignals.includes("eligible_true")) allSignals.add("eligible");
+  if (uniqueBackendSignals.includes("canclaim_true")) allSignals.add("canclaim");
+  if (uniqueBackendSignals.includes("enabled_true")) allSignals.add("enabled");
+  if (uniqueBackendSignals.includes("active_true")) allSignals.add("active");
+  if (uniqueBackendSignals.includes("account_object")) allSignals.add("account");
 
   const signals = [...allSignals];
   const detectedGroups = detectGroups(signals);
@@ -1047,6 +1123,14 @@ async function main() {
     weightedRawScore += 5;
   }
 
+  if (uniqueBackendSignals.includes("eligible_true")) weightedRawScore += 20;
+  if (uniqueBackendSignals.includes("canclaim_true")) weightedRawScore += 25;
+  if (uniqueBackendSignals.includes("enabled_true")) weightedRawScore += 15;
+  if (uniqueBackendSignals.includes("active_true")) weightedRawScore += 12;
+  if (uniqueBackendSignals.includes("rewards_array")) weightedRawScore += 10;
+  if (uniqueBackendSignals.includes("balance_detected")) weightedRawScore += 6;
+  if (uniqueBackendSignals.includes("account_object")) weightedRawScore += 6;
+
   const draftSnapshot = {
     id: path.basename(newDir),
     totalFiles,
@@ -1061,7 +1145,13 @@ async function main() {
     changedFiles,
   };
 
-  const { insight, confidence } = buildInsight(movementPct, signals, detectedGroups, discovery);
+  const { insight, confidence } = buildInsight(
+    movementPct,
+    signals,
+    detectedGroups,
+    discovery,
+    uniqueBackendSignals
+  );
 
   const summary = !oldDir
     ? `Primera captura base generada con ${totalFiles} archivos. Aún no hay comparación histórica.`
@@ -1071,6 +1161,8 @@ async function main() {
           signals.length ? ` Señales: ${signals.join(", ")}.` : " Sin señales relevantes."
         }${
           discoveryApiRoutes.length ? ` API nuevas detectadas: ${discoveryApiRoutes.slice(0, 5).join(", ")}.` : ""
+        }${
+          uniqueBackendSignals.length ? ` Backend signals: ${uniqueBackendSignals.slice(0, 6).join(", ")}.` : ""
         }`;
 
   const intelligence = summarizeRadarIntelligence(draftSnapshot, existingHistory);
@@ -1129,6 +1221,7 @@ async function main() {
     intensityClass,
     overdrive,
     signals,
+    backendSignals: uniqueBackendSignals,
     patternScore: intelligence.patternScore,
     patterns: normalizedPatterns,
     level: effectiveLevel,
@@ -1151,6 +1244,7 @@ async function main() {
       weightedBoost: round(rawScore - Number(radarScore.score || 0)),
       discoveryApiCount: discoveryApiRoutes.length,
       discoveryKeywordCount: uniqueSortedStrings(discovery.criticalKeywords).length,
+      backendSignalCount: uniqueBackendSignals.length,
     },
     advancedSignals,
     discovery: {
@@ -1224,6 +1318,7 @@ async function main() {
         eta: result.eta,
         signature: result.signature,
         alertSignature: result.alertSignature,
+        backendSignals: result.backendSignals,
         discoveryApiCount: ensureArray(result.discovery?.newApiRoutes).length,
         discoveryKeywordCount: ensureArray(result.discovery?.criticalKeywords).length,
         wroteLatest: true,
