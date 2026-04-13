@@ -1,9 +1,12 @@
 const fs = require("fs-extra");
 const path = require("path");
 
-const snapshotFile = path.join(__dirname, "..", "watcher", "output", "latest.json");
-function getLatestSnapshotHtmlFile() {
-  const snapshotsDir = path.join(__dirname, "..", "watcher", "snapshots");
+const snapshotFile = path.join(__dirname, "..", "public", "data", "latest.json");
+const knownSurfaceFile = path.join(__dirname, "known-surface.json");
+const outputFile = path.join(__dirname, "..", "public", "data", "discovery.json");
+
+function getLatestSnapshotDir() {
+  const snapshotsDir = path.join(process.cwd(), "snapshots");
 
   if (!fs.existsSync(snapshotsDir)) return null;
 
@@ -15,27 +18,8 @@ function getLatestSnapshotHtmlFile() {
 
   if (folders.length === 0) return null;
 
-  const latestFolder = folders[0];
-
-  const possibleFiles = [
-    "index.html",
-    "page.html",
-    "snapshot.html",
-    "home.html"
-  ];
-
-  for (const file of possibleFiles) {
-    const fullPath = path.join(snapshotsDir, latestFolder, file);
-    if (fs.existsSync(fullPath)) {
-      return fullPath;
-    }
-  }
-
-  return null;
+  return path.join(snapshotsDir, folders[0]);
 }
-
-const knownSurfaceFile = path.join(__dirname, "known-surface.json");
-const outputFile = path.join(__dirname, "..", "public", "data", "discovery.json");
 
 function normalizeText(value) {
   return String(value || "")
@@ -50,7 +34,7 @@ function uniqueClean(values) {
 
 function extractVisibleLabelsFromHtml(html) {
   const textMatches = [];
-  const tagRegex = />\s*([^<>]{2,80}?)\s*</g;
+  const tagRegex = />\s*([^<>]{2,120}?)\s*</g;
 
   const ignoredLabelSet = new Set([
     "use",
@@ -76,7 +60,7 @@ function extractVisibleLabelsFromHtml(html) {
     "pond0x",
     "pondd🤝x",
     "sol",
-    "apy"
+    "apy",
   ]);
 
   let match;
@@ -86,17 +70,10 @@ function extractVisibleLabelsFromHtml(html) {
     if (!text) continue;
     if (text.length < 2) continue;
     if (/^[0-9\s.,:%$-]+$/.test(text)) continue;
-
-    // ignorar labels compuestas solo por emoji / símbolos
     if (/^[^\p{L}\p{N}]+$/u.test(text)) continue;
-
-    // ignorar labels de versión tipo v1, v2, v10
     if (/^v\d+$/i.test(text)) continue;
-
-    // ignorar labels genéricas
     if (ignoredLabelSet.has(text)) continue;
 
-    // ignorar textos promocionales / sociales comunes
     if (
       text.startsWith("follow ") ||
       text.startsWith("join ") ||
@@ -106,7 +83,6 @@ function extractVisibleLabelsFromHtml(html) {
       continue;
     }
 
-    // filtrar ruido técnico / código / js
     if (
       text.includes("function(") ||
       text.includes("=>") ||
@@ -126,7 +102,6 @@ function extractVisibleLabelsFromHtml(html) {
       continue;
     }
 
-    // filtrar cadenas demasiado raras
     if (/[\(\)\[\]=]/.test(text)) continue;
 
     textMatches.push(text);
@@ -148,19 +123,14 @@ function extractRoutesFromHtml(html) {
     if (href.startsWith("mailto:")) continue;
     if (href.startsWith("tel:")) continue;
 
-    // normalizar rutas relativas a formato /ruta
-    if (!href.startsWith("/")) {
-      href = `/${href}`;
-    }
+    if (!href.startsWith("/")) href = `/${href}`;
 
-    // ignorar assets internos / estáticos
     if (href.startsWith("/_next/")) continue;
     if (href.startsWith("/static/")) continue;
     if (href.startsWith("/images/")) continue;
     if (href.startsWith("/img/")) continue;
     if (href.startsWith("/favicon")) continue;
 
-    // ignorar archivos
     if (
       href.endsWith(".css") ||
       href.endsWith(".js") ||
@@ -184,6 +154,32 @@ function extractRoutesFromHtml(html) {
   return [...new Set(routes)];
 }
 
+function extractApiRoutesFromText(text) {
+  const routes = new Set();
+  const source = String(text || "");
+
+  const patterns = [
+    /\/api\/[a-z0-9/_-]+/gi,
+    /https?:\/\/[^"'`\s]+\/api\/[a-z0-9/_-]+/gi,
+    /["'`]\/[a-z0-9/_-]*(claim|reward|rewards|account|auth|verify|wallet|portal|airdrop|payout|eligible|user|nonce)[a-z0-9/_-]*["'`]/gi,
+  ];
+
+  for (const regex of patterns) {
+    const matches = source.match(regex) || [];
+    for (const m of matches) {
+      routes.add(
+        String(m)
+          .replace(/^["'`]/, "")
+          .replace(/["'`]$/, "")
+          .toLowerCase()
+          .trim()
+      );
+    }
+  }
+
+  return [...routes].sort();
+}
+
 function extractKeywordCandidates(labels) {
   const words = [];
 
@@ -199,7 +195,7 @@ function extractKeywordCandidates(labels) {
     "pond",
     "pond0x",
     "pondd",
-    "coinmarketcap"
+    "coinmarketcap",
   ]);
 
   for (const label of labels) {
@@ -209,7 +205,7 @@ function extractKeywordCandidates(labels) {
       .filter(Boolean);
 
     for (const part of parts) {
-      if (part.length < 5) continue;
+      if (part.length < 4) continue;
       if (ignoredKeywordSet.has(part)) continue;
 
       if (
@@ -234,7 +230,42 @@ function extractKeywordCandidates(labels) {
   return uniqueClean(words);
 }
 
-function pickKeyFunctionCandidate(newLabels, newRoutes, newKeywords) {
+function extractCriticalKeywordsFromText(text) {
+  const source = normalizeText(text);
+  const candidates = [
+    "claim",
+    "claim now",
+    "eligible",
+    "active",
+    "canclaim",
+    "isenabled",
+    "enabled",
+    "disabled",
+    "available rewards",
+    "wallet",
+    "account",
+    "verify",
+    "signin",
+    "signmessage",
+    "verifysignature",
+    "nonce",
+    "reward",
+    "rewards",
+    "airdrop",
+    "payout",
+    "portal",
+  ];
+
+  return candidates.filter((k) => source.includes(k));
+}
+
+function pickKeyFunctionCandidate(newLabels, newRoutes, newApiRoutes, newKeywords, criticalKeywords) {
+  const firstCritical = criticalKeywords.find(Boolean);
+  if (firstCritical) return `critical:${firstCritical}`;
+
+  const firstApi = newApiRoutes.find(Boolean);
+  if (firstApi) return `api:${firstApi}`;
+
   const firstUsefulLabel = newLabels.find(Boolean);
   if (firstUsefulLabel) return firstUsefulLabel;
 
@@ -247,34 +278,87 @@ function pickKeyFunctionCandidate(newLabels, newRoutes, newKeywords) {
   return null;
 }
 
+async function readSnapshotTextFiles(snapshotDir) {
+  if (!snapshotDir) return { html: "", jsText: "", apiText: "" };
+
+  const htmlFile = path.join(snapshotDir, "index.html");
+  const apiFile = path.join(snapshotDir, "api.json");
+  const assetsDir = path.join(snapshotDir, "assets");
+
+  let html = "";
+  let apiText = "";
+  let jsText = "";
+
+  if (await fs.pathExists(htmlFile)) {
+    html = await fs.readFile(htmlFile, "utf8");
+  }
+
+  if (await fs.pathExists(apiFile)) {
+    try {
+      const apiJson = await fs.readJson(apiFile);
+      apiText = JSON.stringify(apiJson);
+    } catch {
+      apiText = "";
+    }
+  }
+
+  if (await fs.pathExists(assetsDir)) {
+    const files = await fs.readdir(assetsDir);
+    const jsFiles = files.filter((f) => f.endsWith(".js")).slice(0, 15);
+
+    const chunks = [];
+    for (const file of jsFiles) {
+      try {
+        const full = path.join(assetsDir, file);
+        const content = await fs.readFile(full, "utf8");
+        chunks.push(content.slice(0, 50000));
+      } catch {
+        // ignore binary/minified read failures
+      }
+    }
+
+    jsText = chunks.join("\n");
+  }
+
+  return { html, jsText, apiText };
+}
+
 async function main() {
-  const known = await fs.readJson(knownSurfaceFile);
+  const snapshotDir = getLatestSnapshotDir();
+
+  let known = {
+    knownLabels: [],
+    knownRoutes: [],
+    knownApiRoutes: [],
+    knownKeywords: [],
+    ignoredWords: [],
+  };
+
+  if (await fs.pathExists(knownSurfaceFile)) {
+    known = await fs.readJson(knownSurfaceFile);
+  }
 
   const knownLabels = new Set(uniqueClean(known.knownLabels || []));
   const knownRoutes = new Set((known.knownRoutes || []).map((x) => String(x).toLowerCase().trim()));
+  const knownApiRoutes = new Set((known.knownApiRoutes || []).map((x) => String(x).toLowerCase().trim()));
   const knownKeywords = new Set(uniqueClean(known.knownKeywords || []));
   const ignoredWords = new Set(uniqueClean(known.ignoredWords || []));
-
-  let html = "";
-
-  const htmlFile = getLatestSnapshotHtmlFile();
-
-  if (htmlFile && (await fs.pathExists(htmlFile))) {
-    html = await fs.readFile(htmlFile, "utf8");
-  } else {
-    console.warn("No snapshot HTML file found");
-  }
 
   let latest = {};
   if (await fs.pathExists(snapshotFile)) {
     latest = await fs.readJson(snapshotFile);
   }
 
+  const { html, jsText, apiText } = await readSnapshotTextFiles(snapshotDir);
+  const combinedText = [html, jsText, apiText].join("\n\n");
+
   const labelsFromHtml = extractVisibleLabelsFromHtml(html);
   const routesFromHtml = extractRoutesFromHtml(html);
+  const apiRoutes = extractApiRoutesFromText(combinedText);
   const keywordCandidates = extractKeywordCandidates(labelsFromHtml).filter(
     (word) => !ignoredWords.has(word)
   );
+  const criticalKeywords = extractCriticalKeywordsFromText(combinedText);
 
   const newLabels = labelsFromHtml.filter((label) => {
     const normalized = normalizeText(label);
@@ -282,23 +366,38 @@ async function main() {
   });
 
   const newRoutes = routesFromHtml.filter((route) => !knownRoutes.has(route));
-    const newKeywords = keywordCandidates.filter((word) => {
+  const newApiRoutes = apiRoutes.filter((route) => !knownApiRoutes.has(route));
+  const newKeywords = keywordCandidates.filter((word) => {
     const normalized = normalizeText(word);
     return normalized && !knownKeywords.has(normalized) && !knownLabels.has(normalized);
   });
 
-  const keyFunctionCandidate = pickKeyFunctionCandidate(newLabels, newRoutes, newKeywords);
+  const keyFunctionCandidate = pickKeyFunctionCandidate(
+    newLabels,
+    newRoutes,
+    newApiRoutes,
+    newKeywords,
+    criticalKeywords
+  );
+
   const newUnknownChange =
-    newLabels.length > 0 || newRoutes.length > 0 || newKeywords.length > 0;
+    newLabels.length > 0 ||
+    newRoutes.length > 0 ||
+    newApiRoutes.length > 0 ||
+    newKeywords.length > 0 ||
+    criticalKeywords.length > 0;
 
   const result = {
     checkedAt: new Date().toISOString(),
     sourceSnapshotId: latest?.id || null,
+    snapshotDir: snapshotDir ? path.basename(snapshotDir) : null,
     newUnknownChange,
     keyFunctionCandidate,
     newLabels: newLabels.slice(0, 15),
     newRoutes: newRoutes.slice(0, 15),
-    newKeywords: newKeywords.slice(0, 15)
+    newApiRoutes: newApiRoutes.slice(0, 20),
+    newKeywords: newKeywords.slice(0, 20),
+    criticalKeywords: criticalKeywords.slice(0, 20),
   };
 
   await fs.ensureDir(path.dirname(outputFile));
