@@ -1,6 +1,6 @@
 {
-  "id": "2026-04-13_141041__2026-04-13T14:10:50.908Z",
-  "snapshotId": "2026-04-13_141041",
+  "id": "2026-04-13_141537__2026-04-13T14:15:48.206Z",
+  "snapshotId": "2026-04-13_141537",
   "totalFiles": 62,
   "added": 62,
   "changed": 0,
@@ -8,14 +8,14 @@
   "movementPct": 100,
   "addedPct": 100,
   "changedPct": 0,
-  "rawScore": 140,
+  "rawScore": 197,
   "rawActivationProbability": 70,
   "movementPercent": 100,
   "addedPercent": 100,
   "changedPercent": 0,
   "scorePercent": 100,
   "activationProbability": 70,
-  "score": 140,
+  "score": 197,
   "intensityClass": "EXTREME",
   "overdrive": true,
   "signals": [
@@ -129,8 +129,8 @@
     "asset",
     "style"
   ],
-  "insight": "Wallet-auth-reward stack appears to be converging toward activation",
-  "confidence": 0.88,
+  "insight": "New API surface or critical discovery candidate detected alongside activation signals",
+  "confidence": 0.92,
   "tags": [
     "AUTH",
     "REWARDS",
@@ -142,7 +142,7 @@
     "BEHAVIOR_SPIKE",
     "LAUNCH_IMMINENT"
   ],
-  "summary": "62 de 62 archivos muestran movimiento (100%). 62 nuevos (100%) y 0 modificados (0). Señales: connect, account, nonce, verify, solana, wallet, signin, signmessage, verifysignature, enabled, disabled, active, reward, rewards, ethereum, claim, launch, portal, isenabled, airdrop, payout.",
+  "summary": "62 de 62 archivos muestran movimiento (100%). 62 nuevos (100%) y 0 modificados (0%). Señales: connect, account, nonce, verify, solana, wallet, signin, signmessage, verifysignature, enabled, disabled, active, reward, rewards, ethereum, claim, launch, portal, isenabled, airdrop, payout. API nuevas detectadas: /api/auth, /api/auth/session, /api/broadcast, /api/chat, /api/chat/channels.",
   "note": "Señales muy fuertes de activación real o launch inminente.",
   "changedFiles": [
     "_next_static_chunks_12890-d8c586ccaeb77475.js",
@@ -208,7 +208,7 @@
     "css2.css",
     "plugin-v1.js"
   ],
-  "generatedAt": "2026-04-13T14:10:50.908Z",
+  "generatedAt": "2026-04-13T14:15:48.206Z",
   "trend": 100,
   "trendDirection": "UP",
   "breakdown": {
@@ -221,16 +221,21 @@
         "disabled_state",
         "enabled_state",
         "cta_change",
-        "auth_flow"
+        "auth_flow",
+        "api_surface"
       ]
     },
     "infra": {
-      "raw": 60,
-      "weighted": 15,
+      "raw": 100,
+      "weighted": 25,
       "hits": [
         "new_chunks",
         "css_change",
-        "js_change"
+        "js_change",
+        "claim_api",
+        "reward_api",
+        "auth_api",
+        "account_api"
       ]
     },
     "rewards": {
@@ -240,7 +245,9 @@
         "reward_logic",
         "reward_activation",
         "claim_signal",
-        "active_signal"
+        "active_signal",
+        "claim_api_signal",
+        "reward_api_signal"
       ]
     },
     "behavior": {
@@ -250,7 +257,9 @@
         "multi_file_burst",
         "movement_spike",
         "recent_change_cluster",
-        "wallet_auth_reward_convergence"
+        "wallet_auth_reward_convergence",
+        "discovery_keyword_cluster",
+        "api_surface_candidate"
       ]
     },
     "onchain": {
@@ -258,7 +267,9 @@
       "hits": []
     },
     "patternBoost": 87,
-    "weightedBoost": 40
+    "weightedBoost": 97,
+    "discoveryApiCount": 17,
+    "discoveryKeywordCount": 13
   },
   "advancedSignals": {
     "frontend": [
@@ -267,28 +278,37 @@
       "disabled_state",
       "enabled_state",
       "cta_change",
-      "auth_flow"
+      "auth_flow",
+      "api_surface"
     ],
     "infra": [
       "new_chunks",
       "css_change",
-      "js_change"
+      "js_change",
+      "claim_api",
+      "reward_api",
+      "auth_api",
+      "account_api"
     ],
     "rewards": [
       "reward_logic",
       "reward_activation",
       "claim_signal",
-      "active_signal"
+      "active_signal",
+      "claim_api_signal",
+      "reward_api_signal"
     ],
     "behavior": [
       "multi_file_burst",
       "movement_spike",
       "recent_change_cluster",
-      "wallet_auth_reward_convergence"
+      "wallet_auth_reward_convergence",
+      "discovery_keyword_cluster",
+      "api_surface_candidate"
     ],
     "onchain": [],
     "frontendScore": 100,
-    "infraScore": 60,
+    "infraScore": 100,
     "rewardsScore": 100,
     "behaviorScore": 100,
     "onchainScore": 0,
@@ -304,9 +324,60 @@
     "hasClaimSignal": true,
     "hasEligibilitySignal": false,
     "hasActiveSignal": true,
+    "hasApiSurface": true,
+    "hasClaimApi": true,
+    "hasRewardApi": true,
+    "hasAuthApi": true,
+    "hasAccountApi": true,
     "hasOnchainMovement": false,
     "hasNewChunks": true,
     "hasVisibleCTAChange": true
+  },
+  "discovery": {
+    "checkedAt": "2026-04-13T14:11:00.373Z",
+    "sourceSnapshotId": "2026-04-13_141051__2026-04-13T14:11:00.287Z",
+    "snapshotDir": "2026-04-13_141051",
+    "newUnknownChange": true,
+    "keyFunctionCandidate": "critical:claim",
+    "newLabels": [],
+    "newRoutes": [],
+    "newApiRoutes": [
+      "/api/auth",
+      "/api/auth/session",
+      "/api/broadcast",
+      "/api/chat",
+      "/api/chat/channels",
+      "/api/chat/messages",
+      "/api/solana/luck/",
+      "/api/solana/mining/session/",
+      "/api/user/checkin",
+      "/api/user/self",
+      "/api/wagmiprovider",
+      "/claim2",
+      "/getwallets",
+      "/rewards",
+      "/v1/profile/account",
+      "/water/claim",
+      "https://www.pond0x.com/api/auth/session"
+    ],
+    "newKeywords": [
+      "earn"
+    ],
+    "criticalKeywords": [
+      "account",
+      "active",
+      "claim",
+      "disabled",
+      "enabled",
+      "nonce",
+      "reward",
+      "rewards",
+      "signin",
+      "signmessage",
+      "verify",
+      "verifysignature",
+      "wallet"
+    ]
   },
   "whyItMatters": "Reward claim infrastructure appears to be activating. Wallet and authentication layers are being tightly integrated. Breakout detected after a period of inactivity. Reward systems are a primary focus of current changes.",
   "alphaScore": 100,
@@ -318,6 +389,6 @@
   "signalFusion": "FULL ACTIVATION STACK",
   "priority": "CRITICAL",
   "eta": "< 2h",
-  "signature": "CRITICAL::140::AUTH|BEHAVIOR_SPIKE|CHAIN|LAUNCH_IMMINENT|PRE-ACTIVATION|REWARDS|REWARD_PREP|SYSTEM|UI_ARMING::BEHAVIOR_SPIKE|LAUNCH_IMMINENT|PRE-ACTIVATION|REWARD_PREP|UI_ARMING",
-  "alertSignature": "c995fcc0469560ce1ce69a55f0304aae05ca3a5fb58e4dea9257e42d8eb0c8e1"
+  "signature": "CRITICAL::195::AUTH|BEHAVIOR_SPIKE|CHAIN|LAUNCH_IMMINENT|PRE-ACTIVATION|REWARDS|REWARD_PREP|SYSTEM|UI_ARMING::BEHAVIOR_SPIKE|LAUNCH_IMMINENT|PRE-ACTIVATION|REWARD_PREP|UI_ARMING",
+  "alertSignature": "fabd222f54c14197f8ea379c65f7b6e70b20d5f0c78553573a493d84b99b9aa4"
 }
