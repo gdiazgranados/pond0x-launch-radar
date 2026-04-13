@@ -119,6 +119,53 @@ function extractEndpointHints(text) {
   return [...new Set(hits)];
 }
 
+function detectBackendSignals(text) {
+  const lower = String(text || "").toLowerCase();
+  const signals = [];
+
+  if (lower.includes('"eligible":true') || lower.includes("eligible:true")) {
+    signals.push("eligible_true");
+  }
+
+  if (lower.includes('"canclaim":true') || lower.includes("canclaim:true")) {
+    signals.push("canclaim_true");
+  }
+
+  if (lower.includes('"isenabled":true') || lower.includes("isenabled:true")) {
+    signals.push("enabled_true");
+  }
+
+  if (lower.includes('"enabled":true') || lower.includes("enabled:true")) {
+    signals.push("enabled_true");
+  }
+
+  if (lower.includes('"active":true') || lower.includes("active:true")) {
+    signals.push("active_true");
+  }
+
+  if (
+    (lower.includes('"rewards"') || lower.includes("rewards:")) &&
+    lower.includes("[")
+  ) {
+    signals.push("rewards_array");
+  }
+
+  if (lower.includes('"balance"') || lower.includes("balance:")) {
+    signals.push("balance_detected");
+  }
+
+  if (
+    lower.includes('"account"') ||
+    lower.includes("account:") ||
+    lower.includes('"user"') ||
+    lower.includes("user:")
+  ) {
+    signals.push("account_object");
+  }
+
+  return [...new Set(signals)];
+}
+
 async function safeReadText(response) {
   try {
     return await response.text();
@@ -181,10 +228,12 @@ async function main() {
       if (isApi) {
         const textBody = await safeReadText(response);
         const hints = extractEndpointHints(`${responseUrl}\n${textBody}`);
+        const backendSignals = detectBackendSignals(textBody);
 
         apiCaptured.push({
           ...entry,
           endpointHints: hints,
+          backendSignals,
           bodyPreview: textBody.slice(0, 1200),
         });
       }
