@@ -368,21 +368,44 @@ function buildTelegramMessage(latest, decision) {
   const tags = ensureArray(latest.tags).join(", ") || "none";
   const focus = ensureArray(latest.focusAreas).join(", ") || "none";
   const signals = ensureArray(latest.signals).slice(0, 12).join(", ") || "none";
-  const changeLines = ensureArray(decision.criticalChanges).slice(0, 8);
+  const discovery = latest.discovery || {};
 
-  const patternLines = patterns.length
-    ? patterns
-        .map((p) => {
-          const tag = typeof p === "string" ? p : p?.tag || "UNKNOWN";
-          const reasons = typeof p === "string" ? [] : ensureArray(p?.reasons);
-          return `• <b>${escapeHtml(tag)}</b> — ${escapeHtml(reasons.join(" / ") || "No detailed reasons")}`;
-        })
-        .join("\n")
-    : "• none";
+  const apiRoutes = ensureArray(discovery.newApiRoutes).slice(0, 3);
+  const criticalKeywords = ensureArray(discovery.criticalKeywords).slice(0, 5);
+  const candidate = discovery.keyFunctionCandidate || null;
 
-  const criticalLines = changeLines.length
-    ? changeLines.map((line) => `• ${escapeHtml(line)}`).join("\n")
+  const discoveryLines = [];
+
+  if (apiRoutes.length) {
+    discoveryLines.push(`• API detected: ${apiRoutes.join(", ")}`);
+  }
+
+  if (criticalKeywords.length) {
+    discoveryLines.push(`• Critical keywords: ${criticalKeywords.join(", ")}`);
+  }
+
+  if (candidate) {
+    discoveryLines.push(`• Candidate: ${candidate}`);
+  }
+
+  const discoveryBlock = discoveryLines.length
+    ? discoveryLines.join("\n")
     : "• none";
+    const changeLines = ensureArray(decision.criticalChanges).slice(0, 8);
+
+    const patternLines = patterns.length
+      ? patterns
+          .map((p) => {
+            const tag = typeof p === "string" ? p : p?.tag || "UNKNOWN";
+            const reasons = typeof p === "string" ? [] : ensureArray(p?.reasons);
+            return `• <b>${escapeHtml(tag)}</b> — ${escapeHtml(reasons.join(" / ") || "No detailed reasons")}`;
+          })
+          .join("\n")
+      : "• none";
+
+    const criticalLines = changeLines.length
+      ? changeLines.map((line) => `• ${escapeHtml(line)}`).join("\n")
+      : "• none";
 
   const trendArrow =
     latest.trendDirection === "UP"
@@ -426,6 +449,9 @@ function buildTelegramMessage(latest, decision) {
     `<b>Tags:</b> ${escapeHtml(tags)}`,
     `<b>Focus:</b> ${escapeHtml(focus)}`,
     `<b>Signals:</b> ${escapeHtml(signals)}`,
+    ``,
+    `<b>Discovery</b>`,
+    discoveryBlock,
     ``,
     `<b>Insight:</b> ${escapeHtml(latest.insight || "No insight available")}`,
     `<b>Summary:</b> ${escapeHtml(latest.summary || "No summary available")}`,
