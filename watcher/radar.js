@@ -1,5 +1,6 @@
 const fs = require("fs-extra");
 const path = require("path");
+const crypto = require("crypto");
 
 const { summarizeRadarIntelligence } = require("./radar-intelligence");
 const { computeRadarScore } = require("./lib/scoring-engine");
@@ -534,11 +535,7 @@ function detectSignalFusion(latest, alpha, eventType, signalRegime) {
     return "FULL ACTIVATION STACK";
   }
 
-  if (
-    hasRewards &&
-    hasWallet &&
-    hasAuth
-  ) {
+  if (hasRewards && hasWallet && hasAuth) {
     return "REWARD + WALLET + AUTH CLUSTER";
   }
 
@@ -598,6 +595,38 @@ function buildSignature(latest) {
   const level = latest.level || "LOW";
   const scoreBand = Math.floor(Number(latest.score || 0) / 5) * 5;
   return `${level}::${scoreBand}::${tags}::${patternTags}`;
+}
+
+function buildAlertSignatureStable(latest) {
+  const normalizeList = (arr) =>
+    (Array.isArray(arr) ? arr : [])
+      .map((x) => {
+        if (typeof x === "string") return x;
+        if (x && typeof x === "object") return x.tag || JSON.stringify(x);
+        return "";
+      })
+      .filter(Boolean)
+      .sort();
+
+  const stable = {
+    level: latest.level || "LOW",
+    score: Math.round(Number(latest.score || 0)),
+    movementPct: Math.round(Number(latest.movementPct || 0)),
+    alphaScore: Math.round(Number(latest.alphaScore || 0)),
+    alphaClass: latest.alphaClass || "NOISE",
+    triggerState: latest.triggerState || "IDLE",
+    eventType: latest.eventType || "NOISE",
+    signalFusion: latest.signalFusion || "",
+    signalRegime: latest.signalRegime || "",
+    priority: latest.priority || "LOW",
+    eta: latest.eta || "unknown",
+    insight: latest.insight || "",
+    tags: normalizeList(latest.tags),
+    signals: normalizeList(latest.signals),
+    patterns: normalizeList(latest.patterns),
+  };
+
+  return crypto.createHash("sha256").update(JSON.stringify(stable)).digest("hex");
 }
 
 async function persistDetectionOutputs({ publicDir, result }) {
@@ -698,24 +727,24 @@ async function main() {
   const summary = !oldDir
     ? `Primera captura base generada con ${totalFiles} archivos. Aún no hay comparación histórica.`
     : movementCount === 0
-    ? `No se detectaron cambios en ${totalFiles} archivos analizados.`
-    : `${movementCount} de ${totalFiles} archivos muestran movimiento (${movementPct}%). ${added} nuevos (${addedPct}%) y ${changed} modificados (${changedPct}%).${
-        signals.length ? ` Señales: ${signals.join(", ")}.` : " Sin señales relevantes."
-      }`;
+      ? `No se detectaron cambios en ${totalFiles} archivos analizados.`
+      : `${movementCount} de ${totalFiles} archivos muestran movimiento (${movementPct}%). ${added} nuevos (${addedPct}%) y ${changed} modificados (${changedPct}%).${
+          signals.length ? ` Señales: ${signals.join(", ")}.` : " Sin señales relevantes."
+        }`;
 
   const intelligence = summarizeRadarIntelligence(draftSnapshot, existingHistory);
 
   const note = !oldDir
     ? "Primera corrida base. El siguiente snapshot permitirá detectar cambios."
     : radarScore.level === "CRITICAL"
-    ? "Señales muy fuertes de posible launch imminente."
-    : radarScore.level === "VERY HIGH"
-    ? "Señales fuertes de activación o pre-launch."
-    : radarScore.level === "HIGH"
-    ? "Cambios importantes en frontend y señales relevantes."
-    : radarScore.level === "MEDIUM"
-    ? "Actividad de desarrollo visible."
-    : "Sin señales fuertes por ahora.";
+      ? "Señales muy fuertes de posible launch imminente."
+      : radarScore.level === "VERY HIGH"
+        ? "Señales fuertes de activación o pre-launch."
+        : radarScore.level === "HIGH"
+          ? "Cambios importantes en frontend y señales relevantes."
+          : radarScore.level === "MEDIUM"
+            ? "Actividad de desarrollo visible."
+            : "Sin señales fuertes por ahora.";
 
   const snapshotId = path.basename(newDir);
   const generatedAt = new Date().toISOString();
@@ -801,7 +830,12 @@ async function main() {
     eta,
   };
 
+  // Firma legacy para UI / agrupación
   result.signature = buildSignature(result);
+
+  // Firma estable para anti-spam de alertas
+  // Ignora generatedAt e id únicos de cada corrida
+  result.alertSignature = buildAlertSignatureStable(result);
 
   await persistDetectionOutputs({
     publicDir,
@@ -834,6 +868,8 @@ async function main() {
         signalFusion: result.signalFusion,
         signalRegime: result.signalRegime,
         eta: result.eta,
+        signature: result.signature,
+        alertSignature: result.alertSignature,
         wroteLatest: true,
         wroteHistory: true,
         wroteLastTriggered: TRIGGER_PRIORITIES.has(result.priority),
