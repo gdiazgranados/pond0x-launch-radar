@@ -104,11 +104,18 @@ export type AlertItem = {
   priority?: string
   reason?: string
   signature?: string
+
   score?: number
+  rawScore?: number
+  scorePercent?: number
+
   level?: RadarLevel | string
   trend?: number
   trendDirection?: TrendDirection | string
+
   movementPct?: number
+  movementPercent?: number
+
   tags?: string[]
   patterns?: RadarPattern[]
   summary?: string
