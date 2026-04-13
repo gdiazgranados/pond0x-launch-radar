@@ -3,14 +3,8 @@
 import { useCallback, useEffect, useState } from "react"
 import type { SentinelEvent } from "../types/radar"
 
-const RADAR_DATA_BASE =
-  process.env.NEXT_PUBLIC_RADAR_DATA_BASE ||
-  "https://raw.githubusercontent.com/gdiazgranados/pond0x-launch-radar/radar-data/data";
-
-function remoteJsonUrl(file: string, cacheBust = true) {
-  const cleanFile = file.replace(/^\/+/, "");
-  const url = `${RADAR_DATA_BASE}/${cleanFile}`;
-  return cacheBust ? `${url}?t=${Date.now()}` : url;
+function apiRadarUrl(cacheBust: number) {
+  return `/api/radar?ts=${cacheBust}`
 }
 
 function getSafeTime(value?: string | null) {
@@ -61,8 +55,8 @@ export function useSentinelData() {
 
   const loadSentinel = useCallback(async (signal?: AbortSignal) => {
     try {
-      const cacheBust = Date.now()
-      const res = await fetch(remoteJsonUrl("sentinel-events.json", true), {
+      const cacheBust = Math.floor(Date.now() / 10000)
+      const res = await fetch(apiRadarUrl(cacheBust), {
         cache: "no-store",
         signal,
       })
@@ -75,9 +69,7 @@ export function useSentinelData() {
 
       const rawEvents: SentinelEvent[] = Array.isArray(json?.sentinelEvents)
         ? json.sentinelEvents
-        : Array.isArray(json)
-          ? json
-          : []
+        : []
 
       const normalizedEvents = sortSentinelEvents(
         rawEvents.filter(Boolean).map(normalizeSentinelEvent)
