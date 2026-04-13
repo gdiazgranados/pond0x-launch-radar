@@ -170,10 +170,10 @@ export function useRadarData() {
           ? json.alertsHistory
           : []
 
-    const normalizedData = rawData ? normalizeRadarItem(rawData) : null
+    const normalizedData = rawData ?? null
 
     const normalizedHistory = sortRadarHistory(
-      rawHistory.filter((item): item is RadarData => !!item).map(normalizeRadarItem)
+      rawHistory.filter((item): item is RadarData => !!item)
     )
 
     const normalizedAlerts = sortAlerts(
