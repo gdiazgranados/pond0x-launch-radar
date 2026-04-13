@@ -42,6 +42,30 @@ jobs:
           mkdir -p .publish/data
           mkdir -p .publish/snapshots
 
+      - name: Restore previous published data from radar-data
+        run: |
+          git fetch origin radar-data || true
+
+          mkdir -p public/data
+          mkdir -p snapshots
+
+          if git ls-remote --exit-code --heads origin radar-data; then
+            rm -rf /tmp/radar-restore
+            git worktree add /tmp/radar-restore origin/radar-data
+
+            if [ -d /tmp/radar-restore/data ]; then
+              cp -R /tmp/radar-restore/data/. public/data/ 2>/dev/null || true
+            fi
+
+            if [ -d /tmp/radar-restore/snapshots ]; then
+              cp -R /tmp/radar-restore/snapshots/. snapshots/ 2>/dev/null || true
+            fi
+
+            git worktree remove /tmp/radar-restore --force || true
+          else
+            echo "radar-data branch does not exist yet; skipping restore"
+          fi
+
       - name: Write heartbeat start
         run: |
           node -e '
@@ -99,7 +123,6 @@ jobs:
           cp watcher/output/sentinel-events.json public/data/sentinel-events.json || true
           cp watcher/output/sentinel-state.json public/data/sentinel-state.json || true
           cp watcher/output/discovery.json public/data/discovery.json || true
-          cp watcher/output/alerts-history.json public/data/alerts-history.json || true
 
       - name: Write heartbeat success
         run: |
@@ -152,7 +175,7 @@ jobs:
           cp watcher/output/sentinel-events.json .publish/data/sentinel-events.json 2>/dev/null || true
           cp watcher/output/sentinel-state.json .publish/data/sentinel-state.json 2>/dev/null || true
           cp watcher/output/discovery.json .publish/data/discovery.json 2>/dev/null || true
-          cp watcher/last-alert.json .publish/data/last-alert.json 2>/dev/null || true
+          cp public/data/last-alert.json .publish/data/last-alert.json 2>/dev/null || true
 
           if [ -d snapshots ]; then
             rsync -a --delete snapshots/ .publish/snapshots/
