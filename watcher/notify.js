@@ -68,6 +68,158 @@ function getStableSignature(latest) {
   return latest.alertSignature || latest.signature || "NO_SIGNATURE";
 }
 
+function normalizePatternTag(pattern) {
+  if (typeof pattern === "string") return pattern;
+  if (pattern && typeof pattern === "object") return pattern.tag || "UNKNOWN";
+  return "";
+}
+
+function normalizeStringList(list) {
+  return [...new Set(ensureArray(list).map((x) => String(x || "").trim()).filter(Boolean))].sort();
+}
+
+function normalizePatternList(list) {
+  return [...new Set(ensureArray(list).map(normalizePatternTag).filter(Boolean))].sort();
+}
+
+function diffLists(prevList, nextList) {
+  const prev = new Set(prevList);
+  const next = new Set(nextList);
+
+  const added = nextList.filter((x) => !prev.has(x));
+  const removed = prevList.filter((x) => !next.has(x));
+
+  return { added, removed };
+}
+
+function hasSignal(latest, value) {
+  return ensureArray(latest?.signals).includes(value);
+}
+
+function getCriticalChanges(latest, lastAlert) {
+  if (!lastAlert) {
+    return ["Initial alert state"];
+  }
+
+  const changes = [];
+
+  const compareScalar = (label, prev, next) => {
+    if ((prev ?? null) !== (next ?? null)) {
+      changes.push(`${label}: ${prev ?? "∅"} → ${next ?? "∅"}`);
+    }
+  };
+
+  compareScalar("Priority", lastAlert.priority, latest.priority);
+  compareScalar("Level", lastAlert.level, latest.level);
+  compareScalar("Alpha Class", lastAlert.alphaClass, latest.alphaClass);
+  compareScalar("Trigger", lastAlert.triggerState, latest.triggerState);
+  compareScalar("Event Type", lastAlert.eventType, latest.eventType);
+  compareScalar("Signal Fusion", lastAlert.signalFusion, latest.signalFusion);
+  compareScalar("Signal Regime", lastAlert.signalRegime, latest.signalRegime);
+  compareScalar("ETA", lastAlert.eta, latest.eta);
+
+  const prevSignals = normalizeStringList(lastAlert.signals);
+  const nextSignals = normalizeStringList(latest.signals);
+  const signalDiff = diffLists(prevSignals, nextSignals);
+
+  const prevTags = normalizeStringList(lastAlert.tags);
+  const nextTags = normalizeStringList(latest.tags);
+  const tagDiff = diffLists(prevTags, nextTags);
+
+  const prevPatterns = normalizePatternList(lastAlert.patterns);
+  const nextPatterns = normalizePatternList(latest.patterns);
+  const patternDiff = diffLists(prevPatterns, nextPatterns);
+
+  if (signalDiff.added.length) {
+    changes.push(`Signals added: ${signalDiff.added.join(", ")}`);
+  }
+  if (signalDiff.removed.length) {
+    changes.push(`Signals removed: ${signalDiff.removed.join(", ")}`);
+  }
+
+  if (tagDiff.added.length) {
+    changes.push(`Tags added: ${tagDiff.added.join(", ")}`);
+  }
+  if (tagDiff.removed.length) {
+    changes.push(`Tags removed: ${tagDiff.removed.join(", ")}`);
+  }
+
+  if (patternDiff.added.length) {
+    changes.push(`Patterns added: ${patternDiff.added.join(", ")}`);
+  }
+  if (patternDiff.removed.length) {
+    changes.push(`Patterns removed: ${patternDiff.removed.join(", ")}`);
+  }
+
+  const prevScore = round(lastAlert.score);
+  const nextScore = round(latest.score);
+  if (prevScore !== nextScore) {
+    changes.push(`Score: ${prevScore} → ${nextScore}`);
+  }
+
+  const prevMovement = round(lastAlert.movementPct);
+  const nextMovement = round(latest.movementPct);
+  if (prevMovement !== nextMovement) {
+    changes.push(`Movement: ${prevMovement}% → ${nextMovement}%`);
+  }
+
+  const prevAlpha = Number(lastAlert.alphaScore || 0);
+  const nextAlpha = Number(latest.alphaScore || 0);
+  if (prevAlpha !== nextAlpha) {
+    changes.push(`Alpha Score: ${prevAlpha} → ${nextAlpha}`);
+  }
+
+  const claimAppeared = !hasSignal(lastAlert, "claim") && hasSignal(latest, "claim");
+  const enabledAppeared = !hasSignal(lastAlert, "enabled") && hasSignal(latest, "enabled");
+  const disabledGone = hasSignal(lastAlert, "disabled") && !hasSignal(latest, "disabled");
+  const verifyAppeared = !hasSignal(lastAlert, "verify") && hasSignal(latest, "verify");
+
+  if (claimAppeared) changes.push("Critical: claim signal appeared");
+  if (enabledAppeared) changes.push("Critical: enabled signal appeared");
+  if (disabledGone) changes.push("Critical: disabled signal disappeared");
+  if (verifyAppeared) changes.push("Critical: verify signal appeared");
+
+  return changes.length ? changes : ["State changed"];
+}
+
+function classifyChangeSeverity(latest, lastAlert) {
+  if (!lastAlert) return "INITIAL";
+
+  const eventTypeChanged = (lastAlert.eventType || "") !== (latest.eventType || "");
+  const triggerChanged = (lastAlert.triggerState || "") !== (latest.triggerState || "");
+  const alphaClassChanged = (lastAlert.alphaClass || "") !== (latest.alphaClass || "");
+  const regimeChanged = (lastAlert.signalRegime || "") !== (latest.signalRegime || "");
+  const fusionChanged = (lastAlert.signalFusion || "") !== (latest.signalFusion || "");
+
+  const claimAppeared = !hasSignal(lastAlert, "claim") && hasSignal(latest, "claim");
+  const enabledAppeared = !hasSignal(lastAlert, "enabled") && hasSignal(latest, "enabled");
+  const disabledGone = hasSignal(lastAlert, "disabled") && !hasSignal(latest, "disabled");
+  const verifyAppeared = !hasSignal(lastAlert, "verify") && hasSignal(latest, "verify");
+
+  if (
+    claimAppeared ||
+    enabledAppeared ||
+    disabledGone ||
+    verifyAppeared ||
+    eventTypeChanged ||
+    triggerChanged ||
+    alphaClassChanged ||
+    regimeChanged ||
+    fusionChanged
+  ) {
+    return "CRITICAL_FIELD_CHANGE";
+  }
+
+  const scoreDelta = Math.abs(Number(latest.score || 0) - Number(lastAlert.score || 0));
+  const movementDelta = Math.abs(Number(latest.movementPct || 0) - Number(lastAlert.movementPct || 0));
+
+  if (scoreDelta >= 5 || movementDelta >= 10) {
+    return "MATERIAL_CHANGE";
+  }
+
+  return "MINOR_CHANGE";
+}
+
 function buildDecision(latest, lastAlert) {
   const signature = getStableSignature(latest);
   const priority = latest.priority || "LOW";
@@ -75,44 +227,61 @@ function buildDecision(latest, lastAlert) {
   const score = Number(latest.score || 0);
   const movementPct = Number(latest.movementPct || 0);
 
-  // 1) REGLA MAESTRA:
-  // si el estado actual es igual al último alertado, NO enviar
   if (lastAlert && lastAlert.signature === signature) {
     return {
       send: false,
       reason: "Unchanged state vs previous alert",
       signature,
       priority,
+      changeSeverity: "NONE",
+      criticalChanges: [],
     };
   }
 
-  // 2) filtro base de ruido
   if (priority === "LOW" && score < 45) {
     return {
       send: false,
       reason: "Signal too weak",
       signature,
       priority,
+      changeSeverity: "NONE",
+      criticalChanges: [],
     };
   }
 
-  // 3) primera alerta
+  const criticalChanges = getCriticalChanges(latest, lastAlert);
+  const changeSeverity = classifyChangeSeverity(latest, lastAlert);
+
   if (!lastAlert) {
     return {
       send: true,
       reason: "First alert",
       signature,
       priority,
+      changeSeverity,
+      criticalChanges,
     };
   }
 
-  // 4) reglas de prioridad, pero solo si YA cambió la firma
+  if (changeSeverity === "CRITICAL_FIELD_CHANGE") {
+    return {
+      send: true,
+      reason: "Critical field change detected",
+      signature,
+      priority,
+      changeSeverity,
+      criticalChanges,
+    };
+  }
+
   if (triggerState === "TRIGGERED") {
     return {
       send: true,
       reason: "Alpha state changed and trigger is TRIGGERED",
       signature,
       priority,
+      changeSeverity,
+      criticalChanges,
     };
   }
 
@@ -122,6 +291,8 @@ function buildDecision(latest, lastAlert) {
       reason: "Critical state changed",
       signature,
       priority,
+      changeSeverity,
+      criticalChanges,
     };
   }
 
@@ -131,6 +302,8 @@ function buildDecision(latest, lastAlert) {
       reason: "Very high state changed",
       signature,
       priority,
+      changeSeverity,
+      criticalChanges,
     };
   }
 
@@ -141,6 +314,8 @@ function buildDecision(latest, lastAlert) {
         reason: "High signal changed with enough movement",
         signature,
         priority,
+        changeSeverity,
+        criticalChanges,
       };
     }
 
@@ -149,6 +324,8 @@ function buildDecision(latest, lastAlert) {
       reason: "High but not urgent enough",
       signature,
       priority,
+      changeSeverity,
+      criticalChanges,
     };
   }
 
@@ -161,6 +338,8 @@ function buildDecision(latest, lastAlert) {
         reason: "Medium changed but still inside cooldown window",
         signature,
         priority,
+        changeSeverity,
+        criticalChanges,
       };
     }
 
@@ -169,6 +348,8 @@ function buildDecision(latest, lastAlert) {
       reason: "Medium signal changed after cooldown",
       signature,
       priority,
+      changeSeverity,
+      criticalChanges,
     };
   }
 
@@ -177,6 +358,8 @@ function buildDecision(latest, lastAlert) {
     reason: "No notification rule matched",
     signature,
     priority,
+    changeSeverity,
+    criticalChanges,
   };
 }
 
@@ -185,6 +368,7 @@ function buildTelegramMessage(latest, decision) {
   const tags = ensureArray(latest.tags).join(", ") || "none";
   const focus = ensureArray(latest.focusAreas).join(", ") || "none";
   const signals = ensureArray(latest.signals).slice(0, 12).join(", ") || "none";
+  const changeLines = ensureArray(decision.criticalChanges).slice(0, 8);
 
   const patternLines = patterns.length
     ? patterns
@@ -194,6 +378,10 @@ function buildTelegramMessage(latest, decision) {
           return `• <b>${escapeHtml(tag)}</b> — ${escapeHtml(reasons.join(" / ") || "No detailed reasons")}`;
         })
         .join("\n")
+    : "• none";
+
+  const criticalLines = changeLines.length
+    ? changeLines.map((line) => `• ${escapeHtml(line)}`).join("\n")
     : "• none";
 
   const trendArrow =
@@ -229,6 +417,9 @@ function buildTelegramMessage(latest, decision) {
     `<b>Signal Fusion:</b> ${escapeHtml(getFusionEmoji(latest.signalFusion))} ${escapeHtml(latest.signalFusion)}`,
     `<b>Signal Regime:</b> ${escapeHtml(getRegimeEmoji(latest.signalRegime))} ${escapeHtml(latest.signalRegime)}`,
     ``,
+    `<b>What changed</b>`,
+    criticalLines,
+    ``,
     `<b>Patterns</b>`,
     patternLines,
     ``,
@@ -240,6 +431,7 @@ function buildTelegramMessage(latest, decision) {
     `<b>Summary:</b> ${escapeHtml(latest.summary || "No summary available")}`,
     ``,
     `<b>Decision:</b> ${escapeHtml(decision.reason)}`,
+    `<b>Change severity:</b> ${escapeHtml(decision.changeSeverity || "UNKNOWN")}`,
     `<b>Generated:</b> ${escapeHtml(latest.generatedAt || new Date().toISOString())}`,
   ].join("\n");
 }
@@ -303,6 +495,8 @@ function buildAlertRecord(latest, decision) {
     signature: decision.signature,
     alertSignature: latest.alertSignature || null,
     legacySignature: latest.signature || null,
+    changeSeverity: decision.changeSeverity || "UNKNOWN",
+    criticalChanges: ensureArray(decision.criticalChanges),
     score: latest.score,
     level: latest.level,
     significance: latest.significance,
@@ -350,7 +544,7 @@ async function main() {
   const decision = buildDecision(latest, lastAlert);
 
   console.log(
-    `Notify decision: send=${decision.send} | priority=${decision.priority} | reason=${decision.reason} | signature=${decision.signature}`
+    `Notify decision: send=${decision.send} | priority=${decision.priority} | reason=${decision.reason} | signature=${decision.signature} | severity=${decision.changeSeverity}`
   );
 
   if (!decision.send) {
