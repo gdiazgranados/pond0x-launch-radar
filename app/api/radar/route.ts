@@ -50,6 +50,22 @@ function classifyIntensity(rawScore: number) {
   return "LOW"
 }
 
+function normalizeRadarItem(item: any) {
+  const rawScore = Number(item?.rawScore ?? item?.score ?? 0)
+
+  return {
+    ...item,
+    rawScore,
+    scorePercent: normalizeScoreToPercent(rawScore),
+    movementPercent: clampPercent(Number(item?.movementPct ?? 0)),
+    addedPercent: clampPercent(Number(item?.addedPct ?? 0)),
+    changedPercent: clampPercent(Number(item?.changedPct ?? 0)),
+    activationProbability: clampPercent(Number(item?.activationProbability ?? 0)),
+    intensityClass: classifyIntensity(rawScore),
+    overdrive: rawScore > 100,
+  }
+}
+
 export async function GET() {
   try {
     const [latest, history, heartbeat, sentinelState, sentinelEvents] =
@@ -61,29 +77,15 @@ export async function GET() {
         loadRemoteJson("sentinel-events.json"),
       ])
 
-    const normalizedLatest = latest
-      ? {
-          ...latest,
-          rawScore: Number(latest.rawScore ?? latest.score ?? 0),
-          scorePercent: normalizeScoreToPercent(
-            Number(latest.rawScore ?? latest.score ?? 0)
-          ),
-          movementPercent: clampPercent(Number(latest.movementPct ?? 0)),
-          addedPercent: clampPercent(Number(latest.addedPct ?? 0)),
-          changedPercent: clampPercent(Number(latest.changedPct ?? 0)),
-          activationProbability: clampPercent(
-            Number(latest.activationProbability ?? 0)
-          ),
-          intensityClass: classifyIntensity(
-            Number(latest.rawScore ?? latest.score ?? 0)
-          ),
-          overdrive: Number(latest.rawScore ?? latest.score ?? 0) > 100,
-        }
-      : null
+    const normalizedLatest = latest ? normalizeRadarItem(latest) : null
+
+    const normalizedHistory = Array.isArray(history)
+      ? history.filter(Boolean).map(normalizeRadarItem)
+      : []
 
     return NextResponse.json({
       latest: normalizedLatest,
-      history,
+      history: normalizedHistory,
       heartbeat,
       sentinelState,
       sentinelEvents,
