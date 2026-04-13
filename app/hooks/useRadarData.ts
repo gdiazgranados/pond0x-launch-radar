@@ -53,10 +53,7 @@ function normalizeRadarItem(item: RadarData): RadarData {
     patternScore: Number(item.patternScore ?? 0),
     activationProbability: Number(item.activationProbability ?? 0),
 
-    // Mantener bruto
     score: Number(item.score ?? 0),
-
-    // Mantener normalizado por separado
     scorePercent: Number(item.scorePercent ?? 0),
     rawScore: Number(item.rawScore ?? item.score ?? 0),
 
@@ -88,9 +85,16 @@ function normalizeAlertItem(item: AlertItem): AlertItem {
     id: item.id || undefined,
     sentAt: item.sentAt || undefined,
     generatedAt: item.generatedAt || undefined,
+
     score: Number(item.score ?? 0),
+    rawScore: Number(item.rawScore ?? item.score ?? 0),
+    scorePercent: Number(item.scorePercent ?? item.score ?? 0),
+
     trend: Number(item.trend ?? 0),
+
     movementPct: Number(item.movementPct ?? 0),
+    movementPercent: Number(item.movementPercent ?? item.movementPct ?? 0),
+
     level: item.level || "LOW",
     tags: Array.isArray(item.tags) ? item.tags : [],
     patterns: Array.isArray(item.patterns) ? item.patterns : [],
@@ -135,7 +139,7 @@ export function useRadarData() {
   const [meta, setMeta] = useState<RadarApiSyncMeta | null>(null)
 
   const loadRemoteRadar = useCallback(async (signal?: AbortSignal) => {
-    const cacheBust = Date.now()
+    const cacheBust = Math.floor(Date.now() / 10000)
 
     const res = await fetch(apiRadarUrl(cacheBust), {
       cache: "no-store",
@@ -216,14 +220,26 @@ export function useRadarData() {
     fetchData(initialController.signal)
 
     const fetchInterval = setInterval(() => {
+      if (document.visibilityState !== "visible") return
+
       const intervalController = new AbortController()
       fetchData(intervalController.signal)
     }, 60_000)
+
+    function handleVisibilityChange() {
+      if (document.visibilityState === "visible") {
+        const controller = new AbortController()
+        fetchData(controller.signal)
+      }
+    }
+
+    document.addEventListener("visibilitychange", handleVisibilityChange)
 
     return () => {
       isMounted = false
       initialController.abort()
       clearInterval(fetchInterval)
+      document.removeEventListener("visibilitychange", handleVisibilityChange)
     }
   }, [refresh])
 
