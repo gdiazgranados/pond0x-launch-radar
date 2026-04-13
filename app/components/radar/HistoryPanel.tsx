@@ -33,7 +33,8 @@ export function HistoryPanel({
             const palette = getLevelPalette(item.level)
             const probability = getLaunchProbability(item)
             const movementPct = Number(item.movementPct ?? 0)
-            const score = Number(item.score ?? 0)
+            const rawScore = Number(item.rawScore ?? item.score ?? 0)
+            const scorePercent = Number(item.scorePercent ?? 0)
 
             return (
               <div
@@ -50,7 +51,10 @@ export function HistoryPanel({
 
                 <div className="mt-3 flex items-center justify-between gap-3">
                   <div className="text-sm text-white">
-                    Score: <span className="font-semibold">{score}</span>
+                    Score: <span className="font-semibold">{scorePercent}/100</span>
+                    <span className="ml-2 text-xs text-slate-500">
+                      raw: {rawScore}
+                    </span>
                   </div>
 
                   <div
