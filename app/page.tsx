@@ -38,17 +38,36 @@ type RadarPattern =
 function formatSnapshotId(snapshotId?: string | null) {
   if (!snapshotId) return "..."
 
-  const match = snapshotId.match(/^(\d{4}-\d{2}-\d{2})_(\d{2})(\d{2})(\d{2})$/)
+  const compactMatch = snapshotId.match(/^(\d{4}-\d{2}-\d{2})_(\d{2})(\d{2})(\d{2})$/)
+  if (compactMatch) {
+    const [, datePart, hh, mm, ss] = compactMatch
+    return (
+      <div className="space-y-1">
+        <div className="break-words">{datePart}</div>
+        <div className="text-sm opacity-80">{`${hh}:${mm}:${ss}`}</div>
+      </div>
+    )
+  }
 
-  if (!match) return snapshotId
-
-  const [, datePart, hh, mm, ss] = match
-  return (
-    <>
-      <span className="block">{datePart}</span>
-      <span className="mt-1 block">{`${hh}:${mm}:${ss}`}</span>
-    </>
+  const fullMatch = snapshotId.match(
+    /^(\d{4}-\d{2}-\d{2})_(\d{6})__(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z)$/
   )
+
+  if (fullMatch) {
+    const [, datePart, hhmmss, iso] = fullMatch
+    const hh = hhmmss.slice(0, 2)
+    const mm = hhmmss.slice(2, 4)
+    const ss = hhmmss.slice(4, 6)
+
+    return (
+      <div className="space-y-1">
+        <div className="break-words">{`${datePart} ${hh}:${mm}:${ss}`}</div>
+        <div className="break-all text-sm opacity-80">{iso}</div>
+      </div>
+    )
+  }
+
+  return <div className="break-all">{snapshotId}</div>
 }
 
 function TrendBadge({
@@ -114,32 +133,35 @@ function Gauge({
 }
 
 function getEta(data: any) {
-  const score = Number(data?.scorePercent ?? data?.score ?? 0)
+  const level = String(data?.level ?? "LOW").toUpperCase()
+  const scorePercent = Number(data?.scorePercent ?? data?.score ?? 0)
   const movement = Number(data?.movementPercent ?? data?.movementPct ?? 0)
-  const trendDirection = data?.trendDirection
+  const trendDirection = String(data?.trendDirection ?? "FLAT").toUpperCase()
   const trend = typeof data?.trend === "number" ? data.trend : 0
 
-  if (score >= 85 && movement >= 25 && (trendDirection === "UP" || trend >= 8)) return "< 6h"
-  if (score >= 75 && movement >= 20) return "< 24h"
-  if (score >= 60) return "24h - 72h"
+  if (level === "CRITICAL" && (trendDirection === "UP" || trend >= 8)) return "< 24h"
+  if (scorePercent >= 85 && movement >= 25 && (trendDirection === "UP" || trend >= 8)) return "< 6h"
+  if (scorePercent >= 75 && movement >= 20) return "< 24h"
+  if (scorePercent >= 60) return "24h - 72h"
   return "monitoring"
 }
 
 function getPriorityMode(data: any) {
   const tags = data?.tags || []
-  const level = data?.level || "LOW"
+  const level = String(data?.level || "LOW").toUpperCase()
+  const activationProbability = Number(data?.activationProbability ?? 0)
 
-  if (tags.includes("LAUNCH_IMMINENT")) {
+  if (level === "CRITICAL" || tags.includes("LAUNCH_IMMINENT")) {
     return {
       mode: "CRITICAL",
-      mainBg: "bg-red-950",
-      headerClass: "border-red-500/40 bg-red-900/20 shadow-[0_0_40px_rgba(255,0,0,0.15)]",
-      bannerClass: "border-red-500/40 bg-red-900/30 text-red-200 shadow-[0_0_25px_rgba(255,0,0,0.15)]",
-      title: "🚨 CRITICAL SIGNAL — PRE-LAUNCH CONDITIONS DETECTED",
+      mainBg: "bg-[#090203]",
+      headerClass: "border-red-500/40 bg-red-950/20 shadow-[0_0_40px_rgba(255,0,0,0.12)]",
+      bannerClass: "border-red-500/40 bg-red-900/25 text-red-200 shadow-[0_0_25px_rgba(255,0,0,0.12)]",
+      title: "🚨 CRITICAL SIGNAL — ACTIVATION CONDITIONS MET",
     }
   }
 
-  if (level === "VERY HIGH") {
+  if (level === "VERY HIGH" || activationProbability >= 70) {
     return {
       mode: "VERY_HIGH",
       mainBg: "bg-[#120b05]",
@@ -149,7 +171,7 @@ function getPriorityMode(data: any) {
     }
   }
 
-  if (level === "HIGH") {
+  if (level === "HIGH" || activationProbability >= 50) {
     return {
       mode: "HIGH",
       mainBg: "bg-[#111008]",
@@ -202,7 +224,7 @@ export default function Home() {
   const [now, setNow] = useState(Date.now())
 
   const cleanHistory = useMemo(() => {
-    return Array.from(new Map(history.map(item => [item.id, item])).values())
+    return Array.from(new Map(history.map((item) => [item.id, item])).values())
   }, [history])
 
   useEffect(() => {
@@ -215,23 +237,13 @@ export default function Home() {
 
   const prioritizedData = useMemo(() => prioritizeLaunchSignals(data), [data])
 
-  // Single source of truth for the dashboard
   const current = prioritizedData ?? data
 
-  const uiScore = useMemo(
-    () => Number(current?.score ?? 0),
-    [current]
-  )
+  const uiScore = useMemo(() => Number(current?.score ?? 0), [current])
 
-  const rawScore = useMemo(
-    () => Number(current?.rawScore ?? current?.score ?? 0),
-    [current]
-  )
+  const rawScore = useMemo(() => Number(current?.rawScore ?? current?.score ?? 0), [current])
 
-  const uiScorePercent = useMemo(
-    () => Number(current?.scorePercent ?? 0),
-    [current]
-  )
+  const uiScorePercent = useMemo(() => Number(current?.scorePercent ?? 0), [current])
 
   const uiMovement = useMemo(
     () => Number(current?.movementPercent ?? current?.movementPct ?? 0),
@@ -243,17 +255,11 @@ export default function Home() {
   const isPriorityView =
     priorityMode.mode === "VERY_HIGH" || priorityMode.mode === "CRITICAL"
 
-  const palette = useMemo(
-    () => getLevelPalette(current?.level),
-    [current?.level]
-  )
+  const palette = useMemo(() => getLevelPalette(current?.level), [current?.level])
 
   const signalType = useMemo(() => getSignalType(current), [current])
 
-  const launchProbability = useMemo(
-    () => getLaunchProbability(current),
-    [current]
-  )
+  const launchProbability = useMemo(() => getLaunchProbability(current), [current])
 
   const activationProbability = useMemo(
     () => Number(current?.activationProbability ?? 0),
@@ -447,9 +453,7 @@ export default function Home() {
 
     const merged = [...latestItem, ...alertItems, ...historyItems]
 
-    const unique = Array.from(
-      new Map(merged.map(item => [item.id, item])).values()
-    )
+    const unique = Array.from(new Map(merged.map((item) => [item.id, item])).values())
 
     return unique.slice(0, 10)
   }, [current, tapeHistory, alerts])
@@ -496,7 +500,8 @@ export default function Home() {
 
               <div className="flex flex-wrap items-center gap-3 text-xs">
                 <span>Score {uiScore}</span>
-                <span>Trend {current?.trendDirection}</span>
+                <span>Intensity {uiScorePercent}/100</span>
+                <span>Trend {current?.trendDirection ?? "FLAT"}</span>
                 <span>ETA {getEta(current)}</span>
                 {(narrative?.context || []).map((item, i) => (
                   <span key={i} className="opacity-80">
@@ -528,11 +533,14 @@ export default function Home() {
                 >
                   {current?.level || "LOW"}
                 </span>
-                <TrendBadge
-                  trendDirection={current?.trendDirection}
-                  trend={current?.trend}
-                />
-                <span className="rounded-full border border-orange-500/30 bg-orange-500/10 px-3 py-1 text-xs text-orange-300">
+                <TrendBadge trendDirection={current?.trendDirection} trend={current?.trend} />
+                <span
+                  className={`rounded-full border px-3 py-1 text-xs ${
+                    priorityMode.mode === "CRITICAL"
+                      ? "border-red-500/30 bg-red-500/10 text-red-200"
+                      : "border-orange-500/30 bg-orange-500/10 text-orange-300"
+                  }`}
+                >
                   ETA {getEta(current)}
                 </span>
               </div>
@@ -546,12 +554,12 @@ export default function Home() {
                 <MetricCard
                   label="Snapshot"
                   value={formatSnapshotId(current?.id)}
-                  valueClassName="font-mono text-lg sm:text-xl text-white leading-tight"
+                  valueClassName="font-mono text-lg sm:text-xl text-white leading-tight break-all"
                 />
                 <MetricCard
                   label="Score"
                   value={uiScore}
-                  subvalue={`raw: ${rawScore}`}
+                  subvalue={`intensity: ${uiScorePercent}/100`}
                   valueClassName={palette.text}
                 />
                 <MetricCard
@@ -562,13 +570,18 @@ export default function Home() {
                 <MetricCard
                   label="Launch Probability"
                   value={
-                    <span
-                      className={`inline-flex rounded-full border px-3 py-1 text-base ${probabilityClass(
-                        launchProbability
-                      )}`}
-                    >
-                      {launchProbability}
-                    </span>
+                    <div className="flex flex-col gap-2">
+                      <span
+                        className={`inline-flex w-fit rounded-full border px-3 py-1 text-base ${probabilityClass(
+                          launchProbability
+                        )}`}
+                      >
+                        {launchProbability}
+                      </span>
+                      <span className="text-xs text-slate-500">
+                        level: {current?.level || "LOW"}
+                      </span>
+                    </div>
                   }
                 />
               </div>
@@ -588,9 +601,7 @@ export default function Home() {
                     {current?.level || "LOW"}
                   </span>
                   <span>{Math.min(100, uiScorePercent)}/100 intensity</span>
-                  <span className="text-xs opacity-70">
-                    raw: {rawScore}
-                  </span>
+                  <span className="text-xs opacity-70">score: {uiScore}</span>
                 </div>
               </div>
 
@@ -601,7 +612,7 @@ export default function Home() {
                 <div className="mt-2 flex items-center justify-between gap-4">
                   <div className="text-2xl font-bold text-white">{activationProbability}%</div>
                   <div className="text-right text-xs text-slate-400">
-                    pattern-driven signal confidence
+                    probability model output
                   </div>
                 </div>
                 <div className="mt-3 h-2 w-full rounded-full bg-white/10">
@@ -766,11 +777,7 @@ export default function Home() {
                   value={Number(current?.changedPercent ?? current?.changedPct ?? 0)}
                   tone="yellow"
                 />
-                <Gauge
-                  label="Movement %"
-                  value={uiMovement}
-                  tone="emerald"
-                />
+                <Gauge label="Movement %" value={uiMovement} tone="emerald" />
               </div>
             </div>
 
