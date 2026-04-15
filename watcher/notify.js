@@ -185,11 +185,13 @@ function getCriticalChanges(latest, lastAlert) {
   const enabledAppeared = !hasSignal(lastAlert, "enabled") && hasSignal(latest, "enabled");
   const disabledGone = hasSignal(lastAlert, "disabled") && !hasSignal(latest, "disabled");
   const verifyAppeared = !hasSignal(lastAlert, "verify") && hasSignal(latest, "verify");
+  const imminentAppeared = !lastAlert.launchImminent && !!latest.launchImminent;
 
   if (claimAppeared) changes.push("Critical: claim signal appeared");
   if (enabledAppeared) changes.push("Critical: enabled signal appeared");
   if (disabledGone) changes.push("Critical: disabled signal disappeared");
   if (verifyAppeared) changes.push("Critical: verify signal appeared");
+  if (imminentAppeared) changes.push("Critical: LAUNCH_IMMINENT detected");
 
   return changes.length ? changes : ["State changed"];
 }
@@ -202,6 +204,7 @@ function classifyChangeSeverity(latest, lastAlert) {
   const alphaClassChanged = (lastAlert.alphaClass || "") !== (latest.alphaClass || "");
   const regimeChanged = (lastAlert.signalRegime || "") !== (latest.signalRegime || "");
   const fusionChanged = (lastAlert.signalFusion || "") !== (latest.signalFusion || "");
+  const imminentChanged = !!lastAlert.launchImminent !== !!latest.launchImminent;
 
   const claimAppeared = !hasSignal(lastAlert, "claim") && hasSignal(latest, "claim");
   const enabledAppeared = !hasSignal(lastAlert, "enabled") && hasSignal(latest, "enabled");
@@ -213,6 +216,7 @@ function classifyChangeSeverity(latest, lastAlert) {
     enabledAppeared ||
     disabledGone ||
     verifyAppeared ||
+    imminentChanged ||
     eventTypeChanged ||
     triggerChanged ||
     alphaClassChanged ||
@@ -238,6 +242,19 @@ function buildDecision(latest, lastAlert) {
   const triggerState = latest.triggerState || "IDLE";
   const score = Number(latest.score || 0);
   const movementPct = Number(latest.movementPct || 0);
+  const launchImminent = !!latest.launchImminent;
+
+  // 🚨 IMMINENT OVERRIDE
+  if (launchImminent) {
+    return {
+      send: true,
+      reason: "Launch imminent override",
+      signature,
+      priority: "CRITICAL",
+      changeSeverity: "CRITICAL_FIELD_CHANGE",
+      criticalChanges: ["LAUNCH_IMMINENT detected"],
+    };
+  }
 
   if (lastAlert && lastAlert.signature === signature) {
     return {
@@ -377,7 +394,14 @@ function buildDecision(latest, lastAlert) {
 
 function buildTelegramMessage(latest, decision) {
   const patterns = getTopPatterns(latest);
-  const tags = ensureArray(latest.tags).join(", ") || "none";
+  const isImminent = !!latest.launchImminent;
+
+  const tagsList = ensureArray(latest.tags).slice();
+  if (isImminent && !tagsList.includes("LAUNCH_IMMINENT")) {
+    tagsList.push("LAUNCH_IMMINENT");
+  }
+
+  const tags = tagsList.join(", ") || "none";
   const focus = ensureArray(latest.focusAreas).join(", ") || "none";
   const signals = ensureArray(latest.signals).slice(0, 12).join(", ") || "none";
   const discovery = latest.discovery || {};
@@ -422,20 +446,23 @@ function buildTelegramMessage(latest, decision) {
         : "→";
 
   const title =
-    decision.priority === "CRITICAL"
-      ? "🚨 POND0X RADAR — CRITICAL"
-      : decision.priority === "VERY HIGH"
-        ? "⚠️ POND0X RADAR — VERY HIGH"
-        : decision.priority === "HIGH"
-          ? "📡 POND0X RADAR — HIGH"
-          : "🛰️ POND0X RADAR — MEDIUM";
+    isImminent
+      ? "🚨🚨 POND0X RADAR — THIS IS IT"
+      : decision.priority === "CRITICAL"
+        ? "🚨 POND0X RADAR — CRITICAL"
+        : decision.priority === "VERY HIGH"
+          ? "⚠️ POND0X RADAR — VERY HIGH"
+          : decision.priority === "HIGH"
+            ? "📡 POND0X RADAR — HIGH"
+            : "🛰️ POND0X RADAR — MEDIUM";
 
   return [
     `<b>${title}</b>`,
+    isImminent ? `<b>STATUS:</b> 🚨 THIS IS NOT A DRILL` : "",
     ``,
     `<b>Score:</b> ${escapeHtml(round(latest.score))}`,
     `<b>Level:</b> ${escapeHtml(latest.level)}`,
-    `<b>Trend:</b> ${trendArrow} ${escapeHtml(latest.trendDirection)} (${escapeHtml(round(latest.trend))})`,
+    `<b>Trend:</b> ${trendArrow} ${escapeHtml(round(latest.trend))} (${escapeHtml(latest.trendDirection)})`,
     `<b>Movement:</b> ${escapeHtml(round(latest.movementPct))}%`,
     `<b>ETA:</b> ${escapeHtml(latest.eta || "unknown")}`,
     ``,
@@ -466,7 +493,9 @@ function buildTelegramMessage(latest, decision) {
     `<b>Decision:</b> ${escapeHtml(decision.reason)}`,
     `<b>Change severity:</b> ${escapeHtml(decision.changeSeverity || "UNKNOWN")}`,
     `<b>Generated:</b> ${escapeHtml(latest.generatedAt || new Date().toISOString())}`,
-  ].join("\n");
+  ]
+    .filter(Boolean)
+    .join("\n");
 }
 
 async function sendTelegramMessage(message) {
@@ -543,6 +572,7 @@ function buildAlertRecord(latest, decision) {
     eventType: latest.eventType,
     signalRegime: latest.signalRegime,
     signalFusion: latest.signalFusion,
+    launchImminent: !!latest.launchImminent,
     tags: ensureArray(latest.tags),
     signals: ensureArray(latest.signals),
     focusAreas: ensureArray(latest.focusAreas),
@@ -576,7 +606,7 @@ async function main() {
   const decision = buildDecision(latest, lastAlert);
 
   console.log(
-    `Notify decision: send=${decision.send} | priority=${decision.priority} | reason=${decision.reason} | signature=${decision.signature} | severity=${decision.changeSeverity}`
+    `Notify decision: send=${decision.send} | priority=${decision.priority} | reason=${decision.reason} | signature=${decision.signature} | severity=${decision.changeSeverity} | imminent=${!!latest.launchImminent}`
   );
 
   if (!decision.send) {
