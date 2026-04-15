@@ -198,15 +198,12 @@ function getTriggerStateTone(triggerState: string) {
 
 export default function Home() {
   const { data, history, alerts, loading, heartbeatData } = useRadarData()
+  const { latestEvent } = useSentinelData()
+  const [now, setNow] = useState(Date.now())
 
-  // 🔥 FIX: eliminar duplicados en history
   const cleanHistory = useMemo(() => {
-    return Array.from(
-      new Map(history.map(item => [item.id, item])).values()
-    )
+    return Array.from(new Map(history.map(item => [item.id, item])).values())
   }, [history])
-    const { latestEvent } = useSentinelData()
-    const [now, setNow] = useState(Date.now())
 
   useEffect(() => {
     const clockInterval = setInterval(() => {
@@ -218,49 +215,52 @@ export default function Home() {
 
   const prioritizedData = useMemo(() => prioritizeLaunchSignals(data), [data])
 
-    const uiScore = useMemo(
-    () => Number(prioritizedData?.scorePercent ?? data?.scorePercent ?? 0),
-    [prioritizedData, data]
+  // Single source of truth for the dashboard
+  const current = prioritizedData ?? data
+
+  const uiScore = useMemo(
+    () => Number(current?.score ?? 0),
+    [current]
   )
 
   const rawScore = useMemo(
-    () => Number(prioritizedData?.rawScore ?? data?.rawScore ?? prioritizedData?.score ?? data?.score ?? 0),
-    [prioritizedData, data]
+    () => Number(current?.rawScore ?? current?.score ?? 0),
+    [current]
+  )
+
+  const uiScorePercent = useMemo(
+    () => Number(current?.scorePercent ?? 0),
+    [current]
   )
 
   const uiMovement = useMemo(
-    () => Number(
-      prioritizedData?.movementPercent ??
-        data?.movementPercent ??
-        prioritizedData?.movementPct ??
-        data?.movementPct ??
-        0
-    ),
-    [prioritizedData, data]
+    () => Number(current?.movementPercent ?? current?.movementPct ?? 0),
+    [current]
   )
 
-  const priorityMode = getPriorityMode(prioritizedData)
+  const priorityMode = getPriorityMode(current)
   const isElevated = priorityMode.mode !== "NORMAL"
   const isPriorityView =
     priorityMode.mode === "VERY_HIGH" || priorityMode.mode === "CRITICAL"
 
   const palette = useMemo(
-    () => getLevelPalette(prioritizedData?.level),
-    [prioritizedData?.level]
+    () => getLevelPalette(current?.level),
+    [current?.level]
   )
 
-  const signalType = useMemo(() => getSignalType(prioritizedData), [prioritizedData])
+  const signalType = useMemo(() => getSignalType(current), [current])
 
   const launchProbability = useMemo(
-    () => getLaunchProbability(prioritizedData),
-    [prioritizedData]
+    () => getLaunchProbability(current),
+    [current]
   )
 
-  const activationProbability = useMemo(() => {
-    return Number(prioritizedData?.activationProbability ?? data?.activationProbability ?? 0)
-  }, [prioritizedData, data])
+  const activationProbability = useMemo(
+    () => Number(current?.activationProbability ?? 0),
+    [current]
+  )
 
-  const narrative = useMemo(() => buildNarrative(prioritizedData), [prioritizedData])
+  const narrative = useMemo(() => buildNarrative(current), [current])
 
   const effectiveFreshnessDate = useMemo(() => {
     const hb = heartbeatData?.lastSuccessAt || heartbeatData?.lastRunAt
@@ -271,7 +271,7 @@ export default function Home() {
 
     if (!hbTs && !histTs) return undefined
     return new Date(Math.max(hbTs, histTs)).toISOString()
-  }, [heartbeatData?.lastSuccessAt, heartbeatData?.lastRunAt, history])
+  }, [heartbeatData?.lastSuccessAt, heartbeatData?.lastRunAt, cleanHistory])
 
   const heartbeat = getHeartbeatStatus(
     effectiveFreshnessDate,
@@ -327,39 +327,35 @@ export default function Home() {
     }).length
   }, [cleanHistory])
 
-    const confidenceScore = useMemo(() => {
-    const score = uiScore
+  const confidenceScore = useMemo(() => {
+    const score = uiScorePercent
     const movement = uiMovement
-    const trend = Number(prioritizedData?.trend ?? data?.trend ?? 0)
+    const trend = Number(current?.trend ?? 0)
 
     const raw = score * 0.6 + movement * 0.2 + trend * 2
     return Math.max(0, Math.min(100, Math.round(raw)))
-  }, [uiScore, uiMovement, prioritizedData, data])
+  }, [uiScorePercent, uiMovement, current])
 
-    const alpha = useMemo(() => {
+  const alpha = useMemo(() => {
     return evaluateAlpha({
-      score: uiScore,
+      score: uiScorePercent,
       movementPct: uiMovement,
-      trend: Number(prioritizedData?.trend ?? data?.trend ?? 0),
-      level: prioritizedData?.level ?? data?.level ?? "LOW",
-      tags: prioritizedData?.tags ?? data?.tags ?? [],
-      signals: prioritizedData?.signals ?? data?.signals ?? [],
-      activationProbability: Number(
-        prioritizedData?.activationProbability ?? data?.activationProbability ?? 0
-      ),
-      patternBoost: Number(
-        prioritizedData?.breakdown?.patternBoost ?? data?.breakdown?.patternBoost ?? 0
-      ),
+      trend: Number(current?.trend ?? 0),
+      level: current?.level ?? "LOW",
+      tags: current?.tags ?? [],
+      signals: current?.signals ?? [],
+      activationProbability: Number(current?.activationProbability ?? 0),
+      patternBoost: Number(current?.breakdown?.patternBoost ?? 0),
       burstCount,
     })
-  }, [uiScore, uiMovement, prioritizedData, data, burstCount])
+  }, [uiScorePercent, uiMovement, current, burstCount])
 
-    const readinessState = useMemo(() => {
-    const score = uiScore
+  const readinessState = useMemo(() => {
+    const score = uiScorePercent
     const movement = uiMovement
-    const trend = Number(prioritizedData?.trend ?? data?.trend ?? 0)
-    const tags = prioritizedData?.tags || data?.tags || []
-    const signals = prioritizedData?.signals || data?.signals || []
+    const trend = Number(current?.trend ?? 0)
+    const tags = current?.tags || []
+    const signals = current?.signals || []
 
     const hasRewards =
       tags.includes("REWARDS") || signals.includes("reward") || signals.includes("claim")
@@ -408,17 +404,17 @@ export default function Home() {
       badge: "border-emerald-500/30 bg-emerald-500/10 text-emerald-200",
       note: "monitoring baseline activity",
     }
-  }, [uiScore, uiMovement, prioritizedData, data, burstCount])
+  }, [uiScorePercent, uiMovement, current, burstCount])
 
   const tickerItems = useMemo(() => {
-    const latestItem = prioritizedData
+    const latestItem = current
       ? [
           {
-            id: `latest-${prioritizedData.id ?? "current"}`,
-            time: shortTime(prioritizedData.generatedAt),
-            level: prioritizedData.level || "LOW",
-            signalType: getSignalType(prioritizedData),
-            probability: getLaunchProbability(prioritizedData),
+            id: `latest-${current.id ?? "current"}`,
+            time: shortTime(current.generatedAt),
+            level: current.level || "LOW",
+            signalType: getSignalType(current),
+            probability: getLaunchProbability(current),
             label: "LIVE",
           },
         ]
@@ -435,7 +431,7 @@ export default function Home() {
 
     const alertItems = alerts
       .slice(0, 5)
-      .map((alert, index) => {
+      .map((alert) => {
         const alertTimestamp = alert.sentAt || alert.generatedAt || null
 
         return {
@@ -456,9 +452,9 @@ export default function Home() {
     )
 
     return unique.slice(0, 10)
-  }, [prioritizedData, tapeHistory, alerts])
+  }, [current, tapeHistory, alerts])
 
-  const breakdown = prioritizedData?.breakdown ?? data?.breakdown
+  const breakdown = current?.breakdown
 
   if (loading) {
     return (
@@ -499,11 +495,9 @@ export default function Home() {
               </div>
 
               <div className="flex flex-wrap items-center gap-3 text-xs">
-                <span>
-                  Score {uiScore}%
-                </span>
-                <span>Trend {prioritizedData?.trendDirection ?? data?.trendDirection}</span>
-                <span>ETA {getEta(prioritizedData || data)}</span>
+                <span>Score {uiScore}</span>
+                <span>Trend {current?.trendDirection}</span>
+                <span>ETA {getEta(current)}</span>
                 {(narrative?.context || []).map((item, i) => (
                   <span key={i} className="opacity-80">
                     {item}
@@ -532,14 +526,14 @@ export default function Home() {
                     palette.badge
                   } ${priorityMode.mode === "CRITICAL" ? "animate-pulse" : ""}`}
                 >
-                  {prioritizedData?.level || data?.level || "LOW"}
+                  {current?.level || "LOW"}
                 </span>
                 <TrendBadge
-                  trendDirection={prioritizedData?.trendDirection ?? data?.trendDirection}
-                  trend={prioritizedData?.trend ?? data?.trend}
+                  trendDirection={current?.trendDirection}
+                  trend={current?.trend}
                 />
                 <span className="rounded-full border border-orange-500/30 bg-orange-500/10 px-3 py-1 text-xs text-orange-300">
-                  ETA {getEta(prioritizedData || data)}
+                  ETA {getEta(current)}
                 </span>
               </div>
 
@@ -551,7 +545,7 @@ export default function Home() {
               <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                 <MetricCard
                   label="Snapshot"
-                  value={formatSnapshotId(data?.id)}
+                  value={formatSnapshotId(current?.id)}
                   valueClassName="font-mono text-lg sm:text-xl text-white leading-tight"
                 />
                 <MetricCard
@@ -591,16 +585,11 @@ export default function Home() {
                 </div>
                 <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-slate-400">
                   <span className={`rounded-full border px-2 py-0.5 text-xs ${palette.badge}`}>
-                    {prioritizedData?.level || data?.level || "LOW"}
+                    {current?.level || "LOW"}
                   </span>
-                  <span>
-                    {Math.min(
-                     100,
-                     prioritizedData?.scorePercent ?? data?.scorePercent ?? 0
-                    )}/100 intensity
-                  </span>
+                  <span>{Math.min(100, uiScorePercent)}/100 intensity</span>
                   <span className="text-xs opacity-70">
-                    raw: {prioritizedData?.rawScore ?? data?.rawScore ?? prioritizedData?.score ?? data?.score ?? 0}
+                    raw: {rawScore}
                   </span>
                 </div>
               </div>
@@ -697,7 +686,7 @@ export default function Home() {
                       Insight
                     </div>
                     <div className="mt-2 text-lg font-bold text-white">
-                      {data?.insight || "No insight"}
+                      {current?.insight || "No insight"}
                     </div>
                   </div>
 
@@ -706,7 +695,7 @@ export default function Home() {
                       Why it matters
                     </div>
                     <div className="mt-2 text-sm text-white">
-                      {data?.whyItMatters || "No escalation context available."}
+                      {current?.whyItMatters || "No escalation context available."}
                     </div>
                   </div>
                 </div>
@@ -719,7 +708,7 @@ export default function Home() {
                 />
 
                 <div className="flex flex-wrap gap-3">
-                  {(data?.patterns || []).slice(0, 4).map((p: RadarPattern, i: number) => {
+                  {(current?.patterns || []).slice(0, 4).map((p: RadarPattern, i: number) => {
                     const label = typeof p === "string" ? p : p?.tag || "UNKNOWN"
                     return (
                       <span
@@ -748,36 +737,33 @@ export default function Home() {
               />
 
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                <MetricCard label="Total Files" value={data?.totalFiles ?? 0} />
+                <MetricCard label="Total Files" value={current?.totalFiles ?? 0} />
                 <MetricCard
                   label="Added"
-                  value={data?.added ?? 0}
-                  subvalue={`${data?.addedPercent ?? data?.addedPct ?? 0}% of surface`}
+                  value={current?.added ?? 0}
+                  subvalue={`${current?.addedPercent ?? current?.addedPct ?? 0}% of surface`}
                   valueClassName="text-cyan-300"
                 />
                 <MetricCard
                   label="Changed"
-                  value={data?.changed ?? 0}
-                  subvalue={`${data?.changedPercent ?? data?.changedPct ?? 0}% of surface`}
+                  value={current?.changed ?? 0}
+                  subvalue={`${current?.changedPercent ?? current?.changedPct ?? 0}% of surface`}
                   valueClassName="text-yellow-300"
                 />
                 <MetricCard
                   label="Movement"
                   value={`${uiMovement}%`}
-                  subvalue={`raw: ${prioritizedData?.movementPct ?? data?.movementPct ?? 0}%`}
+                  subvalue={`raw: ${current?.movementPct ?? 0}%`}
                   valueClassName="text-emerald-300"
                 />
               </div>
 
               <div className="mt-4 grid gap-4 lg:grid-cols-2">
-                <Gauge
-                  label="Radar Score"
-                  value={Number(prioritizedData?.scorePercent ?? data?.scorePercent ?? 0)}
-                />
-                <Gauge label="Activation Probability" value={Number(activationProbability)} tone="orange" />
+                <Gauge label="Radar Score" value={uiScorePercent} />
+                <Gauge label="Activation Probability" value={activationProbability} tone="orange" />
                 <Gauge
                   label="Changed %"
-                  value={Number(data?.changedPercent ?? data?.changedPct ?? 0)}
+                  value={Number(current?.changedPercent ?? current?.changedPct ?? 0)}
                   tone="yellow"
                 />
                 <Gauge
@@ -793,9 +779,9 @@ export default function Home() {
                 <div className="rounded-3xl border border-white/10 bg-[#05070a] p-5">
                   <SectionTitle title="Signals & Tags" subtitle="Semantic surface scan" />
 
-                  {data?.signals?.length ? (
+                  {current?.signals?.length ? (
                     <div className="flex flex-wrap gap-2">
-                      {data.signals.map((signal: string) => (
+                      {current.signals.map((signal: string) => (
                         <span
                           key={signal}
                           className="rounded-full border border-cyan-500/20 bg-cyan-500/10 px-3 py-1 text-sm text-cyan-300"
@@ -815,9 +801,9 @@ export default function Home() {
                       Tags
                     </div>
 
-                    {!!data?.tags?.length ? (
+                    {!!current?.tags?.length ? (
                       <div className="flex flex-wrap gap-2">
-                        {data.tags.map((tag: string) => (
+                        {current.tags.map((tag: string) => (
                           <span
                             key={tag}
                             className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-300"
@@ -843,7 +829,7 @@ export default function Home() {
                       <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">
                         Generated
                       </div>
-                      <div className="mt-2 text-sm text-slate-300">{formatDate(data?.generatedAt)}</div>
+                      <div className="mt-2 text-sm text-slate-300">{formatDate(current?.generatedAt)}</div>
                     </div>
                   </div>
                 </div>
@@ -863,7 +849,7 @@ export default function Home() {
                     <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">
                       Summary
                     </div>
-                    <p className="mt-2 text-sm leading-7 text-slate-300">{data?.summary || "..."}</p>
+                    <p className="mt-2 text-sm leading-7 text-slate-300">{current?.summary || "..."}</p>
                   </div>
 
                   <div className="mt-4 rounded-2xl border border-cyan-500/20 bg-cyan-500/[0.04] p-4">
@@ -871,7 +857,7 @@ export default function Home() {
                       AI Insight
                     </div>
                     <div className="mt-2 text-lg font-bold leading-7 text-white">
-                      {data?.insight || "No insight"}
+                      {current?.insight || "No insight"}
                     </div>
                   </div>
 
@@ -879,7 +865,7 @@ export default function Home() {
                     <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">
                       Reading
                     </div>
-                    <p className="mt-2 text-sm leading-7 text-slate-400">{data?.note || "..."}</p>
+                    <p className="mt-2 text-sm leading-7 text-slate-400">{current?.note || "..."}</p>
                   </div>
                 </div>
               </div>
@@ -917,7 +903,7 @@ export default function Home() {
                     Why This Matters
                   </div>
                   <div className="mt-2 text-sm leading-6 text-white">
-                    {data?.whyItMatters || "No escalation context available yet."}
+                    {current?.whyItMatters || "No escalation context available yet."}
                   </div>
                 </div>
 

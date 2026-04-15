@@ -62,6 +62,7 @@ jobs:
             fi
 
             git worktree remove /tmp/radar-restore --force || true
+            rm -rf /tmp/radar-restore || true
           else
             echo "radar-data branch does not exist yet; skipping restore"
           fi
@@ -112,6 +113,10 @@ jobs:
           find . -name "latest.json" -type f -print
 
           echo ""
+          echo "=== Search history.json references ==="
+          find . -name "history.json" -type f -print
+
+          echo ""
           echo "=== Search heartbeat.json references ==="
           find . -name "heartbeat.json" -type f -print
 
@@ -119,7 +124,11 @@ jobs:
         run: |
           mkdir -p public/data
 
-          # SOLO AUXILIARES
+          # CORE DATA
+          cp watcher/output/latest.json public/data/latest.json || true
+          cp watcher/output/history.json public/data/history.json || true
+
+          # AUXILIARY DATA
           cp watcher/output/sentinel-events.json public/data/sentinel-events.json || true
           cp watcher/output/sentinel-state.json public/data/sentinel-state.json || true
           cp watcher/output/discovery.json public/data/discovery.json || true
@@ -163,15 +172,29 @@ jobs:
           echo "=== public/data/latest.json ==="
           cat public/data/latest.json || echo "missing public/data/latest.json"
 
+          echo ""
+          echo "=== watcher/output/history.json ==="
+          cat watcher/output/history.json || echo "missing watcher/output/history.json"
+
+          echo ""
+          echo "=== public/data/history.json ==="
+          cat public/data/history.json || echo "missing public/data/history.json"
+
+          echo ""
+          echo "=== public/data/heartbeat.json ==="
+          cat public/data/heartbeat.json || echo "missing public/data/heartbeat.json"
+
       - name: Prepare publish bundle
         run: |
           mkdir -p .publish/data
           mkdir -p .publish/snapshots
 
-          # Source of truth for core published data
+          # Source of truth for published data
           cp public/data/*.json .publish/data/ 2>/dev/null || true
 
-          # Copy only auxiliary watcher outputs that are not already core published files
+          # Safety copies for outputs generated directly by watcher
+          cp watcher/output/latest.json .publish/data/latest.json 2>/dev/null || true
+          cp watcher/output/history.json .publish/data/history.json 2>/dev/null || true
           cp watcher/output/sentinel-events.json .publish/data/sentinel-events.json 2>/dev/null || true
           cp watcher/output/sentinel-state.json .publish/data/sentinel-state.json 2>/dev/null || true
           cp watcher/output/discovery.json .publish/data/discovery.json 2>/dev/null || true
@@ -207,6 +230,10 @@ jobs:
 
           git commit -m "Auto radar data update" || echo "No changes to commit"
           git push origin HEAD:radar-data
+
+          cd -
+          git worktree remove /tmp/radar-data --force || true
+          rm -rf /tmp/radar-data || true
 
       - name: Run notify
         run: node watcher/notify.js
