@@ -67,8 +67,10 @@ export function buildLinePoints(
 }
 
 export function getLevelPalette(level?: string) {
-  switch (level) {
-    case "VERY HIGH":
+  const normalized = String(level ?? "LOW").toUpperCase()
+
+  switch (normalized) {
+    case "CRITICAL":
       return {
         badge: "border-red-500/40 bg-red-500/10 text-red-200",
         text: "text-red-300",
@@ -76,22 +78,34 @@ export function getLevelPalette(level?: string) {
         dot: "bg-red-400",
         label: "ACTIVATION",
       }
-    case "HIGH":
+
+    case "VERY HIGH":
       return {
         badge: "border-orange-500/40 bg-orange-500/10 text-orange-200",
         text: "text-orange-300",
         bar: "bg-orange-400",
         dot: "bg-orange-400",
-        label: "HEATING",
+        label: "VERY HIGH",
       }
-    case "MEDIUM":
+
+    case "HIGH":
       return {
         badge: "border-yellow-500/40 bg-yellow-500/10 text-yellow-200",
         text: "text-yellow-300",
         bar: "bg-yellow-400",
         dot: "bg-yellow-400",
+        label: "HEATING",
+      }
+
+    case "MEDIUM":
+      return {
+        badge: "border-cyan-500/40 bg-cyan-500/10 text-cyan-200",
+        text: "text-cyan-300",
+        bar: "bg-cyan-400",
+        dot: "bg-cyan-400",
         label: "BUILDING",
       }
+
     default:
       return {
         badge: "border-emerald-500/30 bg-emerald-500/10 text-emerald-200",
@@ -135,53 +149,54 @@ export function getLaunchProbability(data?: {
   level?: string
   trend?: number
   score?: number
+  scorePercent?: number
+  activationProbability?: number
   movementPct?: number
+  movementPercent?: number
   tags?: string[]
   signals?: string[]
 } | null): RadarProbability {
   if (!data) return "STANDBY"
 
-  const score = Number(data.score ?? 0)
-  const movementPct = Number(data.movementPct ?? 0)
-  const tags = data.tags || []
-  const signals = data.signals || []
-  const signalType = getSignalType(data)
-  const trend = Number(data.trend ?? 0)
+  const level = String(data.level ?? "LOW").toUpperCase()
+  const activationProbability = Number(data.activationProbability ?? 0)
+  const scorePercent = Number(data.scorePercent ?? 0)
+  const movement = Number(data.movementPercent ?? data.movementPct ?? 0)
 
-  if (score === 0 && movementPct === 0 && tags.length === 0 && signals.length === 0) {
+  if (
+    activationProbability === 0 &&
+    scorePercent === 0 &&
+    movement === 0 &&
+    !(data.tags || []).length &&
+    !(data.signals || []).length
+  ) {
     return "STANDBY"
   }
 
-  if (data.level === "VERY HIGH") return "VERY HIGH"
+  if (level === "CRITICAL") return "CRITICAL"
+  if (level === "VERY HIGH") return "VERY HIGH"
+  if (level === "HIGH") return "HIGH"
+  if (level === "MEDIUM") return "MEDIUM"
+  if (level === "LOW") return "LOW"
 
-  if (data.level === "HIGH" || score >= 60 || (movementPct >= 30 && trend >= 5)) {
-    return "HIGH"
-  }
-
-  if (
-    data.level === "MEDIUM" ||
-    trend >= 3 ||
-    movementPct >= 10 ||
-    signalType === "AUTH" ||
-    signalType === "CHAIN" ||
-    signalType === "REWARDS"
-  ) {
-    return "MEDIUM"
-  }
-
-  if (data.level === "LOW") return "LOW"
+  if (activationProbability >= 85 || scorePercent >= 95) return "CRITICAL"
+  if (activationProbability >= 70 || scorePercent >= 80) return "VERY HIGH"
+  if (activationProbability >= 50 || scorePercent >= 60) return "HIGH"
+  if (activationProbability >= 25 || scorePercent >= 30) return "MEDIUM"
 
   return "LOW"
 }
 
 export function probabilityClass(probability: string) {
   switch (probability) {
-    case "VERY HIGH":
+    case "CRITICAL":
       return "border-red-500/40 bg-red-500/10 text-red-200"
-    case "HIGH":
+    case "VERY HIGH":
       return "border-orange-500/40 bg-orange-500/10 text-orange-200"
-    case "MEDIUM":
+    case "HIGH":
       return "border-yellow-500/40 bg-yellow-500/10 text-yellow-200"
+    case "MEDIUM":
+      return "border-cyan-500/40 bg-cyan-500/10 text-cyan-200"
     case "STANDBY":
       return "border-slate-500/30 bg-slate-500/10 text-slate-300"
     case "LOW":
@@ -191,21 +206,29 @@ export function probabilityClass(probability: string) {
 }
 
 export function probabilityFromLevel(level?: string): RadarProbability {
-  if (level === "VERY HIGH") return "VERY HIGH"
-  if (level === "HIGH") return "HIGH"
-  if (level === "MEDIUM") return "MEDIUM"
-  if (level === "LOW") return "STANDBY"
+  const normalized = String(level ?? "LOW").toUpperCase()
+
+  if (normalized === "CRITICAL") return "CRITICAL"
+  if (normalized === "VERY HIGH") return "VERY HIGH"
+  if (normalized === "HIGH") return "HIGH"
+  if (normalized === "MEDIUM") return "MEDIUM"
+  if (normalized === "LOW") return "LOW"
+
   return "STANDBY"
 }
 
 export function getTickerTone(level?: string) {
-  switch (level) {
-    case "VERY HIGH":
+  const normalized = String(level ?? "LOW").toUpperCase()
+
+  switch (normalized) {
+    case "CRITICAL":
       return "text-red-300"
-    case "HIGH":
+    case "VERY HIGH":
       return "text-orange-300"
-    case "MEDIUM":
+    case "HIGH":
       return "text-yellow-300"
+    case "MEDIUM":
+      return "text-cyan-300"
     case "DORMANT":
       return "text-slate-300"
     default:
@@ -219,18 +242,23 @@ export function prioritizeLaunchSignals<
     tags?: string[]
     signals?: string[]
     score?: number
+    scorePercent?: number
     movementPct?: number
+    movementPercent?: number
     trend?: number
     trendDirection?: string
     id?: string
     generatedAt?: string
     breakdown?: unknown
+    activationProbability?: number
   }
 >(
   data?: T | null
 ): (T & {
   score: number
+  scorePercent: number
   movementPct: number
+  movementPercent: number
   trend: number
   level: string
   matchedSignals: string[]
@@ -240,9 +268,10 @@ export function prioritizeLaunchSignals<
   const tags = data.tags || []
   const signals = data.signals || []
 
-  let boostedScore = Number(data.score ?? 0)
-  let boostedMovement = Number(data.movementPct ?? 0)
-  let boostedTrend = Number(data.trend ?? 0)
+  const baseScore = Number(data.score ?? 0)
+  const baseScorePercent = Number(data.scorePercent ?? 0)
+  const baseMovement = Number(data.movementPercent ?? data.movementPct ?? 0)
+  const baseTrend = Number(data.trend ?? 0)
 
   const criticalSignals = [
     "connect",
@@ -261,24 +290,39 @@ export function prioritizeLaunchSignals<
   const hasRewardsTag = tags.includes("REWARDS")
   const hasLaunchTag = tags.includes("LAUNCH_IMMINENT")
 
-  boostedScore += matchedSignals.length * 8
-  if (hasRewardsTag) boostedScore += 12
-  if (hasLaunchTag) boostedScore += 20
+  // IMPORTANT:
+  // Keep raw score stable. Only derive normalized intensity / movement / trend / level.
+  let derivedScorePercent = baseScorePercent
+  let derivedMovement = baseMovement
+  let derivedTrend = baseTrend
 
-  if (signals.includes("connect")) boostedMovement += 10
-  if (signals.includes("ethereum") || signals.includes("solana")) boostedMovement += 8
-  if (signals.includes("reward") || signals.includes("claim")) boostedTrend += 4
+  derivedScorePercent += matchedSignals.length * 8
+  if (hasRewardsTag) derivedScorePercent += 12
+  if (hasLaunchTag) derivedScorePercent += 20
 
-  let inferredLevel = data.level || "LOW"
-  if (boostedScore >= 80) inferredLevel = "VERY HIGH"
-  else if (boostedScore >= 60) inferredLevel = "HIGH"
-  else if (boostedScore >= 30) inferredLevel = "MEDIUM"
+  if (signals.includes("connect")) derivedMovement += 10
+  if (signals.includes("ethereum") || signals.includes("solana")) derivedMovement += 8
+  if (signals.includes("reward") || signals.includes("claim")) derivedTrend += 4
+
+  derivedScorePercent = clampPercent(derivedScorePercent)
+
+  let inferredLevel = String(data.level || "LOW").toUpperCase()
+
+  if (inferredLevel !== "CRITICAL") {
+    if (derivedScorePercent >= 95) inferredLevel = "CRITICAL"
+    else if (derivedScorePercent >= 80) inferredLevel = "VERY HIGH"
+    else if (derivedScorePercent >= 60) inferredLevel = "HIGH"
+    else if (derivedScorePercent >= 30) inferredLevel = "MEDIUM"
+    else inferredLevel = "LOW"
+  }
 
   return {
     ...data,
-    score: boostedScore,
-    movementPct: boostedMovement,
-    trend: boostedTrend,
+    score: baseScore,
+    scorePercent: derivedScorePercent,
+    movementPct: derivedMovement,
+    movementPercent: derivedMovement,
+    trend: derivedTrend,
     level: inferredLevel,
     matchedSignals,
   }
@@ -289,19 +333,24 @@ export function buildNarrative(data?: {
   tags?: string[]
   signals?: string[]
   score?: number
+  scorePercent?: number
   movementPct?: number
+  movementPercent?: number
   trend?: number
 } | null) {
   if (!data) return null
 
-  const level = data.level || "LOW"
+  const level = String(data.level || "LOW").toUpperCase()
   const tags = data.tags || []
   const signals = data.signals || []
+  const movement = Number(data.movementPercent ?? data.movementPct ?? 0)
 
   let headline = ""
   const context: string[] = []
 
-  if (level === "VERY HIGH") {
+  if (level === "CRITICAL") {
+    headline = "CRITICAL SIGNAL — PRE-LAUNCH CONDITIONS DETECTED"
+  } else if (level === "VERY HIGH") {
     headline = "VERY HIGH SIGNAL — ACTIVATION CONDITIONS BUILDING"
   } else if (level === "HIGH") {
     headline = "HIGH SIGNAL — SYSTEM HEATING UP"
@@ -316,7 +365,7 @@ export function buildNarrative(data?: {
   if (signals.includes("ethereum") || signals.includes("solana")) {
     context.push("CHAIN_ACTIVITY")
   }
-  if (Number(data.movementPct ?? 0) > 20) context.push("BEHAVIOR_SPIKE")
+  if (movement > 20) context.push("BEHAVIOR_SPIKE")
   if (Number(data.trend ?? 0) > 5) context.push("TREND_ACCELERATION")
 
   return { headline, context }

@@ -1,5 +1,13 @@
-export type RadarLevel = "LOW" | "MEDIUM" | "HIGH" | "VERY HIGH"
-export type RadarProbability = "STANDBY" | "LOW" | "MEDIUM" | "HIGH" | "VERY HIGH"
+export type RadarLevel = "LOW" | "MEDIUM" | "HIGH" | "VERY HIGH" | "CRITICAL"
+
+export type RadarProbability =
+  | "STANDBY"
+  | "LOW"
+  | "MEDIUM"
+  | "HIGH"
+  | "VERY HIGH"
+  | "CRITICAL"
+
 export type TrendDirection = "UP" | "DOWN" | "FLAT"
 
 export type RadarPattern = {
@@ -25,6 +33,8 @@ export type RadarBreakdown = {
     hits?: string[]
   }
   patternBoost?: number
+  weightedBoost?: number
+  discoveryApiCount?: number
 }
 
 export type AdvancedSignals = {
@@ -33,13 +43,16 @@ export type AdvancedSignals = {
   rewards?: string[]
   behavior?: string[]
   onchain?: string[]
+
   frontendScore?: number
   infraScore?: number
   rewardsScore?: number
   behaviorScore?: number
   onchainScore?: number
+
   movementPct?: number
   recentChangesCount?: number
+
   hasWalletStrings?: boolean
   hasConnectUI?: boolean
   hasDisabledState?: boolean
@@ -47,10 +60,36 @@ export type AdvancedSignals = {
   hasOnchainMovement?: boolean
   hasNewChunks?: boolean
   hasVisibleCTAChange?: boolean
+
+  hasAccountApi?: boolean
+  hasActiveSignal?: boolean
+  hasActiveTrue?: boolean
+  hasApiSurface?: boolean
+  hasAuthApi?: boolean
+  hasAuthSignals?: boolean
+  hasCanClaimTrue?: boolean
+  hasClaimApi?: boolean
+  hasClaimSignal?: boolean
+  hasEligibilitySignal?: boolean
+  hasEligibleTrue?: boolean
+  hasEnabledState?: boolean
+  hasEnabledTrue?: boolean
+  hasRewardActivation?: boolean
+  hasRewardApi?: boolean
+  hasRewardsArray?: boolean
+}
+
+export type DiscoveryMeta = {
+  checkedAt?: string
+  sourceSnapshotId?: string
+  snapshotDir?: string
+  [key: string]: unknown
 }
 
 export type RadarData = {
   id: string
+  snapshotId?: string
+
   totalFiles: number
   added: number
   changed: number
@@ -66,14 +105,18 @@ export type RadarData = {
   changedPercent?: number
 
   signals: string[]
+  backendSignals?: string[]
+
   patternScore: number
   patterns: RadarPattern[]
 
   activationProbability: number
+  rawActivationProbability?: number
 
   score: number
   rawScore?: number
   scorePercent?: number
+
   intensityClass?: string
   overdrive?: boolean
 
@@ -83,18 +126,36 @@ export type RadarData = {
   focusAreas: string[]
   sensitiveHits: string[]
   changeTypes: string[]
+
   insight: string
   confidence: number
   tags: string[]
   summary: string
   note: string
+  whyItMatters?: string
+
   changedFiles: string[]
   generatedAt: string
+
   trend?: number
   trendDirection?: TrendDirection | string
+
   breakdown?: RadarBreakdown
   advancedSignals?: AdvancedSignals
-  whyItMatters?: string
+  discovery?: DiscoveryMeta
+
+  alphaClass?: string
+  alphaScore?: number
+  alertSignature?: string
+  eta?: string
+  eventType?: string
+  matchedSignals?: string[]
+  priority?: string
+  signalFusion?: string
+  signalRegime?: string
+  signature?: string
+  suggestedAction?: string
+  triggerState?: string
 }
 
 export type AlertItem = {
@@ -104,10 +165,14 @@ export type AlertItem = {
   priority?: string
   reason?: string
   signature?: string
+  alertSignature?: string
 
   score?: number
   rawScore?: number
   scorePercent?: number
+
+  activationProbability?: number
+  rawActivationProbability?: number
 
   level?: RadarLevel | string
   trend?: number
@@ -122,6 +187,8 @@ export type AlertItem = {
   insight?: string
   focusAreas?: string[]
   signals?: string[]
+  signalType?: string
+  probability?: RadarProbability | string
 }
 
 export type SentinelSurface = {
@@ -150,22 +217,28 @@ export type SentinelEvent = {
   triggeredAt?: string
   generatedAt?: string
   sentAt?: string
+
   surface?: string
   surfaces?: string[]
+
   changedSurfaces?: SentinelSurface[]
   keywordTriggers?: SentinelKeywordTrigger[]
+
   maxPriority?: number
   threshold?: SentinelThreshold
+
   status?: number
   finalUrl?: string
   changed?: boolean
+
   triggerReason?: string
   triggerThreshold?: string
   summary?: string
+  reason?: string
+
   level?: RadarLevel | string
   signalType?: string
   probability?: RadarProbability | string
-  reason?: string
 }
 
 export type HeartbeatData = {
