@@ -1153,6 +1153,29 @@ async function main() {
     signals,
     tags: detectedGroups,
     changedFiles,
+    score: round(weightedRawScore),
+    trend: radarScore.trend,
+    trendDirection: radarScore.trendDirection,
+    backendSignals: uniqueBackendSignals,
+    summary: !oldDir
+      ? `Primera captura base generada con ${totalFiles} archivos. Aún no hay comparación histórica.`
+      : movementCount === 0
+        ? `No se detectaron cambios en ${totalFiles} archivos analizados.`
+        : `${movementCount} de ${totalFiles} archivos muestran movimiento (${movementPct}%). ${added} nuevos (${addedPct}%) y ${changed} modificados (${changedPct}).${
+            signals.length ? ` Señales: ${signals.join(", ")}.` : " Sin señales relevantes."
+          }`,
+    note:
+      weightedRawScore >= 100
+        ? "Señales muy fuertes de activación real o launch inminente."
+        : radarScore.level === "CRITICAL"
+          ? "Señales muy fuertes de posible launch imminente."
+          : radarScore.level === "VERY HIGH"
+            ? "Señales fuertes de activación o pre-launch."
+            : radarScore.level === "HIGH"
+              ? "Cambios importantes en frontend y señales relevantes."
+              : radarScore.level === "MEDIUM"
+                ? "Actividad de desarrollo visible."
+                : "Sin señales fuertes por ahora.",
   };
 
   const { insight, confidence } = buildInsight(
