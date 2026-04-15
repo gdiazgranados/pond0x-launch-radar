@@ -411,28 +411,75 @@ function detectLaunchImminent(current, history) {
   const patterns = detectPatterns(current, history);
   const focus = detectFocusAreas(current);
   const backendSignals = current.backendSignals || [];
+
   const score = Number(current.score || 0);
   const trend = Number(current.trend || 0);
 
-  const strongPattern =
-    patterns.includes("QUIET_BREAKOUT") ||
-    patterns.includes("SENSITIVE_CLUSTER") ||
-    patterns.includes("CLAIM_FLOW_ACTIVATION");
+  const prev = Array.isArray(history) && history.length
+    ? history[history.length - 1]
+    : null;
+
+  const prevScore = Number(prev?.score || 0);
+  const prevSignals = prev?.signals || [];
+  const prevFocus = prev?.focusAreas || [];
+
+  // 🔥 CURRENT STATE
+  const fusionStrong =
+    current.signalFusion === "FULL ACTIVATION STACK";
+
+  const eventStrong =
+    current.eventType === "CLAIM READINESS";
+
+  const scoreStrong = score >= 70;
 
   const activationSignals =
     focus.includes("REWARDS") ||
-    focus.includes("CLAIM") ||
+    focus.includes("CLAIM");
+
+  const backendConfirmed =
     backendSignals.includes("canclaim_true") ||
     backendSignals.includes("eligible_true");
+
+  // 🧠 TRANSITION ANALYSIS
+  const scoreJump = score - prevScore >= 10;
+
+  const newSignals =
+    current.signals?.some((s) => !prevSignals.includes(s)) || false;
+
+  const focusExpansion =
+    focus.length > prevFocus.length;
 
   const escalation =
     patterns.includes("ESCALATING_SURFACE") ||
     patterns.includes("EXPANDING_FOCUS") ||
     trend > 0;
 
-  const scoreCondition = score >= 65;
+  const persistence =
+    score >= 70 &&
+    prevScore >= 60;
 
-  if (strongPattern && activationSignals && (escalation || scoreCondition)) {
+  // 🔥 CASE 1: HARD CONFIRMATION
+  if (backendConfirmed && fusionStrong) {
+    return true;
+  }
+
+  // 🔥 CASE 2: STRONG PRE-LAUNCH WITH TRANSITION
+  if (
+    fusionStrong &&
+    eventStrong &&
+    scoreStrong &&
+    activationSignals &&
+    (scoreJump || newSignals || focusExpansion || escalation)
+  ) {
+    return true;
+  }
+
+  // 🔥 CASE 3: PERSISTENT HIGH-CONVICTION STATE
+  if (
+    fusionStrong &&
+    persistence &&
+    (eventStrong || activationSignals)
+  ) {
     return true;
   }
 
