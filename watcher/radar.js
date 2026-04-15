@@ -1290,11 +1290,38 @@ async function main() {
   const eventType = detectEventType(baseResult);
   const signalRegime = classifySignalRegime(baseResult, alpha, eventType);
   const signalFusion = detectSignalFusion(baseResult, alpha, eventType);
-  const priority = getPriority(baseResult);
-  const eta = getEta(baseResult);
+
+  const launchImminent =
+    !!baseResult.launchImminent &&
+    eventType === "CLAIM READINESS" &&
+    signalFusion === "FULL ACTIVATION STACK";
+
+  const portalArmed =
+    !!baseResult.portalArmed &&
+    (
+      signalFusion === "REWARD + WALLET + AUTH CLUSTER" ||
+      signalFusion === "FULL ACTIVATION STACK"
+    ) &&
+    eventType === "CLAIM READINESS";
+
+  const enrichedBaseResult = {
+    ...baseResult,
+    launchImminent,
+    portalArmed,
+    tags: [
+      ...new Set([
+        ...ensureArray(baseResult.tags),
+        ...(launchImminent ? ["LAUNCH_IMMINENT"] : []),
+        ...(portalArmed ? ["PORTAL_ARMED"] : []),
+      ]),
+    ],
+  };
+
+  const priority = getPriority(enrichedBaseResult);
+  const eta = getEta(enrichedBaseResult);
 
   const result = {
-    ...baseResult,
+    ...enrichedBaseResult,
     alphaScore: alpha.alphaScore,
     alphaClass: alpha.alphaClass,
     triggerState: alpha.triggerState,

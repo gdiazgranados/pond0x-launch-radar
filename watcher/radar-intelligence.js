@@ -256,12 +256,16 @@ function summarizeRadarIntelligence(current, history) {
   const patternScore = computePatternScore(current, history);
   const patterns = detectPatterns(current, history);
   const launchImminent = detectLaunchImminent(current, history);
-   
+  const portalArmed = detectPortalArmed(current, history);
+
   if (launchImminent) {
-     patterns.push("LAUNCH_IMMINENT");
-   }
+    patterns.push("LAUNCH_IMMINENT");
+  }
+  if (portalArmed) {
+    patterns.push("PORTAL_ARMED");
+  }
   
-   const activationProbability = computeActivationProbability(current, history);
+  const activationProbability = computeActivationProbability(current, history);
   const whyItMatters = buildWhyItMatters(current, history);
 
   return {
@@ -275,6 +279,7 @@ function summarizeRadarIntelligence(current, history) {
     patternScore,
     patterns,
     launchImminent,
+    portalArmed,
     activationProbability,
     shouldAlert: shouldTriggerAlert(current, history),
     whyItMatters,
@@ -423,31 +428,18 @@ function detectLaunchImminent(current, history) {
   const prevSignals = prev?.signals || [];
   const prevFocus = prev?.focusAreas || [];
 
-  // 🔥 CURRENT STATE
-  const fusionStrong =
-    current.signalFusion === "FULL ACTIVATION STACK";
-
-  const eventStrong =
-    current.eventType === "CLAIM READINESS";
-
   const scoreStrong = score >= 70;
-
   const activationSignals =
-    focus.includes("REWARDS") ||
-    focus.includes("CLAIM");
+    focus.includes("REWARDS") || focus.includes("CLAIM");
 
   const backendConfirmed =
     backendSignals.includes("canclaim_true") ||
     backendSignals.includes("eligible_true");
 
-  // 🧠 TRANSITION ANALYSIS
   const scoreJump = score - prevScore >= 10;
-
   const newSignals =
     current.signals?.some((s) => !prevSignals.includes(s)) || false;
-
-  const focusExpansion =
-    focus.length > prevFocus.length;
+  const focusExpansion = focus.length > prevFocus.length;
 
   const escalation =
     patterns.includes("ESCALATING_SURFACE") ||
@@ -458,15 +450,16 @@ function detectLaunchImminent(current, history) {
     score >= 70 &&
     prevScore >= 60;
 
-  // 🔥 CASE 1: HARD CONFIRMATION
-  if (backendConfirmed && fusionStrong) {
+  const strongPattern =
+    patterns.includes("CLAIM_FLOW_ACTIVATION") ||
+    patterns.includes("SENSITIVE_CLUSTER");
+
+  if (backendConfirmed && strongPattern) {
     return true;
   }
 
-  // 🔥 CASE 2: STRONG PRE-LAUNCH WITH TRANSITION
   if (
-    fusionStrong &&
-    eventStrong &&
+    strongPattern &&
     scoreStrong &&
     activationSignals &&
     (scoreJump || newSignals || focusExpansion || escalation)
@@ -474,11 +467,36 @@ function detectLaunchImminent(current, history) {
     return true;
   }
 
-  // 🔥 CASE 3: PERSISTENT HIGH-CONVICTION STATE
+  if (strongPattern && persistence && activationSignals) {
+    return true;
+  }
+
+  return false;
+}
+
+function detectPortalArmed(current, history) {
+  const score = Number(current.score || 0);
+  const signals = Array.isArray(current.signals) ? current.signals : [];
+  const focus = detectFocusAreas(current);
+  const patterns = detectPatterns(current, history);
+
+  const hasClaim = signals.includes("claim");
+  const hasAuth = signals.includes("signin") || signals.includes("verify");
+  const hasWallet = signals.includes("wallet");
+
+  const hasClaimFocus = focus.includes("CLAIM") || focus.includes("REWARDS");
+  const hasConvergence =
+    patterns.includes("CLAIM_FLOW_ACTIVATION") ||
+    patterns.includes("AUTH_WALLET_COUPLING") ||
+    patterns.includes("SENSITIVE_CLUSTER");
+
   if (
-    fusionStrong &&
-    persistence &&
-    (eventStrong || activationSignals)
+    score >= 120 &&
+    hasClaim &&
+    hasAuth &&
+    hasWallet &&
+    hasClaimFocus &&
+    hasConvergence
   ) {
     return true;
   }
