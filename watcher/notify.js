@@ -32,6 +32,18 @@ function minutesSince(isoDate) {
   return (now - then) / 60000;
 }
 
+async function writeJsonAtomic(filePath, data, spaces = 2) {
+  const dir = path.dirname(filePath);
+  const tmpPath = path.join(
+    dir,
+    `.${path.basename(filePath)}.${process.pid}.${Date.now()}.tmp`
+  );
+
+  await fs.ensureDir(dir);
+  await fs.writeJson(tmpPath, data, { spaces });
+  await fs.move(tmpPath, filePath, { overwrite: true });
+}
+
 function getFusionEmoji(signalFusion) {
   switch (signalFusion) {
     case "FULL ACTIVATION STACK":
@@ -375,37 +387,32 @@ function buildTelegramMessage(latest, decision) {
   const candidate = discovery.keyFunctionCandidate || null;
 
   const discoveryLines = [];
-
   if (apiRoutes.length) {
     discoveryLines.push(`• API detected: ${apiRoutes.join(", ")}`);
   }
-
   if (criticalKeywords.length) {
     discoveryLines.push(`• Critical keywords: ${criticalKeywords.join(", ")}`);
   }
-
   if (candidate) {
     discoveryLines.push(`• Candidate: ${candidate}`);
   }
 
-  const discoveryBlock = discoveryLines.length
-    ? discoveryLines.join("\n")
+  const discoveryBlock = discoveryLines.length ? discoveryLines.join("\n") : "• none";
+  const changeLines = ensureArray(decision.criticalChanges).slice(0, 8);
+
+  const patternLines = patterns.length
+    ? patterns
+        .map((p) => {
+          const tag = typeof p === "string" ? p : p?.tag || "UNKNOWN";
+          const reasons = typeof p === "string" ? [] : ensureArray(p?.reasons);
+          return `• <b>${escapeHtml(tag)}</b> — ${escapeHtml(reasons.join(" / ") || "No detailed reasons")}`;
+        })
+        .join("\n")
     : "• none";
-    const changeLines = ensureArray(decision.criticalChanges).slice(0, 8);
 
-    const patternLines = patterns.length
-      ? patterns
-          .map((p) => {
-            const tag = typeof p === "string" ? p : p?.tag || "UNKNOWN";
-            const reasons = typeof p === "string" ? [] : ensureArray(p?.reasons);
-            return `• <b>${escapeHtml(tag)}</b> — ${escapeHtml(reasons.join(" / ") || "No detailed reasons")}`;
-          })
-          .join("\n")
-      : "• none";
-
-    const criticalLines = changeLines.length
-      ? changeLines.map((line) => `• ${escapeHtml(line)}`).join("\n")
-      : "• none";
+  const criticalLines = changeLines.length
+    ? changeLines.map((line) => `• ${escapeHtml(line)}`).join("\n")
+    : "• none";
 
   const trendArrow =
     latest.trendDirection === "UP"
@@ -507,8 +514,7 @@ async function appendAlertHistory(entry) {
     .filter((item, index, arr) => arr.findIndex((x) => x && x.id === item.id) === index)
     .slice(0, 300);
 
-  await fs.ensureDir(path.dirname(alertsHistoryFile));
-  await fs.writeJson(alertsHistoryFile, nextHistory, { spaces: 2 });
+  await writeJsonAtomic(alertsHistoryFile, nextHistory);
 }
 
 function buildAlertRecord(latest, decision) {
@@ -579,12 +585,10 @@ async function main() {
 
   const message = buildTelegramMessage(latest, decision);
   const sent = await sendTelegramMessage(message);
-
   const alertRecord = buildAlertRecord(latest, decision);
 
   if (sent) {
-    await fs.ensureDir(path.dirname(lastAlertFile));
-    await fs.writeJson(lastAlertFile, alertRecord, { spaces: 2 });
+    await writeJsonAtomic(lastAlertFile, alertRecord);
     await appendAlertHistory(alertRecord);
     console.log("Smart alert sent to Telegram channel");
   } else {

@@ -269,6 +269,18 @@ function detectGroups(signals) {
   return detectedGroups;
 }
 
+async function writeJsonAtomic(filePath, data, spaces = 2) {
+  const dir = path.dirname(filePath);
+  const tmpPath = path.join(
+    dir,
+    `.${path.basename(filePath)}.${process.pid}.${Date.now()}.tmp`
+  );
+
+  await fs.ensureDir(dir);
+  await fs.writeJson(tmpPath, data, { spaces });
+  await fs.move(tmpPath, filePath, { overwrite: true });
+}
+
 function buildSignals({
   combinedText = "",
   changedFiles = [],
@@ -281,7 +293,6 @@ function buildSignals({
   const infraHits = [];
   const rewardsHits = [];
   const behaviorHits = [];
-  const onchainHits = [];
 
   const walletKeywords = [
     "wallet",
@@ -353,7 +364,6 @@ function buildSignals({
   const discoveryKeywords = uniqueSortedStrings(discovery.criticalKeywords);
   const discoveryApiRoutes = uniqueSortedStrings(discovery.newApiRoutes);
   const discoveryCandidate = String(discovery.keyFunctionCandidate || "").toLowerCase();
-
   const backendSignalsText = uniqueSortedStrings(backendSignals).join(" ");
 
   const discoveryText = [
@@ -395,8 +405,8 @@ function buildSignals({
   if (hasAuthSignals) frontendHits.push("auth_flow");
   if (hasApiSurface) frontendHits.push("api_surface");
 
-  const hasNewChunks = changedFiles.some((file) =>
-    file.includes("_next/static") || file.endsWith(".js") || file.endsWith(".css")
+  const hasNewChunks = changedFiles.some(
+    (file) => file.includes("_next/static") || file.endsWith(".js") || file.endsWith(".css")
   );
 
   if (hasNewChunks) infraHits.push("new_chunks");
@@ -435,25 +445,20 @@ function buildSignals({
   if (hasEnabledTrue || hasActiveTrue) behaviorHits.push("backend_enabled_state");
   if (hasRewardsArray) behaviorHits.push("backend_rewards_payload");
 
-  const hasOnchainMovement = false;
-
   const frontendScore = Math.min(frontendHits.length * 20, 100);
   const infraScore = Math.min(infraHits.length * 20, 100);
   const rewardsScore = Math.min(rewardsHits.length * 25, 100);
   const behaviorScore = Math.min(behaviorHits.length * 25, 100);
-  const onchainScore = Math.min(onchainHits.length * 30, 100);
 
   return {
     frontend: frontendHits,
     infra: infraHits,
     rewards: rewardsHits,
     behavior: behaviorHits,
-    onchain: onchainHits,
     frontendScore,
     infraScore,
     rewardsScore,
     behaviorScore,
-    onchainScore,
     movementPct,
     recentChangesCount,
     hasWalletStrings,
@@ -476,7 +481,6 @@ function buildSignals({
     hasEnabledTrue,
     hasActiveTrue,
     hasRewardsArray,
-    hasOnchainMovement,
     hasNewChunks,
     hasVisibleCTAChange,
   };
@@ -489,7 +493,11 @@ function buildInsight(movementPct, signals, detectedGroups, discovery = {}, back
   const hasClaim = signals.includes("claim") || signals.includes("claim now") || signals.includes("canclaim");
   const hasEligible = signals.includes("eligible") || signals.includes("available rewards");
   const hasActive = signals.includes("active") || signals.includes("enabled") || signals.includes("isenabled");
-  const hasWallet = signals.includes("connect") || signals.includes("wallet") || signals.includes("solana") || signals.includes("ethereum");
+  const hasWallet =
+    signals.includes("connect") ||
+    signals.includes("wallet") ||
+    signals.includes("solana") ||
+    signals.includes("ethereum");
   const hasAuth =
     signals.includes("verify") ||
     signals.includes("signin") ||
@@ -684,9 +692,7 @@ function detectEventType(latest) {
     signals.includes("verifysignature") ||
     signals.includes("nonce");
 
-  const hasPortal =
-    tags.includes("SYSTEM") ||
-    signals.includes("portal");
+  const hasPortal = tags.includes("SYSTEM") || signals.includes("portal");
 
   const hasActivation =
     signals.includes("enabled") ||
@@ -696,7 +702,9 @@ function detectEventType(latest) {
   const discoveryApiRoutes = ensureArray(discovery.newApiRoutes);
   const hasClaimApi = discoveryApiRoutes.some((x) => String(x).includes("claim"));
   const hasRewardApi = discoveryApiRoutes.some((x) => String(x).includes("reward"));
-  const hasAccountApi = discoveryApiRoutes.some((x) => String(x).includes("account") || String(x).includes("user") || String(x).includes("wallet"));
+  const hasAccountApi = discoveryApiRoutes.some(
+    (x) => String(x).includes("account") || String(x).includes("user") || String(x).includes("wallet")
+  );
 
   const hasEligibleTrue = backendSignals.includes("eligible_true");
   const hasCanClaimTrue = backendSignals.includes("canclaim_true");
@@ -807,18 +815,14 @@ function classifySignalRegime(latest, alpha, eventType) {
     return "HIGH-CONVICTION SETUP";
   }
 
-  if (
-    alpha.alphaClass === "SETUP" ||
-    alpha.alphaClass === "WATCH" ||
-    hasAuth
-  ) {
+  if (alpha.alphaClass === "SETUP" || alpha.alphaClass === "WATCH" || hasAuth) {
     return "TRANSITIONAL SIGNAL";
   }
 
   return "NOISE DISGUISED AS SIGNAL";
 }
 
-function detectSignalFusion(latest, alpha, eventType, signalRegime) {
+function detectSignalFusion(latest, alpha, eventType) {
   const tags = latest.tags || [];
   const signals = latest.signals || [];
   const discovery = latest.discovery || {};
@@ -887,10 +891,7 @@ function detectSignalFusion(latest, alpha, eventType, signalRegime) {
     return "REWARD + WALLET + AUTH CLUSTER";
   }
 
-  if (
-    eventType !== "NOISE" &&
-    (score >= 45 || movementPct >= 10 || Number(latest.trend || 0) >= 3)
-  ) {
+  if (eventType !== "NOISE" && (score >= 45 || movementPct >= 10 || Number(latest.trend || 0) >= 3)) {
     return "ELEVATED MULTI-SIGNAL EVENT";
   }
 
@@ -981,14 +982,13 @@ async function persistDetectionOutputs({ publicDir, result }) {
   await fs.ensureDir(publicDir);
 
   const existingHistory = await readJsonArraySafe(historyPath);
-
-  await fs.writeJson(latestPath, result, { spaces: 2 });
-
   const nextHistory = dedupeById([result, ...existingHistory]).slice(0, MAX_HISTORY);
-  await fs.writeJson(historyPath, nextHistory, { spaces: 2 });
+
+  await writeJsonAtomic(latestPath, result);
+  await writeJsonAtomic(historyPath, nextHistory);
 
   if (TRIGGER_PRIORITIES.has(result.priority)) {
-    await fs.writeJson(lastTriggeredPath, result, { spaces: 2 });
+    await writeJsonAtomic(lastTriggeredPath, result);
   }
 }
 
@@ -1057,6 +1057,13 @@ async function main() {
   });
   const apiData = await readJsonSafe(apiFile, []);
 
+  const discoveryCriticalKeywords = uniqueSortedStrings(discovery.criticalKeywords);
+  const discoveryNewApiRoutes = uniqueSortedStrings(discovery.newApiRoutes);
+  const discoveryNewLabels = uniqueSortedStrings(discovery.newLabels);
+  const discoveryNewRoutes = uniqueSortedStrings(discovery.newRoutes);
+  const discoveryNewKeywords = uniqueSortedStrings(discovery.newKeywords);
+  const discoveryCandidate = String(discovery.keyFunctionCandidate || "");
+
   const backendSignals = [];
   for (const entry of ensureArray(apiData)) {
     for (const sig of ensureArray(entry.backendSignals)) {
@@ -1070,21 +1077,24 @@ async function main() {
     changedFiles,
     movementPct,
     recentChangesCount,
-    discovery,
+    discovery: {
+      ...discovery,
+      criticalKeywords: discoveryCriticalKeywords,
+      newApiRoutes: discoveryNewApiRoutes,
+    },
     backendSignals: uniqueBackendSignals,
   });
 
-  uniqueSortedStrings(discovery.criticalKeywords)
+  discoveryCriticalKeywords
     .filter((x) => DISCOVERY_CRITICAL_KEYWORDS.includes(x))
     .forEach((signal) => allSignals.add(signal));
 
-  const discoveryApiRoutes = uniqueSortedStrings(discovery.newApiRoutes);
-  if (discoveryApiRoutes.some((x) => x.includes("claim"))) allSignals.add("claim");
-  if (discoveryApiRoutes.some((x) => x.includes("reward"))) allSignals.add("reward");
-  if (discoveryApiRoutes.some((x) => x.includes("verify"))) allSignals.add("verify");
-  if (discoveryApiRoutes.some((x) => x.includes("nonce"))) allSignals.add("nonce");
-  if (discoveryApiRoutes.some((x) => x.includes("account") || x.includes("user"))) allSignals.add("account");
-  if (discoveryApiRoutes.some((x) => x.includes("wallet"))) allSignals.add("wallet");
+  if (discoveryNewApiRoutes.some((x) => x.includes("claim"))) allSignals.add("claim");
+  if (discoveryNewApiRoutes.some((x) => x.includes("reward"))) allSignals.add("reward");
+  if (discoveryNewApiRoutes.some((x) => x.includes("verify"))) allSignals.add("verify");
+  if (discoveryNewApiRoutes.some((x) => x.includes("nonce"))) allSignals.add("nonce");
+  if (discoveryNewApiRoutes.some((x) => x.includes("account") || x.includes("user"))) allSignals.add("account");
+  if (discoveryNewApiRoutes.some((x) => x.includes("wallet"))) allSignals.add("wallet");
 
   if (uniqueBackendSignals.includes("eligible_true")) allSignals.add("eligible");
   if (uniqueBackendSignals.includes("canclaim_true")) allSignals.add("canclaim");
@@ -1092,7 +1102,7 @@ async function main() {
   if (uniqueBackendSignals.includes("active_true")) allSignals.add("active");
   if (uniqueBackendSignals.includes("account_object")) allSignals.add("account");
 
-  const signals = [...allSignals];
+  const signals = uniqueSortedStrings([...allSignals]);
   const detectedGroups = detectGroups(signals);
   const radarScore = computeRadarScore(advancedSignals, existingHistory);
 
@@ -1111,15 +1121,15 @@ async function main() {
   if (signals.includes("nonce")) weightedRawScore += 3;
 
   if (discovery.newUnknownChange) weightedRawScore += 4;
-  if (discoveryApiRoutes.length >= 1) weightedRawScore += 8;
-  if (discoveryApiRoutes.length >= 2) weightedRawScore += 6;
-  if (uniqueSortedStrings(discovery.criticalKeywords).length >= 2) weightedRawScore += 6;
-  if (String(discovery.keyFunctionCandidate || "").startsWith("api:")) weightedRawScore += 8;
-  if (String(discovery.keyFunctionCandidate || "").startsWith("critical:")) weightedRawScore += 10;
-  if (discoveryApiRoutes.some((x) => x.includes("claim"))) weightedRawScore += 10;
-  if (discoveryApiRoutes.some((x) => x.includes("reward"))) weightedRawScore += 8;
-  if (discoveryApiRoutes.some((x) => x.includes("verify") || x.includes("nonce"))) weightedRawScore += 6;
-  if (discoveryApiRoutes.some((x) => x.includes("account") || x.includes("wallet") || x.includes("user"))) {
+  if (discoveryNewApiRoutes.length >= 1) weightedRawScore += 8;
+  if (discoveryNewApiRoutes.length >= 2) weightedRawScore += 6;
+  if (discoveryCriticalKeywords.length >= 2) weightedRawScore += 6;
+  if (discoveryCandidate.startsWith("api:")) weightedRawScore += 8;
+  if (discoveryCandidate.startsWith("critical:")) weightedRawScore += 10;
+  if (discoveryNewApiRoutes.some((x) => x.includes("claim"))) weightedRawScore += 10;
+  if (discoveryNewApiRoutes.some((x) => x.includes("reward"))) weightedRawScore += 8;
+  if (discoveryNewApiRoutes.some((x) => x.includes("verify") || x.includes("nonce"))) weightedRawScore += 6;
+  if (discoveryNewApiRoutes.some((x) => x.includes("account") || x.includes("wallet") || x.includes("user"))) {
     weightedRawScore += 5;
   }
 
@@ -1149,7 +1159,12 @@ async function main() {
     movementPct,
     signals,
     detectedGroups,
-    discovery,
+    {
+      ...discovery,
+      criticalKeywords: discoveryCriticalKeywords,
+      newApiRoutes: discoveryNewApiRoutes,
+      keyFunctionCandidate: discoveryCandidate,
+    },
     uniqueBackendSignals
   );
 
@@ -1157,10 +1172,10 @@ async function main() {
     ? `Primera captura base generada con ${totalFiles} archivos. Aún no hay comparación histórica.`
     : movementCount === 0
       ? `No se detectaron cambios en ${totalFiles} archivos analizados.`
-      : `${movementCount} de ${totalFiles} archivos muestran movimiento (${movementPct}%). ${added} nuevos (${addedPct}%) y ${changed} modificados (${changedPct}%).${
+      : `${movementCount} de ${totalFiles} archivos muestran movimiento (${movementPct}%). ${added} nuevos (${addedPct}%) y ${changed} modificados (${changedPct}).${
           signals.length ? ` Señales: ${signals.join(", ")}.` : " Sin señales relevantes."
         }${
-          discoveryApiRoutes.length ? ` API nuevas detectadas: ${discoveryApiRoutes.slice(0, 5).join(", ")}.` : ""
+          discoveryNewApiRoutes.length ? ` API nuevas detectadas: ${discoveryNewApiRoutes.slice(0, 5).join(", ")}.` : ""
         }${
           uniqueBackendSignals.length ? ` Backend signals: ${uniqueBackendSignals.slice(0, 6).join(", ")}.` : ""
         }`;
@@ -1242,8 +1257,8 @@ async function main() {
     breakdown: {
       ...(radarScore.breakdown || {}),
       weightedBoost: round(rawScore - Number(radarScore.score || 0)),
-      discoveryApiCount: discoveryApiRoutes.length,
-      discoveryKeywordCount: uniqueSortedStrings(discovery.criticalKeywords).length,
+      discoveryApiCount: discoveryNewApiRoutes.length,
+      discoveryKeywordCount: discoveryCriticalKeywords.length,
       backendSignalCount: uniqueBackendSignals.length,
     },
     advancedSignals,
@@ -1252,12 +1267,12 @@ async function main() {
       sourceSnapshotId: discovery.sourceSnapshotId || null,
       snapshotDir: discovery.snapshotDir || null,
       newUnknownChange: !!discovery.newUnknownChange,
-      keyFunctionCandidate: discovery.keyFunctionCandidate || null,
-      newLabels: uniqueSortedStrings(discovery.newLabels).slice(0, 15),
-      newRoutes: uniqueSortedStrings(discovery.newRoutes).slice(0, 15),
-      newApiRoutes: discoveryApiRoutes.slice(0, 20),
-      newKeywords: uniqueSortedStrings(discovery.newKeywords).slice(0, 20),
-      criticalKeywords: uniqueSortedStrings(discovery.criticalKeywords).slice(0, 20),
+      keyFunctionCandidate: discoveryCandidate || null,
+      newLabels: discoveryNewLabels.slice(0, 15),
+      newRoutes: discoveryNewRoutes.slice(0, 15),
+      newApiRoutes: discoveryNewApiRoutes.slice(0, 20),
+      newKeywords: discoveryNewKeywords.slice(0, 20),
+      criticalKeywords: discoveryCriticalKeywords.slice(0, 20),
     },
     whyItMatters: intelligence.whyItMatters || "",
   };
@@ -1265,7 +1280,7 @@ async function main() {
   const alpha = evaluateAlpha(baseResult);
   const eventType = detectEventType(baseResult);
   const signalRegime = classifySignalRegime(baseResult, alpha, eventType);
-  const signalFusion = detectSignalFusion(baseResult, alpha, eventType, signalRegime);
+  const signalFusion = detectSignalFusion(baseResult, alpha, eventType);
   const priority = getPriority(baseResult);
   const eta = getEta(baseResult);
 
@@ -1290,23 +1305,18 @@ async function main() {
     result,
   });
 
-  console.log("Archivo generado:");
-  console.log(path.join(publicDir, "latest.json"));
-  console.log(JSON.stringify(result, null, 2));
-
-  console.log("=== SYNC_STATUS ===");
   console.log(
     JSON.stringify(
       {
+        ok: true,
+        wroteTo: publicDir,
+        latest: "latest.json",
+        history: "history.json",
+        lastTriggeredUpdated: TRIGGER_PRIORITIES.has(result.priority),
         id: result.id,
         snapshotId: result.snapshotId,
         generatedAt: result.generatedAt,
-        rawScore: round(result.rawScore ?? result.score),
-        scorePercent: round(result.scorePercent),
-        movementPercent: round(result.movementPercent),
-        activationProbability: round(result.activationProbability),
-        intensityClass: result.intensityClass,
-        overdrive: !!result.overdrive,
+        score: result.score,
         level: result.level,
         priority: result.priority,
         alphaScore: result.alphaScore,
@@ -1316,14 +1326,6 @@ async function main() {
         signalFusion: result.signalFusion,
         signalRegime: result.signalRegime,
         eta: result.eta,
-        signature: result.signature,
-        alertSignature: result.alertSignature,
-        backendSignals: result.backendSignals,
-        discoveryApiCount: ensureArray(result.discovery?.newApiRoutes).length,
-        discoveryKeywordCount: ensureArray(result.discovery?.criticalKeywords).length,
-        wroteLatest: true,
-        wroteHistory: true,
-        wroteLastTriggered: TRIGGER_PRIORITIES.has(result.priority),
       },
       null,
       2

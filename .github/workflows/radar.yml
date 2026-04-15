@@ -2,7 +2,7 @@ name: Pond0x Radar
 
 on:
   schedule:
-    - cron: "*/5 * * * *"
+    - cron: "0 * * * *" # cada 1 hora (ajústalo después si quieres)
   workflow_dispatch:
 
 jobs:
@@ -23,50 +23,42 @@ jobs:
         with:
           node-version: 20
 
-      - name: Install root dependencies
-        run: npm install
-
-      - name: Install watcher dependencies
+      - name: Install dependencies
         run: |
-          cd watcher
           npm install
+          cd watcher && npm install
 
-      - name: Install Playwright browser
+      - name: Install Playwright
         run: npx playwright install chromium
 
       - name: Prepare workspace
         run: |
           mkdir -p public/data
           mkdir -p snapshots
-          mkdir -p watcher/output
-          mkdir -p .publish/data
-          mkdir -p .publish/snapshots
 
-      - name: Restore previous published data from radar-data
+      # =========================
+      # RESTORE STATE
+      # =========================
+      - name: Restore previous state from radar-data
         run: |
           git fetch origin radar-data || true
-
-          mkdir -p public/data
-          mkdir -p snapshots
 
           if git ls-remote --exit-code --heads origin radar-data; then
             rm -rf /tmp/radar-restore
             git worktree add /tmp/radar-restore origin/radar-data
 
-            if [ -d /tmp/radar-restore/data ]; then
-              cp -R /tmp/radar-restore/data/. public/data/ 2>/dev/null || true
-            fi
-
-            if [ -d /tmp/radar-restore/snapshots ]; then
-              cp -R /tmp/radar-restore/snapshots/. snapshots/ 2>/dev/null || true
-            fi
+            cp -R /tmp/radar-restore/data/. public/data/ 2>/dev/null || true
+            cp -R /tmp/radar-restore/snapshots/. snapshots/ 2>/dev/null || true
 
             git worktree remove /tmp/radar-restore --force || true
             rm -rf /tmp/radar-restore || true
           else
-            echo "radar-data branch does not exist yet; skipping restore"
+            echo "No previous state"
           fi
 
+      # =========================
+      # HEARTBEAT START
+      # =========================
       - name: Write heartbeat start
         run: |
           node -e '
@@ -75,31 +67,25 @@ jobs:
           const now = new Date().toISOString();
 
           const data = {
-            source: "github-actions-sentinel",
+            source: "github-actions",
             lastRunAt: now,
             lastSuccessAt: null,
             status: "running",
-            scheduleMinutes: 5
+            scheduleMinutes: 60
           };
 
           fs.mkdirSync("public/data", { recursive: true });
           fs.writeFileSync(path, JSON.stringify(data, null, 2));
           '
 
+      # =========================
+      # CORE PIPELINE
+      # =========================
       - name: Run sentinel
         run: node watcher/sentinel.js
 
       - name: Run capture
         run: node watcher/capture.js
-
-      - name: Debug snapshots after capture
-        run: |
-          echo "=== snapshots root ==="
-          ls -la snapshots || true
-
-          echo ""
-          echo "=== newest snapshot dirs ==="
-          find snapshots -maxdepth 1 -mindepth 1 -type d | sort || true
 
       - name: Run radar
         run: node watcher/radar.js
@@ -107,32 +93,9 @@ jobs:
       - name: Run discovery
         run: node watcher/discovery.js
 
-      - name: Debug timestamps after watcher pipeline
-        run: |
-          echo "=== Search latest.json references ==="
-          find . -name "latest.json" -type f -print
-
-          echo ""
-          echo "=== Search history.json references ==="
-          find . -name "history.json" -type f -print
-
-          echo ""
-          echo "=== Search heartbeat.json references ==="
-          find . -name "heartbeat.json" -type f -print
-
-      - name: Copy watcher output to public data
-        run: |
-          mkdir -p public/data
-
-          # CORE DATA
-          cp watcher/output/latest.json public/data/latest.json || true
-          cp watcher/output/history.json public/data/history.json || true
-
-          # AUXILIARY DATA
-          cp watcher/output/sentinel-events.json public/data/sentinel-events.json || true
-          cp watcher/output/sentinel-state.json public/data/sentinel-state.json || true
-          cp watcher/output/discovery.json public/data/discovery.json || true
-
+      # =========================
+      # HEARTBEAT SUCCESS
+      # =========================
       - name: Write heartbeat success
         run: |
           node -e '
@@ -141,69 +104,34 @@ jobs:
           const now = new Date().toISOString();
 
           const data = {
-            source: "github-actions-sentinel",
+            source: "github-actions",
             lastRunAt: now,
             lastSuccessAt: now,
             status: "success",
-            scheduleMinutes: 5
+            scheduleMinutes: 60
           };
 
-          fs.mkdirSync("public/data", { recursive: true });
           fs.writeFileSync(path, JSON.stringify(data, null, 2));
           '
 
-          echo "Heartbeat after success:"
-          cat public/data/heartbeat.json
-
-      - name: Debug outputs after watcher pipeline
-        run: |
-          echo "=== watcher/output files ==="
-          ls -la watcher/output || true
-
-          echo ""
-          echo "=== public/data files ==="
-          ls -la public/data || true
-
-          echo ""
-          echo "=== watcher/output/latest.json ==="
-          cat watcher/output/latest.json || echo "missing watcher/output/latest.json"
-
-          echo ""
-          echo "=== public/data/latest.json ==="
-          cat public/data/latest.json || echo "missing public/data/latest.json"
-
-          echo ""
-          echo "=== watcher/output/history.json ==="
-          cat watcher/output/history.json || echo "missing watcher/output/history.json"
-
-          echo ""
-          echo "=== public/data/history.json ==="
-          cat public/data/history.json || echo "missing public/data/history.json"
-
-          echo ""
-          echo "=== public/data/heartbeat.json ==="
-          cat public/data/heartbeat.json || echo "missing public/data/heartbeat.json"
-
+      # =========================
+      # PREPARE PUBLISH
+      # =========================
       - name: Prepare publish bundle
         run: |
           mkdir -p .publish/data
           mkdir -p .publish/snapshots
 
-          # Source of truth for published data
+          # SINGLE SOURCE OF TRUTH
           cp public/data/*.json .publish/data/ 2>/dev/null || true
-
-          # Safety copies for outputs generated directly by watcher
-          cp watcher/output/latest.json .publish/data/latest.json 2>/dev/null || true
-          cp watcher/output/history.json .publish/data/history.json 2>/dev/null || true
-          cp watcher/output/sentinel-events.json .publish/data/sentinel-events.json 2>/dev/null || true
-          cp watcher/output/sentinel-state.json .publish/data/sentinel-state.json 2>/dev/null || true
-          cp watcher/output/discovery.json .publish/data/discovery.json 2>/dev/null || true
-          cp public/data/last-alert.json .publish/data/last-alert.json 2>/dev/null || true
 
           if [ -d snapshots ]; then
             rsync -a --delete snapshots/ .publish/snapshots/
           fi
 
+      # =========================
+      # PUBLISH
+      # =========================
       - name: Publish to radar-data branch
         run: |
           git fetch origin radar-data || true
@@ -226,15 +154,16 @@ jobs:
           git config user.email "bot@radar.ai"
 
           git add data snapshots
-          git status --short
-
-          git commit -m "Auto radar data update" || echo "No changes to commit"
+          git commit -m "Auto radar data update" || echo "No changes"
           git push origin HEAD:radar-data
 
           cd -
           git worktree remove /tmp/radar-data --force || true
           rm -rf /tmp/radar-data || true
 
+      # =========================
+      # NOTIFY
+      # =========================
       - name: Run notify
         run: node watcher/notify.js
         env:
