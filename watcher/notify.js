@@ -108,6 +108,10 @@ function hasSignal(latest, value) {
   return ensureArray(latest?.signals).includes(value);
 }
 
+function hasTag(source, value) {
+  return ensureArray(source?.tags).includes(value);
+}
+
 function getCriticalChanges(latest, lastAlert) {
   if (!lastAlert) {
     return ["Initial alert state"];
@@ -186,12 +190,15 @@ function getCriticalChanges(latest, lastAlert) {
   const disabledGone = hasSignal(lastAlert, "disabled") && !hasSignal(latest, "disabled");
   const verifyAppeared = !hasSignal(lastAlert, "verify") && hasSignal(latest, "verify");
   const imminentAppeared = !lastAlert.launchImminent && !!latest.launchImminent;
+  const portalArmedAppeared = !lastAlert.portalArmed && !!latest.portalArmed;
+  const portalArmedTagAppeared = !hasTag(lastAlert, "PORTAL_ARMED") && hasTag(latest, "PORTAL_ARMED");
 
   if (claimAppeared) changes.push("Critical: claim signal appeared");
   if (enabledAppeared) changes.push("Critical: enabled signal appeared");
   if (disabledGone) changes.push("Critical: disabled signal disappeared");
   if (verifyAppeared) changes.push("Critical: verify signal appeared");
   if (imminentAppeared) changes.push("Critical: LAUNCH_IMMINENT detected");
+  if (portalArmedAppeared || portalArmedTagAppeared) changes.push("Critical: PORTAL_ARMED detected");
 
   return changes.length ? changes : ["State changed"];
 }
@@ -205,6 +212,8 @@ function classifyChangeSeverity(latest, lastAlert) {
   const regimeChanged = (lastAlert.signalRegime || "") !== (latest.signalRegime || "");
   const fusionChanged = (lastAlert.signalFusion || "") !== (latest.signalFusion || "");
   const imminentChanged = !!lastAlert.launchImminent !== !!latest.launchImminent;
+  const portalArmedChanged = !!lastAlert.portalArmed !== !!latest.portalArmed;
+  const portalArmedTagChanged = hasTag(lastAlert, "PORTAL_ARMED") !== hasTag(latest, "PORTAL_ARMED");
 
   const claimAppeared = !hasSignal(lastAlert, "claim") && hasSignal(latest, "claim");
   const enabledAppeared = !hasSignal(lastAlert, "enabled") && hasSignal(latest, "enabled");
@@ -217,6 +226,8 @@ function classifyChangeSeverity(latest, lastAlert) {
     disabledGone ||
     verifyAppeared ||
     imminentChanged ||
+    portalArmedChanged ||
+    portalArmedTagChanged ||
     eventTypeChanged ||
     triggerChanged ||
     alphaClassChanged ||
@@ -243,6 +254,7 @@ function buildDecision(latest, lastAlert) {
   const score = Number(latest.score || 0);
   const movementPct = Number(latest.movementPct || 0);
   const launchImminent = !!latest.launchImminent;
+  const portalArmed = !!latest.portalArmed || hasTag(latest, "PORTAL_ARMED");
 
   // 🚨 IMMINENT OVERRIDE
   if (launchImminent) {
@@ -253,6 +265,18 @@ function buildDecision(latest, lastAlert) {
       priority: "CRITICAL",
       changeSeverity: "CRITICAL_FIELD_CHANGE",
       criticalChanges: ["LAUNCH_IMMINENT detected"],
+    };
+  }
+
+  // 🔥 PORTAL ARMED OVERRIDE
+  if (portalArmed) {
+    return {
+      send: true,
+      reason: "Portal armed override",
+      signature,
+      priority: "VERY HIGH",
+      changeSeverity: "CRITICAL_FIELD_CHANGE",
+      criticalChanges: ["PORTAL_ARMED detected"],
     };
   }
 
@@ -395,10 +419,14 @@ function buildDecision(latest, lastAlert) {
 function buildTelegramMessage(latest, decision) {
   const patterns = getTopPatterns(latest);
   const isImminent = !!latest.launchImminent;
+  const isPortalArmed = !!latest.portalArmed || hasTag(latest, "PORTAL_ARMED");
 
   const tagsList = ensureArray(latest.tags).slice();
   if (isImminent && !tagsList.includes("LAUNCH_IMMINENT")) {
     tagsList.push("LAUNCH_IMMINENT");
+  }
+  if (isPortalArmed && !tagsList.includes("PORTAL_ARMED")) {
+    tagsList.push("PORTAL_ARMED");
   }
 
   const tags = tagsList.join(", ") || "none";
@@ -448,17 +476,25 @@ function buildTelegramMessage(latest, decision) {
   const title =
     isImminent
       ? "🚨🚨 POND0X RADAR — THIS IS IT"
-      : decision.priority === "CRITICAL"
-        ? "🚨 POND0X RADAR — CRITICAL"
-        : decision.priority === "VERY HIGH"
-          ? "⚠️ POND0X RADAR — VERY HIGH"
-          : decision.priority === "HIGH"
-            ? "📡 POND0X RADAR — HIGH"
-            : "🛰️ POND0X RADAR — MEDIUM";
+      : isPortalArmed
+        ? "🔥 POND0X RADAR — PORTAL ARMED"
+        : decision.priority === "CRITICAL"
+          ? "🚨 POND0X RADAR — CRITICAL"
+          : decision.priority === "VERY HIGH"
+            ? "⚠️ POND0X RADAR — VERY HIGH"
+            : decision.priority === "HIGH"
+              ? "📡 POND0X RADAR — HIGH"
+              : "🛰️ POND0X RADAR — MEDIUM";
+
+  const statusLine = isImminent
+    ? `<b>STATUS:</b> 🚨 THIS IS NOT A DRILL`
+    : isPortalArmed
+      ? `<b>STATUS:</b> 🔥 HIGH-CONVICTION SETUP — PORTAL ARMED`
+      : "";
 
   return [
     `<b>${title}</b>`,
-    isImminent ? `<b>STATUS:</b> 🚨 THIS IS NOT A DRILL` : "",
+    statusLine,
     ``,
     `<b>Score:</b> ${escapeHtml(round(latest.score))}`,
     `<b>Level:</b> ${escapeHtml(latest.level)}`,
@@ -573,6 +609,7 @@ function buildAlertRecord(latest, decision) {
     signalRegime: latest.signalRegime,
     signalFusion: latest.signalFusion,
     launchImminent: !!latest.launchImminent,
+    portalArmed: !!latest.portalArmed || hasTag(latest, "PORTAL_ARMED"),
     tags: ensureArray(latest.tags),
     signals: ensureArray(latest.signals),
     focusAreas: ensureArray(latest.focusAreas),
@@ -606,7 +643,7 @@ async function main() {
   const decision = buildDecision(latest, lastAlert);
 
   console.log(
-    `Notify decision: send=${decision.send} | priority=${decision.priority} | reason=${decision.reason} | signature=${decision.signature} | severity=${decision.changeSeverity} | imminent=${!!latest.launchImminent}`
+    `Notify decision: send=${decision.send} | priority=${decision.priority} | reason=${decision.reason} | signature=${decision.signature} | severity=${decision.changeSeverity} | imminent=${!!latest.launchImminent} | portalArmed=${!!latest.portalArmed || hasTag(latest, "PORTAL_ARMED")}`
   );
 
   if (!decision.send) {
