@@ -1207,9 +1207,11 @@ async function main() {
   const activationPercent = clampPercent(intelligence.activationProbability);
   const intensityClass = classifyIntensity(rawScore);
   const overdrive = rawScore > 100;
+  const launchImminent = !!intelligence.launchImminent;
 
   let effectiveLevel = radarScore.level;
-  if (rawScore >= 100) effectiveLevel = "CRITICAL";
+  if (launchImminent) effectiveLevel = "CRITICAL";
+  else if (rawScore >= 100) effectiveLevel = "CRITICAL";
   else if (rawScore >= 70) effectiveLevel = "VERY HIGH";
   else if (rawScore >= 40) effectiveLevel = "HIGH";
   else if (rawScore >= 15) effectiveLevel = "MEDIUM";
@@ -1235,6 +1237,7 @@ async function main() {
     score: rawScore,
     intensityClass,
     overdrive,
+    launchImminent,
     signals,
     backendSignals: uniqueBackendSignals,
     patternScore: intelligence.patternScore,
@@ -1247,7 +1250,13 @@ async function main() {
     changeTypes: ensureArray(intelligence.changeTypes),
     insight,
     confidence,
-    tags: [...new Set([...detectedGroups, ...ensureArray(radarScore.tags)])],
+    tags: [
+      ...new Set([
+        ...detectedGroups,
+        ...ensureArray(radarScore.tags),
+        ...(launchImminent ? ["LAUNCH_IMMINENT"] : []),
+      ]),
+    ],
     summary,
     note,
     changedFiles,

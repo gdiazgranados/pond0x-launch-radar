@@ -255,7 +255,13 @@ function summarizeRadarIntelligence(current, history) {
   const level = scoreToLevel(score);
   const patternScore = computePatternScore(current, history);
   const patterns = detectPatterns(current, history);
-  const activationProbability = computeActivationProbability(current, history);
+  const launchImminent = detectLaunchImminent(current, history);
+   
+  if (launchImminent) {
+     patterns.push("LAUNCH_IMMINENT");
+   }
+  
+   const activationProbability = computeActivationProbability(current, history);
   const whyItMatters = buildWhyItMatters(current, history);
 
   return {
@@ -268,6 +274,7 @@ function summarizeRadarIntelligence(current, history) {
     level,
     patternScore,
     patterns,
+    launchImminent,
     activationProbability,
     shouldAlert: shouldTriggerAlert(current, history),
     whyItMatters,
@@ -398,6 +405,38 @@ function computeActivationProbability(current, history) {
     patternScore * 0.35;
 
   return clampScore(value);
+}
+
+function detectLaunchImminent(current, history) {
+  const patterns = detectPatterns(current, history);
+  const focus = detectFocusAreas(current);
+  const backendSignals = current.backendSignals || [];
+  const score = Number(current.score || 0);
+  const trend = Number(current.trend || 0);
+
+  const strongPattern =
+    patterns.includes("QUIET_BREAKOUT") ||
+    patterns.includes("SENSITIVE_CLUSTER") ||
+    patterns.includes("CLAIM_FLOW_ACTIVATION");
+
+  const activationSignals =
+    focus.includes("REWARDS") ||
+    focus.includes("CLAIM") ||
+    backendSignals.includes("canclaim_true") ||
+    backendSignals.includes("eligible_true");
+
+  const escalation =
+    patterns.includes("ESCALATING_SURFACE") ||
+    patterns.includes("EXPANDING_FOCUS") ||
+    trend > 0;
+
+  const scoreCondition = score >= 65;
+
+  if (strongPattern && activationSignals && (escalation || scoreCondition)) {
+    return true;
+  }
+
+  return false;
 }
 
 function buildWhyItMatters(current, history) {
