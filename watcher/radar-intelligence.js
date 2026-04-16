@@ -493,6 +493,22 @@ function detectLaunchImminent(current, history) {
     activationSignals &&
     strongPattern;
 
+  console.log("IMMINENT DEBUG", {
+    score,
+    recentScores: [Number(current.score || 0), ...recent.map((r) => Number(r?.score || 0))],
+    backendConfirmed,
+    scoreJump,
+    newSignals,
+    focusExpansion,
+    escalation,
+    persistence,
+    toggleDetected,
+    strongPattern,
+    portalArmedCandidate,
+    focus,
+    signals,
+  });
+
   // Case 1: backend confirmation + strong setup
   if (backendConfirmed && strongPattern) {
     return true;
