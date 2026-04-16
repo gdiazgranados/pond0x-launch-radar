@@ -416,29 +416,34 @@ function detectLaunchImminent(current, history) {
   const patterns = detectPatterns(current, history);
   const focus = detectFocusAreas(current);
   const backendSignals = current.backendSignals || [];
+  const signals = Array.isArray(current.signals) ? current.signals : [];
 
   const score = Number(current.score || 0);
   const trend = Number(current.trend || 0);
 
-  const prev = Array.isArray(history) && history.length
-    ? history[history.length - 1]
-    : null;
+  const recent = Array.isArray(history) ? history.slice(0, 4) : [];
+  const prev = recent.length ? recent[0] : null;
 
   const prevScore = Number(prev?.score || 0);
-  const prevSignals = prev?.signals || [];
-  const prevFocus = prev?.focusAreas || [];
+  const prevSignals = Array.isArray(prev?.signals) ? prev.signals : [];
+  const prevFocus = Array.isArray(prev?.focusAreas) ? prev.focusAreas : [];
 
-  const scoreStrong = score >= 70;
-  const activationSignals =
-    focus.includes("REWARDS") || focus.includes("CLAIM");
-
+  const scoreStrong = score >= 140;
   const backendConfirmed =
     backendSignals.includes("canclaim_true") ||
     backendSignals.includes("eligible_true");
 
+  const hasClaim = signals.includes("claim");
+  const hasAuth = signals.includes("signin") || signals.includes("verify");
+  const hasWallet = signals.includes("wallet");
+
+  const activationSignals =
+    focus.includes("REWARDS") ||
+    focus.includes("CLAIM");
+
   const scoreJump = score - prevScore >= 10;
   const newSignals =
-    current.signals?.some((s) => !prevSignals.includes(s)) || false;
+    signals.some((s) => !prevSignals.includes(s)) || false;
   const focusExpansion = focus.length > prevFocus.length;
 
   const escalation =
@@ -447,32 +452,59 @@ function detectLaunchImminent(current, history) {
     trend > 0;
 
   const persistence =
-    score >= 70 &&
-    prevScore >= 60;
+    recent.filter((item) => Number(item?.score || 0) >= 120).length >= 2;
+
+  const toggleDetected =
+    recent.length >= 3 &&
+    recent.some((r) => Number(r?.score || 0) < 80) &&
+    recent.some((r) => Number(r?.score || 0) >= 140);
 
   const strongPattern =
     patterns.includes("CLAIM_FLOW_ACTIVATION") ||
-    patterns.includes("SENSITIVE_CLUSTER");
+    patterns.includes("SENSITIVE_CLUSTER") ||
+    patterns.includes("AUTH_WALLET_COUPLING");
 
+  const portalArmedCandidate =
+    score >= 120 &&
+    hasClaim &&
+    hasAuth &&
+    hasWallet &&
+    activationSignals &&
+    strongPattern;
+
+  // Case 1: backend confirmation + strong setup
   if (backendConfirmed && strongPattern) {
     return true;
   }
 
+  // Case 2: armed state + real transition
   if (
-    strongPattern &&
-    scoreStrong &&
-    activationSignals &&
+    portalArmedCandidate &&
     (scoreJump || newSignals || focusExpansion || escalation)
   ) {
     return true;
   }
 
-  if (strongPattern && persistence && activationSignals) {
+  // Case 3: persistent armed state across recent runs
+  if (
+    portalArmedCandidate &&
+    persistence &&
+    scoreStrong
+  ) {
     return true;
   }
 
   return false;
 }
+
+ // Case 4: toggle pattern (stealth rollout / feature flags)
+  if (
+    portalArmedCandidate &&
+    toggleDetected &&
+    strongPattern
+  ) {
+    return true;
+  }
 
 function detectPortalArmed(current, history) {
   const score = Number(current.score || 0);
