@@ -1337,15 +1337,31 @@ async function main() {
     ],
   };
 
+  let alphaClass = alpha.alphaClass;
+  let triggerState = alpha.triggerState;
+  let suggestedAction = alpha.suggestedAction;
+
+  if (launchImminent) {
+    alphaClass = "ACTIONABLE";
+    triggerState = "TRIGGERED";
+    suggestedAction =
+      "Launch imminent. Escalate immediately and monitor backend/UI flips aggressively.";
+  } else if (portalArmed && alphaClass === "SETUP") {
+    alphaClass = "ACTIONABLE";
+    triggerState = "ARMED";
+    suggestedAction =
+      "Portal armed. Maintain high-frequency monitoring and prepare escalation.";
+  }
+
   const priority = getPriority(enrichedBaseResult);
   const eta = getEta(enrichedBaseResult);
 
   const result = {
     ...enrichedBaseResult,
     alphaScore: alpha.alphaScore,
-    alphaClass: alpha.alphaClass,
-    triggerState: alpha.triggerState,
-    suggestedAction: alpha.suggestedAction,
+    alphaClass,
+    triggerState,
+    suggestedAction,
     eventType,
     signalRegime,
     signalFusion,
