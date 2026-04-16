@@ -438,8 +438,7 @@ function detectLaunchImminent(current, history) {
   const hasWallet = signals.includes("wallet");
 
   const activationSignals =
-    focus.includes("REWARDS") ||
-    focus.includes("CLAIM");
+    focus.includes("REWARDS") || focus.includes("CLAIM");
 
   const scoreJump = score - prevScore >= 10;
   const newSignals =
@@ -494,10 +493,7 @@ function detectLaunchImminent(current, history) {
     return true;
   }
 
-  return false;
-}
-
- // Case 4: toggle pattern (stealth rollout / feature flags)
+  // Case 4: toggle pattern (stealth rollout / feature flags)
   if (
     portalArmedCandidate &&
     toggleDetected &&
@@ -505,6 +501,9 @@ function detectLaunchImminent(current, history) {
   ) {
     return true;
   }
+
+  return false;
+}
 
 function detectPortalArmed(current, history) {
   const score = Number(current.score || 0);
