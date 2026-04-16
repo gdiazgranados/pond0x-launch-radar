@@ -453,15 +453,25 @@ function detectLaunchImminent(current, history) {
   const persistence =
     recent.filter((item) => Number(item?.score || 0) >= 120).length >= 2;
 
+  const highScores = recent.map(r => Number(r?.score || 0));
+
   const toggleDetected =
-    recent.length >= 3 &&
-    recent.some((r) => Number(r?.score || 0) < 80) &&
-    recent.some((r) => Number(r?.score || 0) >= 140);
+    highScores.length >= 4 &&
+    Math.max(...highScores) - Math.min(...highScores) >= 8 &&
+    new Set(highScores).size >= 2;
 
   const strongPattern =
     patterns.includes("CLAIM_FLOW_ACTIVATION") ||
     patterns.includes("SENSITIVE_CLUSTER") ||
-    patterns.includes("AUTH_WALLET_COUPLING");
+    patterns.includes("AUTH_WALLET_COUPLING") ||
+
+    // 🔥 NEW: real-world cluster detection
+    (
+      signals.includes("claim") &&
+      signals.includes("reward") &&
+      signals.includes("wallet") &&
+      signals.includes("verify")
+    );
 
   const portalArmedCandidate =
     score >= 120 &&
