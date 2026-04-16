@@ -421,7 +421,15 @@ function detectLaunchImminent(current, history) {
   const score = Number(current.score || 0);
   const trend = Number(current.trend || 0);
 
-  const recent = Array.isArray(history) ? history.slice(0, 4) : [];
+  const sortedHistory = Array.isArray(history)
+    ? [...history].sort(
+        (a, b) =>
+          new Date(b.generatedAt).getTime() -
+          new Date(a.generatedAt).getTime()
+      )
+    : [];
+
+  const recent = sortedHistory.slice(0, 6);
   const prev = recent.length ? recent[0] : null;
 
   const prevScore = Number(prev?.score || 0);
@@ -451,14 +459,18 @@ function detectLaunchImminent(current, history) {
     trend > 0;
 
   const persistence =
-    recent.filter((item) => Number(item?.score || 0) >= 120).length >= 2;
+    [current, ...recent].filter((item) => Number(item?.score || 0) >= 120).length >= 3;
 
-  const highScores = recent.map(r => Number(r?.score || 0));
+  const highScores = [
+    Number(current.score || 0),
+    ...recent.map((r) => Number(r?.score || 0)),
+  ];
+
+  const uniqueScores = [...new Set(highScores)];
 
   const toggleDetected =
-    highScores.length >= 4 &&
-    Math.max(...highScores) - Math.min(...highScores) >= 8 &&
-    new Set(highScores).size >= 2;
+    uniqueScores.length >= 2 &&
+    Math.max(...highScores) - Math.min(...highScores) >= 6;
 
   const strongPattern =
     patterns.includes("CLAIM_FLOW_ACTIVATION") ||
