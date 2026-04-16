@@ -1311,7 +1311,10 @@ async function main() {
   const launchImminent =
     !!baseResult.launchImminent &&
     eventType === "CLAIM READINESS" &&
-    signalFusion === "FULL ACTIVATION STACK";
+    (
+      signalFusion === "FULL ACTIVATION STACK" ||
+      signalFusion === "REWARD + WALLET + AUTH CLUSTER"
+    );
 
   const portalArmed =
     !!baseResult.portalArmed &&
