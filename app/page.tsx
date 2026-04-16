@@ -150,14 +150,26 @@ function getPriorityMode(data: any) {
   const tags = data?.tags || []
   const level = String(data?.level || "LOW").toUpperCase()
   const activationProbability = Number(data?.activationProbability ?? 0)
+  const isImminent = Boolean(data?.launchImminent) || tags.includes("LAUNCH_IMMINENT")
+  const isPortalArmed = Boolean(data?.portalArmed) || tags.includes("PORTAL_ARMED")
 
-  if (level === "CRITICAL" || tags.includes("LAUNCH_IMMINENT")) {
+  if (isImminent || level === "CRITICAL") {
     return {
       mode: "CRITICAL",
       mainBg: "bg-[#090203]",
       headerClass: "border-red-500/40 bg-red-950/20 shadow-[0_0_40px_rgba(255,0,0,0.12)]",
       bannerClass: "border-red-500/40 bg-red-900/25 text-red-200 shadow-[0_0_25px_rgba(255,0,0,0.12)]",
       title: "🚨 CRITICAL SIGNAL — ACTIVATION CONDITIONS MET",
+    }
+  }
+
+  if (isPortalArmed) {
+    return {
+      mode: "PORTAL_ARMED",
+      mainBg: "bg-[#120b05]",
+      headerClass: "border-orange-500/30 bg-orange-900/10 shadow-[0_0_35px_rgba(255,140,0,0.10)]",
+      bannerClass: "border-orange-500/30 bg-orange-900/20 text-orange-200 shadow-[0_0_20px_rgba(255,140,0,0.10)]",
+      title: "🔥 PORTAL ARMED — HIGH-CONVICTION SETUP",
     }
   }
 
@@ -253,7 +265,9 @@ export default function Home() {
   const priorityMode = getPriorityMode(current)
   const isElevated = priorityMode.mode !== "NORMAL"
   const isPriorityView =
-    priorityMode.mode === "VERY_HIGH" || priorityMode.mode === "CRITICAL"
+    priorityMode.mode === "PORTAL_ARMED" ||
+    priorityMode.mode === "VERY_HIGH" ||
+    priorityMode.mode === "CRITICAL"
 
   const palette = useMemo(() => getLevelPalette(current?.level), [current?.level])
 
@@ -356,12 +370,14 @@ export default function Home() {
     })
   }, [uiScorePercent, uiMovement, current, burstCount])
 
-  const readinessState = useMemo(() => {
+    const readinessState = useMemo(() => {
     const score = uiScorePercent
     const movement = uiMovement
     const trend = Number(current?.trend ?? 0)
     const tags = current?.tags || []
     const signals = current?.signals || []
+    const portalArmed = Boolean(current?.portalArmed) || tags.includes("PORTAL_ARMED")
+    const launchImminent = Boolean(current?.launchImminent) || tags.includes("LAUNCH_IMMINENT")
 
     const hasRewards =
       tags.includes("REWARDS") || signals.includes("reward") || signals.includes("claim")
@@ -374,6 +390,24 @@ export default function Home() {
       0,
       Math.min(100, Math.round(score * 0.6 + movement * 0.2 + trend * 2))
     )
+
+    if (launchImminent) {
+      return {
+        label: "IMMINENT",
+        tone: "text-red-300",
+        badge: "border-red-500/30 bg-red-500/10 text-red-200",
+        note: "activation conditions met",
+      }
+    }
+
+    if (portalArmed) {
+      return {
+        label: "PORTAL ARMED",
+        tone: "text-orange-300",
+        badge: "border-orange-500/30 bg-orange-500/10 text-orange-200",
+        note: "claim readiness + wallet/auth cluster detected",
+      }
+    }
 
     if (
       score >= 80 ||

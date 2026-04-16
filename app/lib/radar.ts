@@ -123,6 +123,7 @@ export function getSignalType(data?: { tags?: string[]; signals?: string[] } | n
   const tags = data.tags || []
   const signals = data.signals || []
 
+  if (tags.includes("PORTAL_ARMED")) return "PORTAL"
   if (tags.includes("REWARDS") || signals.includes("claim") || signals.includes("reward")) {
     return "REWARDS"
   }
@@ -162,6 +163,10 @@ export function getLaunchProbability(data?: {
   const activationProbability = Number(data.activationProbability ?? 0)
   const scorePercent = Number(data.scorePercent ?? 0)
   const movement = Number(data.movementPercent ?? data.movementPct ?? 0)
+  const tags = data.tags || []
+
+  if (tags.includes("LAUNCH_IMMINENT")) return "CRITICAL"
+  if (tags.includes("PORTAL_ARMED")) return "VERY HIGH"
 
   if (
     activationProbability === 0 &&
@@ -251,6 +256,8 @@ export function prioritizeLaunchSignals<
     generatedAt?: string
     breakdown?: unknown
     activationProbability?: number
+    portalArmed?: boolean
+    launchImminent?: boolean
   }
 >(
   data?: T | null
@@ -288,16 +295,16 @@ export function prioritizeLaunchSignals<
   const matchedSignals = signals.filter((signal) => criticalSignals.includes(signal))
 
   const hasRewardsTag = tags.includes("REWARDS")
-  const hasLaunchTag = tags.includes("LAUNCH_IMMINENT")
+  const hasLaunchTag = tags.includes("LAUNCH_IMMINENT") || Boolean(data.launchImminent)
+  const hasPortalArmedTag = tags.includes("PORTAL_ARMED") || Boolean(data.portalArmed)
 
-  // IMPORTANT:
-  // Keep raw score stable. Only derive normalized intensity / movement / trend / level.
   let derivedScorePercent = baseScorePercent
   let derivedMovement = baseMovement
   let derivedTrend = baseTrend
 
   derivedScorePercent += matchedSignals.length * 8
   if (hasRewardsTag) derivedScorePercent += 12
+  if (hasPortalArmedTag) derivedScorePercent += 16
   if (hasLaunchTag) derivedScorePercent += 20
 
   if (signals.includes("connect")) derivedMovement += 10
@@ -308,7 +315,11 @@ export function prioritizeLaunchSignals<
 
   let inferredLevel = String(data.level || "LOW").toUpperCase()
 
-  if (inferredLevel !== "CRITICAL") {
+  if (hasLaunchTag) {
+    inferredLevel = "CRITICAL"
+  } else if (hasPortalArmedTag && inferredLevel !== "CRITICAL") {
+    inferredLevel = "VERY HIGH"
+  } else if (inferredLevel !== "CRITICAL") {
     if (derivedScorePercent >= 95) inferredLevel = "CRITICAL"
     else if (derivedScorePercent >= 80) inferredLevel = "VERY HIGH"
     else if (derivedScorePercent >= 60) inferredLevel = "HIGH"
@@ -337,6 +348,8 @@ export function buildNarrative(data?: {
   movementPct?: number
   movementPercent?: number
   trend?: number
+  portalArmed?: boolean
+  launchImminent?: boolean
 } | null) {
   if (!data) return null
 
@@ -348,7 +361,11 @@ export function buildNarrative(data?: {
   let headline = ""
   const context: string[] = []
 
-  if (level === "CRITICAL") {
+  if (tags.includes("LAUNCH_IMMINENT") || data.launchImminent) {
+    headline = "🚨 LAUNCH IMMINENT — ACTIVATION CONDITIONS MET"
+  } else if (tags.includes("PORTAL_ARMED") || data.portalArmed) {
+    headline = "🔥 PORTAL ARMED — HIGH-CONVICTION SETUP"
+  } else if (level === "CRITICAL") {
     headline = "CRITICAL SIGNAL — PRE-LAUNCH CONDITIONS DETECTED"
   } else if (level === "VERY HIGH") {
     headline = "VERY HIGH SIGNAL — ACTIVATION CONDITIONS BUILDING"
@@ -360,6 +377,7 @@ export function buildNarrative(data?: {
     headline = "WATCHING — SURFACE ACTIVITY DETECTED"
   }
 
+  if (tags.includes("PORTAL_ARMED")) context.push("PORTAL_ARMED")
   if (tags.includes("REWARDS")) context.push("REWARD_FLOW")
   if (signals.includes("connect")) context.push("UI_ARMING")
   if (signals.includes("ethereum") || signals.includes("solana")) {
