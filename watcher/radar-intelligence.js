@@ -430,7 +430,7 @@ function detectLaunchImminent(current, history) {
     : [];
 
   const recent = sortedHistory.slice(0, 6);
-  const prev = recent.length ? recent[0] : null;
+  const prev = recent[1] || recent[0] || null;
 
   const prevScore = Number(prev?.score || 0);
   const prevSignals = Array.isArray(prev?.signals) ? prev.signals : [];
@@ -492,22 +492,6 @@ function detectLaunchImminent(current, history) {
     hasWallet &&
     activationSignals &&
     strongPattern;
-
-  console.log("IMMINENT DEBUG", {
-    score,
-    recentScores: [Number(current.score || 0), ...recent.map((r) => Number(r?.score || 0))],
-    backendConfirmed,
-    scoreJump,
-    newSignals,
-    focusExpansion,
-    escalation,
-    persistence,
-    toggleDetected,
-    strongPattern,
-    portalArmedCandidate,
-    focus,
-    signals,
-  });
 
   // Case 1: backend confirmation + strong setup
   if (backendConfirmed && strongPattern) {
