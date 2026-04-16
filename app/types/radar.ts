@@ -35,6 +35,8 @@ export type RadarBreakdown = {
   patternBoost?: number
   weightedBoost?: number
   discoveryApiCount?: number
+  discoveryKeywordCount?: number
+  backendSignalCount?: number
 }
 
 export type AdvancedSignals = {
@@ -83,6 +85,13 @@ export type DiscoveryMeta = {
   checkedAt?: string
   sourceSnapshotId?: string
   snapshotDir?: string
+  newUnknownChange?: boolean
+  keyFunctionCandidate?: string | null
+  newLabels?: string[]
+  newRoutes?: string[]
+  newApiRoutes?: string[]
+  newKeywords?: string[]
+  criticalKeywords?: string[]
   [key: string]: unknown
 }
 
@@ -119,6 +128,9 @@ export type RadarData = {
 
   intensityClass?: string
   overdrive?: boolean
+
+  portalArmed?: boolean
+  launchImminent?: boolean
 
   level: RadarLevel | string
   significance: string
@@ -160,6 +172,7 @@ export type RadarData = {
 
 export type AlertItem = {
   id?: string
+  snapshotId?: string
   sentAt?: string
   generatedAt?: string
   priority?: string
@@ -181,6 +194,9 @@ export type AlertItem = {
   movementPct?: number
   movementPercent?: number
 
+  portalArmed?: boolean
+  launchImminent?: boolean
+
   tags?: string[]
   patterns?: RadarPattern[]
   summary?: string
@@ -189,6 +205,14 @@ export type AlertItem = {
   signals?: string[]
   signalType?: string
   probability?: RadarProbability | string
+
+  eventType?: string
+  signalFusion?: string
+  signalRegime?: string
+  alphaClass?: string
+  triggerState?: string
+  suggestedAction?: string
+  eta?: string
 }
 
 export type SentinelSurface = {
