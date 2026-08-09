@@ -68,13 +68,15 @@ function normalizeRadarItem(item: any) {
 
 export async function GET() {
   try {
-    const [latest, history, heartbeat, sentinelState, sentinelEvents] =
+    const [latest, history, heartbeat, sentinelState, sentinelEvents, chainIntelligence, chainBaseline] =
       await Promise.all([
         loadRemoteJson("latest.json"),
         loadRemoteJson("history.json"),
         loadRemoteJson("heartbeat.json"),
         loadRemoteJson("sentinel-state.json"),
         loadRemoteJson("sentinel-events.json"),
+        loadRemoteJson("chain-intelligence.json"),
+        loadRemoteJson("chain-baseline.json"),
       ])
 
     const normalizedLatest = latest ? normalizeRadarItem(latest) : null
@@ -89,6 +91,8 @@ export async function GET() {
       heartbeat,
       sentinelState,
       sentinelEvents,
+      chainIntelligence,
+      chainBaseline,
       source: "remote-radar-data",
       fetchedAt: new Date().toISOString(),
     })
