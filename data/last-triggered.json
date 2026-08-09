@@ -1,20 +1,20 @@
 {
-  "id": "2026-08-09_065737__2026-08-09T06:57:46.600Z",
-  "snapshotId": "2026-08-09_065737",
+  "id": "2026-08-09_075503__2026-08-09T07:55:12.686Z",
+  "snapshotId": "2026-08-09_075503",
   "totalFiles": 62,
-  "added": 1,
-  "changed": 1,
-  "movementCount": 2,
-  "movementPct": 3.23,
-  "addedPct": 1.61,
-  "changedPct": 1.61,
+  "added": 0,
+  "changed": 0,
+  "movementCount": 0,
+  "movementPct": 0,
+  "addedPct": 0,
+  "changedPct": 0,
   "rawScore": 180,
-  "rawActivationProbability": 54,
-  "movementPercent": 3.23,
-  "addedPercent": 1.61,
-  "changedPercent": 1.61,
+  "rawActivationProbability": 57,
+  "movementPercent": 0,
+  "addedPercent": 0,
+  "changedPercent": 0,
   "scorePercent": 100,
-  "activationProbability": 54,
+  "activationProbability": 57,
   "score": 180,
   "intensityClass": "EXTREME",
   "overdrive": true,
@@ -24,14 +24,11 @@
     "account",
     "active",
     "claim",
-    "connect",
     "enabled",
-    "launch",
     "nonce",
     "reward",
     "rewards",
     "signin",
-    "solana",
     "verify",
     "verifysignature",
     "wallet"
@@ -42,31 +39,12 @@
   "patternScore": 40,
   "patterns": [
     {
-      "tag": "PRE-ACTIVATION",
-      "boost": 15,
-      "confidence": "HIGH",
-      "reasons": [
-        "Wallet-related strings detected",
-        "Connect UI detected",
-        "UI still appears disabled"
-      ]
-    },
-    {
       "tag": "REWARD_PREP",
       "boost": 20,
       "confidence": "HIGH",
       "reasons": [
         "Reward logic detected in code or strings",
         "No confirming on-chain movement yet"
-      ]
-    },
-    {
-      "tag": "UI_ARMING",
-      "boost": 12,
-      "confidence": "HIGH",
-      "reasons": [
-        "Connect UI visible",
-        "CTA or interactive surface changed"
       ]
     },
     {
@@ -96,16 +74,14 @@
     "auth",
     "verify",
     "wallet",
-    "connect",
     "signature",
-    "solana",
     "account",
     "launch",
     "enabled",
     "claim"
   ],
   "changeTypes": [
-    "asset"
+    "button"
   ],
   "insight": "New API surface or critical discovery candidate detected alongside activation signals",
   "confidence": 0.92,
@@ -114,20 +90,15 @@
     "REWARDS",
     "CHAIN",
     "SYSTEM",
-    "PRE-ACTIVATION",
     "REWARD_PREP",
-    "UI_ARMING",
     "BEHAVIOR_SPIKE",
     "LAUNCH_IMMINENT",
     "PORTAL_ARMED"
   ],
-  "summary": "2 de 62 archivos muestran movimiento (3.23%). 1 nuevos (1.61%) y 1 modificados (1.61). Señales: account, active, claim, connect, enabled, launch, nonce, reward, rewards, signin, solana, verify, verifysignature, wallet. API nuevas detectadas: /api/auth, /api/auth/session, /api/broadcast, /api/chat, /api/chat/health. Backend signals: rewards_array.",
+  "summary": "No se detectaron cambios en 62 archivos analizados.",
   "note": "Señales muy fuertes de activación real o launch inminente.",
-  "changedFiles": [
-    "_next_static_chunks_51972-1536c205daea44c7.js",
-    "_next_static_chunks_webpack-fd89ce1e3a70e02a.js"
-  ],
-  "generatedAt": "2026-08-09T06:57:46.600Z",
+  "changedFiles": [],
+  "generatedAt": "2026-08-09T07:55:12.686Z",
   "trend": -92.2,
   "trendDirection": "DOWN",
   "breakdown": {
@@ -136,7 +107,6 @@
       "weighted": 35,
       "hits": [
         "wallet_strings",
-        "connect_ui",
         "disabled_state",
         "enabled_state",
         "cta_change",
@@ -145,11 +115,9 @@
       ]
     },
     "infra": {
-      "raw": 80,
-      "weighted": 20,
+      "raw": 40,
+      "weighted": 10,
       "hits": [
-        "new_chunks",
-        "js_change",
         "reward_api",
         "auth_api"
       ]
@@ -177,7 +145,7 @@
       ]
     },
     "onchain": {},
-    "patternBoost": 57,
+    "patternBoost": 30,
     "weightedBoost": 80,
     "discoveryApiCount": 16,
     "discoveryKeywordCount": 12,
@@ -186,7 +154,6 @@
   "advancedSignals": {
     "frontend": [
       "wallet_strings",
-      "connect_ui",
       "disabled_state",
       "enabled_state",
       "cta_change",
@@ -194,8 +161,6 @@
       "api_surface"
     ],
     "infra": [
-      "new_chunks",
-      "js_change",
       "reward_api",
       "auth_api"
     ],
@@ -214,13 +179,13 @@
       "backend_rewards_payload"
     ],
     "frontendScore": 100,
-    "infraScore": 80,
+    "infraScore": 40,
     "rewardsScore": 100,
     "behaviorScore": 100,
-    "movementPct": 3.23,
-    "recentChangesCount": 2,
+    "movementPct": 0,
+    "recentChangesCount": 0,
     "hasWalletStrings": true,
-    "hasConnectUI": true,
+    "hasConnectUI": false,
     "hasDisabledState": true,
     "hasEnabledState": true,
     "hasRewardLogic": true,
@@ -239,13 +204,13 @@
     "hasEnabledTrue": false,
     "hasActiveTrue": false,
     "hasRewardsArray": true,
-    "hasNewChunks": true,
+    "hasNewChunks": false,
     "hasVisibleCTAChange": true
   },
   "discovery": {
-    "checkedAt": "2026-08-09T05:05:20.381Z",
-    "sourceSnapshotId": "2026-08-09_050511__2026-08-09T05:05:20.218Z",
-    "snapshotDir": "2026-08-09_050511",
+    "checkedAt": "2026-08-09T06:57:46.728Z",
+    "sourceSnapshotId": "2026-08-09_065737__2026-08-09T06:57:46.600Z",
+    "snapshotDir": "2026-08-09_065737",
     "newUnknownChange": true,
     "keyFunctionCandidate": "critical:claim",
     "newLabels": [
@@ -289,7 +254,7 @@
     ]
   },
   "whyItMatters": "Reward claim infrastructure appears to be activating. Wallet and authentication layers are being tightly integrated. Low activity but high-sensitivity changes suggest stealth deployment. Reward systems are a primary focus of current changes.",
-  "alphaScore": 35,
+  "alphaScore": 9,
   "alphaClass": "ACTIONABLE",
   "triggerState": "TRIGGERED",
   "suggestedAction": "Launch imminent. Escalate immediately and monitor backend/UI flips aggressively.",
@@ -298,6 +263,6 @@
   "signalFusion": "REWARD + WALLET + AUTH CLUSTER",
   "priority": "CRITICAL",
   "eta": "< 2h",
-  "signature": "CRITICAL::180::AUTH|BEHAVIOR_SPIKE|CHAIN|LAUNCH_IMMINENT|PORTAL_ARMED|PRE-ACTIVATION|REWARDS|REWARD_PREP|SYSTEM|UI_ARMING::BEHAVIOR_SPIKE|PRE-ACTIVATION|REWARD_PREP|UI_ARMING",
-  "alertSignature": "735f8c719b51420d8088b08414a019e885bcaf474bba6071bb028d058499f64c"
+  "signature": "CRITICAL::180::AUTH|BEHAVIOR_SPIKE|CHAIN|LAUNCH_IMMINENT|PORTAL_ARMED|REWARDS|REWARD_PREP|SYSTEM::BEHAVIOR_SPIKE|REWARD_PREP",
+  "alertSignature": "06714deeef8454f6aa05f3fafbdc6abb5d5d99f9e92df731a62e8222c5cf20e6"
 }
