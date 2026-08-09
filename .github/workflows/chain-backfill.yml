@@ -14,6 +14,7 @@ permissions:
 jobs:
   backfill:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
 
@@ -27,11 +28,19 @@ jobs:
       - name: Restore radar-data state
         run: |
           mkdir -p public/data
+
           git fetch origin radar-data || true
+
+          git worktree prune
           rm -rf /tmp/radar-data
+
           if git show-ref --verify --quiet refs/remotes/origin/radar-data; then
             git worktree add /tmp/radar-data origin/radar-data
-            cp -f /tmp/radar-data/data/chain-baseline.json public/data/chain-baseline.json 2>/dev/null || true
+
+            cp -f \
+              /tmp/radar-data/data/chain-baseline.json \
+              public/data/chain-baseline.json \
+              2>/dev/null || true
           fi
 
       - name: Build historical baseline
@@ -43,13 +52,30 @@ jobs:
       - name: Publish baseline to radar-data
         run: |
           git fetch origin radar-data || true
-          rm -rf /tmp/radar-data
-          git worktree add /tmp/radar-data origin/radar-data
+
+          if [ ! -e /tmp/radar-data/.git ]; then
+            git worktree prune
+            rm -rf /tmp/radar-data
+            git worktree add /tmp/radar-data origin/radar-data
+          fi
+
           mkdir -p /tmp/radar-data/data
-          cp public/data/chain-baseline.json /tmp/radar-data/data/chain-baseline.json
+
+          cp \
+            public/data/chain-baseline.json \
+            /tmp/radar-data/data/chain-baseline.json
+
           cd /tmp/radar-data
+
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
           git add data/chain-baseline.json
-          git commit -m "Update chain historical baseline" || exit 0
+
+          if git diff --cached --quiet; then
+            echo "No baseline changes to publish"
+            exit 0
+          fi
+
+          git commit -m "Update chain historical baseline"
           git push origin HEAD:radar-data
