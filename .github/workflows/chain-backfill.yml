@@ -28,19 +28,13 @@ jobs:
       - name: Restore radar-data state
         run: |
           mkdir -p public/data
-
           git fetch origin radar-data || true
-
           git worktree prune
           rm -rf /tmp/radar-data
 
           if git show-ref --verify --quiet refs/remotes/origin/radar-data; then
             git worktree add /tmp/radar-data origin/radar-data
-
-            cp -f \
-              /tmp/radar-data/data/chain-baseline.json \
-              public/data/chain-baseline.json \
-              2>/dev/null || true
+            cp -f /tmp/radar-data/data/chain-baseline.json public/data/chain-baseline.json 2>/dev/null || true
           fi
 
       - name: Build historical baseline
@@ -60,16 +54,11 @@ jobs:
           fi
 
           mkdir -p /tmp/radar-data/data
-
-          cp \
-            public/data/chain-baseline.json \
-            /tmp/radar-data/data/chain-baseline.json
+          cp public/data/chain-baseline.json /tmp/radar-data/data/chain-baseline.json
 
           cd /tmp/radar-data
-
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
           git add data/chain-baseline.json
 
           if git diff --cached --quiet; then
