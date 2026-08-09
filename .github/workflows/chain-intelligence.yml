@@ -1,0 +1,59 @@
+name: Pond0x Chain Intelligence
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: pond0x-chain-intelligence
+  cancel-in-progress: false
+
+jobs:
+  chain:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install watcher dependencies
+        run: cd watcher && npm install
+      - name: Restore radar-data state
+        run: |
+          mkdir -p public/data
+          git fetch origin radar-data || true
+          if git ls-remote --exit-code --heads origin radar-data; then
+            rm -rf /tmp/radar-restore
+            git worktree add /tmp/radar-restore origin/radar-data
+            cp -R /tmp/radar-restore/data/. public/data/ 2>/dev/null || true
+            git worktree remove /tmp/radar-restore --force || true
+          fi
+      - name: Build Chain Intelligence
+        run: node watcher/chain-intelligence.js
+        env:
+          HELIUS_API_KEY: ${{ secrets.HELIUS_API_KEY }}
+      - name: Notify Telegram intelligently
+        run: node watcher/chain-notify.js
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      - name: Publish chain data to radar-data
+        run: |
+          git fetch origin radar-data || true
+          rm -rf /tmp/radar-data
+          git worktree add /tmp/radar-data origin/radar-data
+          mkdir -p /tmp/radar-data/data
+          cp public/data/chain-intelligence.json /tmp/radar-data/data/
+          cp public/data/chain-history.json /tmp/radar-data/data/ 2>/dev/null || true
+          cp public/data/chain-last-alert.json /tmp/radar-data/data/ 2>/dev/null || true
+          cd /tmp/radar-data
+          git config user.name "radar-bot"
+          git config user.email "bot@radar.ai"
+          git add data
+          git commit -m "Update chain intelligence" || echo "No changes"
+          git push origin HEAD:radar-data
