@@ -20,6 +20,8 @@ type RadarApiResponse = {
   heartbeatData?: HeartbeatData | null
   heartbeat?: HeartbeatData | null
   meta?: RadarApiSyncMeta
+  chainIntelligence?: any
+  chainBaseline?: any
 }
 
 function apiRadarUrl(cacheBust: number) {
@@ -135,7 +137,9 @@ function normalizeHeartbeatData(item: HeartbeatData | null): HeartbeatData | nul
 }
 
 function sortRadarHistory(items: RadarData[]) {
-  return [...items].sort((a, b) => getSafeTime(b.generatedAt) - getSafeTime(a.generatedAt))
+  return [...items].sort(
+    (a, b) => getSafeTime(b.generatedAt) - getSafeTime(a.generatedAt)
+  )
 }
 
 function sortAlerts(items: AlertItem[]) {
@@ -155,6 +159,9 @@ export function useRadarData() {
   const [error, setError] = useState<string | null>(null)
   const [meta, setMeta] = useState<RadarApiSyncMeta | null>(null)
 
+  const [chainIntelligence, setChainIntelligence] = useState<any>(null)
+  const [chainBaseline, setChainBaseline] = useState<any>(null)
+
   const loadRemoteRadar = useCallback(async (signal?: AbortSignal) => {
     const cacheBust = Math.floor(Date.now() / 10000)
 
@@ -169,7 +176,11 @@ export function useRadarData() {
 
     const json: RadarApiResponse = await res.json()
 
-    const rawData = json?.data ?? json?.latest ?? json?.latestData ?? null
+    const rawData =
+      json?.data ??
+      json?.latest ??
+      json?.latestData ??
+      null
 
     const rawHistory = Array.isArray(json?.history)
       ? json.history
@@ -177,7 +188,10 @@ export function useRadarData() {
         ? json.historyData
         : []
 
-    const rawHeartbeat = json?.heartbeatData ?? json?.heartbeat ?? null
+    const rawHeartbeat =
+      json?.heartbeatData ??
+      json?.heartbeat ??
+      null
 
     const rawAlerts = Array.isArray(json?.alerts)
       ? json.alerts
@@ -187,7 +201,10 @@ export function useRadarData() {
           ? json.alertsHistory
           : []
 
-    const normalizedData = rawData ? normalizeRadarItem(rawData) : null
+    const normalizedData =
+      rawData
+        ? normalizeRadarItem(rawData)
+        : null
 
     const normalizedHistory = sortRadarHistory(
       rawHistory
@@ -201,24 +218,40 @@ export function useRadarData() {
         .map(normalizeAlertItem)
     )
 
-    const normalizedHeartbeat = normalizeHeartbeatData(rawHeartbeat)
+    const normalizedHeartbeat =
+      normalizeHeartbeatData(rawHeartbeat)
 
     setData(normalizedData)
     setHistory(normalizedHistory)
     setHeartbeatData(normalizedHeartbeat)
     setAlerts(normalizedAlerts)
     setMeta(json?.meta || null)
+
+    setChainIntelligence(
+      json?.chainIntelligence || null
+    )
+
+    setChainBaseline(
+      json?.chainBaseline || null
+    )
   }, [])
 
   const refresh = useCallback(
     async (signal?: AbortSignal) => {
       try {
         setError(null)
+
         await loadRemoteRadar(signal)
       } catch (error) {
         if ((error as Error).name !== "AbortError") {
-          console.error("Error loading radar data:", error)
-          setError("No se pudieron cargar los datos del radar")
+          console.error(
+            "Error loading radar data:",
+            error
+          )
+
+          setError(
+            "No se pudieron cargar los datos del radar"
+          )
         }
       } finally {
         if (!signal?.aborted) {
@@ -237,30 +270,54 @@ export function useRadarData() {
       await refresh(signal)
     }
 
-    const initialController = new AbortController()
+    const initialController =
+      new AbortController()
+
     fetchData(initialController.signal)
 
-    const fetchInterval = setInterval(() => {
-      if (document.visibilityState !== "visible") return
+    const fetchInterval =
+      setInterval(() => {
+        if (
+          document.visibilityState !== "visible"
+        ) {
+          return
+        }
 
-      const intervalController = new AbortController()
-      fetchData(intervalController.signal)
-    }, 60_000)
+        const intervalController =
+          new AbortController()
+
+        fetchData(
+          intervalController.signal
+        )
+      }, 60_000)
 
     function handleVisibilityChange() {
-      if (document.visibilityState === "visible") {
-        const controller = new AbortController()
+      if (
+        document.visibilityState === "visible"
+      ) {
+        const controller =
+          new AbortController()
+
         fetchData(controller.signal)
       }
     }
 
-    document.addEventListener("visibilitychange", handleVisibilityChange)
+    document.addEventListener(
+      "visibilitychange",
+      handleVisibilityChange
+    )
 
     return () => {
       isMounted = false
+
       initialController.abort()
+
       clearInterval(fetchInterval)
-      document.removeEventListener("visibilitychange", handleVisibilityChange)
+
+      document.removeEventListener(
+        "visibilitychange",
+        handleVisibilityChange
+      )
     }
   }, [refresh])
 
@@ -272,6 +329,10 @@ export function useRadarData() {
     heartbeatData,
     error,
     meta,
+
+    chainIntelligence,
+    chainBaseline,
+
     refresh,
   }
 }
