@@ -12,90 +12,46 @@ const WPOND_MINT = '3JgFwoYV74f6LwWjQWnr3YDPFnmBdwQfNyubv99jqUoq';
 const dataDir = path.join(__dirname, '..', 'public', 'data');
 const outputFile = path.join(dataDir, 'chain-intelligence.json');
 const historyFile = path.join(dataDir, 'chain-history.json');
+const baselineFile = path.join(dataDir, 'chain-baseline.json');
 
 const CORRELATION_WINDOW_SECONDS = 5 * 60;
 const ACTIVE_FUNDING_WINDOW_MINUTES = 15;
 const MAX_CYCLES_OUTPUT = 12;
 
-function n(v) {
-  const x = Number(v || 0);
-  return Number.isFinite(x) ? x : 0;
-}
-
-function iso(ts) {
-  return new Date(n(ts) * 1000).toISOString();
-}
-
-function within(ts, minutes, nowSec) {
-  return n(ts) >= nowSec - minutes * 60;
-}
-
-function sum(xs, f) {
-  return xs.reduce((a, x) => a + n(f(x)), 0);
-}
-
-function uniq(xs) {
-  return [...new Set(xs.filter(Boolean))];
-}
-
-function round(v, d = 3) {
-  const p = 10 ** d;
-  return Math.round(n(v) * p) / p;
-}
+function n(v) { const x = Number(v || 0); return Number.isFinite(x) ? x : 0; }
+function iso(ts) { return new Date(n(ts) * 1000).toISOString(); }
+function within(ts, minutes, nowSec) { return n(ts) >= nowSec - minutes * 60; }
+function sum(xs, f) { return xs.reduce((a, x) => a + n(f(x)), 0); }
+function uniq(xs) { return [...new Set(xs.filter(Boolean))]; }
+function round(v, d = 3) { const p = 10 ** d; return Math.round(n(v) * p) / p; }
 
 function median(values) {
-  const xs = values.map(n).filter(Number.isFinite).sort((a, b) => a - b);
-
+  const xs = values.map(n).filter(Number.isFinite).sort((a,b)=>a-b);
   if (!xs.length) return null;
-
-  const mid = Math.floor(xs.length / 2);
-
-  return xs.length % 2
-    ? xs[mid]
-    : (xs[mid - 1] + xs[mid]) / 2;
+  const m = Math.floor(xs.length / 2);
+  return xs.length % 2 ? xs[m] : (xs[m-1] + xs[m]) / 2;
 }
 
 function stdDev(values) {
   const xs = values.map(n).filter(Number.isFinite);
-
   if (xs.length < 2) return 0;
-
   const avg = sum(xs, x => x) / xs.length;
-  const variance = sum(xs, x => (x - avg) ** 2) / xs.length;
-
-  return Math.sqrt(variance);
+  return Math.sqrt(sum(xs, x => (x - avg) ** 2) / xs.length);
 }
 
 async function fetchAddressTransactions(address, limit = 100) {
-  if (!HELIUS_API_KEY) {
-    throw new Error('HELIUS_API_KEY is missing');
-  }
-
-  const url =
-    `https://api.helius.xyz/v0/addresses/${address}/transactions` +
-    `?api-key=${encodeURIComponent(HELIUS_API_KEY)}&limit=${limit}`;
-
-  const res = await fetch(url, {
-    headers: { accept: 'application/json' }
-  });
-
-  if (!res.ok) {
-    throw new Error(
-      `Helius ${address.slice(0, 6)} failed: ` +
-      `${res.status} ${await res.text()}`
-    );
-  }
-
+  if (!HELIUS_API_KEY) throw new Error('HELIUS_API_KEY is missing');
+  const url = `https://api.helius.xyz/v0/addresses/${address}/transactions?api-key=${encodeURIComponent(HELIUS_API_KEY)}&limit=${limit}`;
+  const res = await fetch(url, { headers: { accept: 'application/json' } });
+  if (!res.ok) throw new Error(`Helius ${address.slice(0,6)} failed: ${res.status} ${await res.text()}`);
   return res.json();
 }
 
 function extractTransfers(txs) {
   const out = [];
-
   for (const tx of Array.isArray(txs) ? txs : []) {
     for (const t of Array.isArray(tx.tokenTransfers) ? tx.tokenTransfers : []) {
       if (t.mint !== WPOND_MINT) continue;
-
       out.push({
         signature: tx.signature,
         timestamp: n(tx.timestamp),
@@ -108,649 +64,291 @@ function extractTransfers(txs) {
       });
     }
   }
-
   return out;
 }
 
 function stats(claims, minutes, nowSec) {
-  const rows = claims.filter(
-    x => within(x.timestamp, minutes, nowSec)
-  );
-
+  const rows = claims.filter(x => within(x.timestamp, minutes, nowSec));
   const total = sum(rows, x => x.amount);
-
   return {
     minutes,
     rewards: rows.length,
     wpondDistributed: round(total),
-    uniqueRecipients: uniq(rows.map(x => x.to)).length,
-    avgReward: rows.length
-      ? round(total / rows.length)
-      : 0,
-    largestReward: round(
-      Math.max(0, ...rows.map(x => x.amount))
-    ),
+    uniqueRecipients: uniq(rows.map(x=>x.to)).length,
+    avgReward: rows.length ? round(total / rows.length) : 0,
+    largestReward: round(Math.max(0, ...rows.map(x=>x.amount))),
   };
 }
 
-/*
- * Build funding -> distribution cycles.
- *
- * A cycle starts with an UPSTREAM -> DISTRIBUTOR wPOND funding event.
- *
- * Claims are attached to the nearest preceding funding event until:
- *
- * 1. another funding event arrives, or
- * 2. the 5-minute correlation window expires.
- *
- * This prevents the same claim from being counted in multiple cycles.
- */
 function buildDistributionCycles(funding, claims) {
-  const f = [...funding].sort(
-    (a, b) => a.timestamp - b.timestamp
-  );
-
-  const c = [...claims].sort(
-    (a, b) => a.timestamp - b.timestamp
-  );
-
+  const f = [...funding].sort((a,b)=>a.timestamp-b.timestamp);
+  const c = [...claims].sort((a,b)=>a.timestamp-b.timestamp);
   const cycles = [];
 
-  for (let i = 0; i < f.length; i++) {
-    const fundingEvent = f[i];
-
-    const nextFundingTs =
-      f[i + 1]?.timestamp || Infinity;
-
-    const hardEnd =
-      fundingEvent.timestamp + CORRELATION_WINDOW_SECONDS;
-
-    const cycleEnd =
-      Math.min(nextFundingTs, hardEnd);
-
-    const cycleClaims = c.filter(
-      x =>
-        x.timestamp >= fundingEvent.timestamp &&
-        x.timestamp < cycleEnd
-    );
-
-    const distributed =
-      sum(cycleClaims, x => x.amount);
-
-    const recipients =
-      uniq(cycleClaims.map(x => x.to));
-
-    const delays =
-      cycleClaims.map(
-        x => x.timestamp - fundingEvent.timestamp
-      );
-
-    const firstDelay =
-      delays.length
-        ? Math.min(...delays)
-        : null;
-
-    const lastDelay =
-      delays.length
-        ? Math.max(...delays)
-        : null;
+  for (let i=0; i<f.length; i++) {
+    const fe = f[i];
+    const nextFundingTs = f[i+1]?.timestamp || Infinity;
+    const cycleEnd = Math.min(nextFundingTs, fe.timestamp + CORRELATION_WINDOW_SECONDS);
+    const cc = c.filter(x => x.timestamp >= fe.timestamp && x.timestamp < cycleEnd);
+    const distributed = sum(cc, x=>x.amount);
+    const delays = cc.map(x=>x.timestamp-fe.timestamp);
 
     cycles.push({
-      fundingSignature: fundingEvent.signature,
-      fundingTime: fundingEvent.time,
-      fundingTimestamp: fundingEvent.timestamp,
-      fundingAmount: round(fundingEvent.amount),
-      fundingSource: fundingEvent.source,
-
-      claimCount: cycleClaims.length,
-      uniqueRecipients: recipients.length,
-
+      fundingSignature: fe.signature,
+      fundingTime: fe.time,
+      fundingTimestamp: fe.timestamp,
+      fundingAmount: round(fe.amount),
+      fundingSource: fe.source,
+      claimCount: cc.length,
+      uniqueRecipients: uniq(cc.map(x=>x.to)).length,
       distributedAmount: round(distributed),
-
-      distributionRatioPct:
-        fundingEvent.amount
-          ? round(
-              (distributed / fundingEvent.amount) * 100,
-              2
-            )
-          : null,
-
-      firstClaimDelaySeconds: firstDelay,
-      lastClaimDelaySeconds: lastDelay,
-
-      correlated: cycleClaims.length > 0,
-
-      claims: cycleClaims.map(x => ({
-        signature: x.signature,
-        time: x.time,
-        timestamp: x.timestamp,
-        to: x.to,
-        amount: round(x.amount),
-        delaySeconds:
-          x.timestamp - fundingEvent.timestamp,
+      distributionRatioPct: fe.amount ? round((distributed / fe.amount) * 100, 2) : null,
+      firstClaimDelaySeconds: delays.length ? Math.min(...delays) : null,
+      lastClaimDelaySeconds: delays.length ? Math.max(...delays) : null,
+      correlated: cc.length > 0,
+      claims: cc.map(x=>({
+        signature:x.signature, time:x.time, timestamp:x.timestamp,
+        to:x.to, amount:round(x.amount), delaySeconds:x.timestamp-fe.timestamp
       })),
     });
   }
-
-  return cycles.sort(
-    (a, b) =>
-      b.fundingTimestamp - a.fundingTimestamp
-  );
+  return cycles.sort((a,b)=>b.fundingTimestamp-a.fundingTimestamp);
 }
 
-function buildCycleAnalytics(cycles, funding) {
-  const correlated =
-    cycles.filter(x => x.correlated);
+function cadenceFromFunding(funding) {
+  const f = [...funding].sort((a,b)=>a.timestamp-b.timestamp);
+  const gaps = [];
+  for (let i=1; i<f.length; i++) gaps.push(f[i].timestamp - f[i-1].timestamp);
+  return gaps;
+}
 
-  const delayValues =
-    correlated
-      .map(x => x.firstClaimDelaySeconds)
-      .filter(x => x !== null);
+function buildCycleAnalytics(cycles, funding, baseline) {
+  const correlated = cycles.filter(x=>x.correlated);
+  const delays = correlated.map(x=>x.firstClaimDelaySeconds).filter(x=>x !== null);
+  const liveCadence = cadenceFromFunding(funding);
 
-  const chronologicalFunding =
-    [...funding].sort(
-      (a, b) => a.timestamp - b.timestamp
-    );
+  const baselineDelays = Array.isArray(baseline?.firstClaimDelaySeconds) ? baseline.firstClaimDelaySeconds : [];
+  const baselineCadence = Array.isArray(baseline?.fundingCadenceSeconds) ? baseline.fundingCadenceSeconds : [];
 
-  const cadenceSeconds = [];
+  const combinedDelays = [...baselineDelays, ...delays];
+  const combinedCadence = [...baselineCadence, ...liveCadence];
 
-  for (
-    let i = 1;
-    i < chronologicalFunding.length;
-    i++
-  ) {
-    cadenceSeconds.push(
-      chronologicalFunding[i].timestamp -
-      chronologicalFunding[i - 1].timestamp
-    );
-  }
+  const medDelay = median(combinedDelays);
+  const medCadence = median(combinedCadence);
+  const cadenceStdDev = stdDev(combinedCadence);
+  const cadenceCV = medCadence && combinedCadence.length >= 2 ? cadenceStdDev / medCadence : null;
 
-  const medDelay =
-    median(delayValues);
+  const correlationRate = cycles.length ? correlated.length / cycles.length : 0;
+  const baselineCorrelationRate = n(baseline?.correlationRatePct) / 100;
+  const weightedCorrelationRate = baseline?.cyclesAnalyzed
+    ? ((baselineCorrelationRate * n(baseline.cyclesAnalyzed)) + correlated.length) / (n(baseline.cyclesAnalyzed) + cycles.length)
+    : correlationRate;
 
-  const medCadence =
-    median(cadenceSeconds);
-
-  const cadenceStdDev =
-    stdDev(cadenceSeconds);
-
-  const cadenceCV =
-    medCadence && cadenceSeconds.length >= 2
-      ? cadenceStdDev / medCadence
-      : null;
-
-  const correlationRate =
-    cycles.length
-      ? correlated.length / cycles.length
-      : 0;
-
-  /*
-   * Explainable heuristic:
-   * estimates whether the observed pattern resembles
-   * a repeated automated funding/distribution cycle.
-   */
   let automationConfidence = 0;
+  const totalCorrelated = n(baseline?.correlatedCycles) + correlated.length;
+  if (totalCorrelated >= 1) automationConfidence += 20;
+  if (totalCorrelated >= 3) automationConfidence += 20;
+  if (totalCorrelated >= 5) automationConfidence += 15;
+  if (weightedCorrelationRate >= 0.5) automationConfidence += 15;
+  if (weightedCorrelationRate >= 0.75) automationConfidence += 10;
+  if (medDelay !== null && medDelay <= 180) automationConfidence += 10;
+  if (medDelay !== null && medDelay <= 60) automationConfidence += 5;
+  if (cadenceCV !== null && cadenceCV <= 0.25) automationConfidence += 5;
+  automationConfidence = Math.min(100, automationConfidence);
 
-  if (correlated.length >= 1)
-    automationConfidence += 20;
+  const cadenceConfidence =
+    combinedCadence.length >= 20 && cadenceCV !== null && cadenceCV <= 0.10 ? 'VERY HIGH' :
+    combinedCadence.length >= 8 && cadenceCV !== null && cadenceCV <= 0.20 ? 'HIGH' :
+    combinedCadence.length >= 4 ? 'MEDIUM' : 'LOW';
 
-  if (correlated.length >= 3)
-    automationConfidence += 20;
+  const claimAfterFundingProbabilityPct = round(weightedCorrelationRate * 100, 1);
 
-  if (correlated.length >= 5)
-    automationConfidence += 15;
-
-  if (correlationRate >= 0.5)
-    automationConfidence += 15;
-
-  if (correlationRate >= 0.75)
-    automationConfidence += 10;
-
-  if (
+  const stableCycle =
+    totalCorrelated >= 8 &&
+    claimAfterFundingProbabilityPct >= 50 &&
     medDelay !== null &&
-    medDelay <= 180
-  ) {
-    automationConfidence += 10;
-  }
-
-  if (
-    medDelay !== null &&
-    medDelay <= 60
-  ) {
-    automationConfidence += 5;
-  }
-
-  if (
-    cadenceCV !== null &&
-    cadenceCV <= 0.25
-  ) {
-    automationConfidence += 5;
-  }
-
-  automationConfidence =
-    Math.min(100, automationConfidence);
-
-  const cycleSignal =
-    correlated.length >= 3 &&
-    correlationRate >= 0.6 &&
-    medDelay !== null &&
-    medDelay <= CORRELATION_WINDOW_SECONDS
-      ? 'DISTRIBUTION_CYCLE_DETECTED'
-      : 'NO_STABLE_CYCLE';
+    medDelay <= CORRELATION_WINDOW_SECONDS &&
+    cadenceConfidence !== 'LOW';
 
   return {
-    cycleSignal,
+    cycleSignal: stableCycle ? 'DISTRIBUTION_CYCLE_DETECTED' : 'NO_STABLE_CYCLE',
     automationConfidence,
+    cadenceConfidence,
+    claimAfterFundingProbabilityPct,
+    liveFundingEventsAnalyzed: cycles.length,
+    liveCorrelatedCycles: correlated.length,
+    historicalCyclesAnalyzed: n(baseline?.cyclesAnalyzed),
+    historicalCorrelatedCycles: n(baseline?.correlatedCycles),
+    medianFirstClaimDelaySeconds: medDelay === null ? null : round(medDelay,1),
+    avgFirstClaimDelaySeconds: combinedDelays.length ? round(sum(combinedDelays,x=>x)/combinedDelays.length,1) : null,
+    medianFundingCadenceSeconds: medCadence === null ? null : round(medCadence,1),
+    fundingCadenceStdDevSeconds: combinedCadence.length ? round(cadenceStdDev,1) : null,
+    fundingCadenceCV: cadenceCV === null ? null : round(cadenceCV,3),
+    correlationWindowSeconds: CORRELATION_WINDOW_SECONDS,
+    baselineLoaded: Boolean(baseline),
+  };
+}
 
-    fundingEventsAnalyzed:
-      cycles.length,
+function buildPredictor(funding, analytics, nowSec) {
+  const latest = [...funding].sort((a,b)=>b.timestamp-a.timestamp)[0] || null;
+  const cadence = n(analytics.medianFundingCadenceSeconds);
+  const sigma = n(analytics.fundingCadenceStdDevSeconds);
 
-    correlatedCycles:
-      correlated.length,
+  if (!latest || !cadence) {
+    return {
+      status: 'INSUFFICIENT_DATA',
+      nextFundingExpectedAt: null,
+      nextFundingWindowStart: null,
+      nextFundingWindowEnd: null,
+      secondsToExpectedFunding: null,
+      fundingCadenceConfidence: analytics.cadenceConfidence,
+      claimAfterFundingProbabilityPct: analytics.claimAfterFundingProbabilityPct,
+      expectedClaimWindowSeconds: null,
+    };
+  }
 
-    correlationRatePct:
-      round(correlationRate * 100, 1),
+  let expectedTs = latest.timestamp + cadence;
+  while (expectedTs < nowSec - Math.max(60, sigma * 3)) expectedTs += cadence;
 
-    medianFirstClaimDelaySeconds:
-      medDelay === null
-        ? null
-        : round(medDelay, 1),
+  const halfWindow = Math.max(25, Math.min(180, sigma ? sigma * 2.5 : 45));
+  const secondsTo = round(expectedTs - nowSec, 0);
 
-    avgFirstClaimDelaySeconds:
-      delayValues.length
-        ? round(
-            sum(delayValues, x => x) /
-            delayValues.length,
-            1
-          )
-        : null,
+  const status =
+    Math.abs(secondsTo) <= halfWindow ? 'IN_FUNDING_WINDOW' :
+    secondsTo > halfWindow ? 'WATCHING' : 'WINDOW_PASSED';
 
-    medianFundingCadenceSeconds:
-      medCadence === null
-        ? null
-        : round(medCadence, 1),
+  const medDelay = n(analytics.medianFirstClaimDelaySeconds);
 
-    fundingCadenceStdDevSeconds:
-      cadenceSeconds.length
-        ? round(cadenceStdDev, 1)
-        : null,
-
-    fundingCadenceCV:
-      cadenceCV === null
-        ? null
-        : round(cadenceCV, 3),
-
-    correlationWindowSeconds:
-      CORRELATION_WINDOW_SECONDS,
+  return {
+    status,
+    nextFundingExpectedAt: iso(expectedTs),
+    nextFundingExpectedTimestamp: round(expectedTs,0),
+    nextFundingWindowStart: iso(expectedTs - halfWindow),
+    nextFundingWindowEnd: iso(expectedTs + halfWindow),
+    fundingWindowHalfWidthSeconds: round(halfWindow,0),
+    secondsToExpectedFunding: secondsTo,
+    fundingCadenceConfidence: analytics.cadenceConfidence,
+    claimAfterFundingProbabilityPct: analytics.claimAfterFundingProbabilityPct,
+    expectedClaimWindowSeconds: medDelay
+      ? { start: Math.max(10, round(medDelay - 20,0)), center: round(medDelay,0), end: Math.min(CORRELATION_WINDOW_SECONDS, round(medDelay + 45,0)) }
+      : null,
+    warning: 'Predictive timing is statistical, not a guarantee of a claim or launch.',
   };
 }
 
 async function main() {
   await fs.ensureDir(dataDir);
 
-  const [
-    distTxs,
-    upstreamTxs,
-    rewardTxs
-  ] = await Promise.all([
+  let baseline = null;
+  try { baseline = await fs.readJson(baselineFile); } catch {}
+
+  const [distTxs, upstreamTxs, rewardTxs] = await Promise.all([
     fetchAddressTransactions(DISTRIBUTOR, 100),
-    fetchAddressTransactions(UPSTREAM, 50),
+    fetchAddressTransactions(UPSTREAM, 100),
     fetchAddressTransactions(REWARD_WALLET, 50),
   ]);
 
-  const nowSec =
-    Math.floor(Date.now() / 1000);
+  const nowSec = Math.floor(Date.now()/1000);
+  const distTransfers = extractTransfers(distTxs);
 
-  const distTransfers =
-    extractTransfers(distTxs);
+  const claims = distTransfers
+    .filter(x=>x.from===DISTRIBUTOR && x.to && x.to!==DISTRIBUTOR)
+    .sort((a,b)=>b.timestamp-a.timestamp);
 
-  const claims =
-    distTransfers
-      .filter(
-        x =>
-          x.from === DISTRIBUTOR &&
-          x.to &&
-          x.to !== DISTRIBUTOR
-      )
-      .sort(
-        (a, b) =>
-          b.timestamp - a.timestamp
-      );
+  const funding = extractTransfers(upstreamTxs)
+    .filter(x=>x.from===UPSTREAM && x.to===DISTRIBUTOR)
+    .sort((a,b)=>b.timestamp-a.timestamp);
 
-  const funding =
-    extractTransfers(upstreamTxs)
-      .filter(
-        x =>
-          x.from === UPSTREAM &&
-          x.to === DISTRIBUTOR
-      )
-      .sort(
-        (a, b) =>
-          b.timestamp - a.timestamp
-      );
+  const rewardFlow = extractTransfers(rewardTxs).sort((a,b)=>b.timestamp-a.timestamp);
 
-  const rewardFlow =
-    extractTransfers(rewardTxs)
-      .sort(
-        (a, b) =>
-          b.timestamp - a.timestamp
-      );
+  const w5=stats(claims,5,nowSec), w15=stats(claims,15,nowSec), w60=stats(claims,60,nowSec), w24=stats(claims,1440,nowSec);
 
-  const w5 =
-    stats(claims, 5, nowSec);
+  const prev5Rows = claims.filter(x=>x.timestamp < nowSec-300 && x.timestamp >= nowSec-600);
+  const prev5Total = sum(prev5Rows,x=>x.amount);
+  const claimVelocityPct = prev5Rows.length ? round(((w5.rewards-prev5Rows.length)/prev5Rows.length)*100,1) : (w5.rewards?100:0);
+  const volumeVelocityPct = prev5Total ? round(((w5.wpondDistributed-prev5Total)/prev5Total)*100,1) : (w5.wpondDistributed?100:0);
 
-  const w15 =
-    stats(claims, 15, nowSec);
+  const lastClaim = claims[0] || null;
+  const silenceMinutes = lastClaim ? round((nowSec-lastClaim.timestamp)/60,1) : null;
+  const activityState = w5.rewards>=10?'SURGING':w5.rewards>=4?'HIGH':w5.rewards>=1?'ACTIVE':(w15.rewards?'COOLING':'QUIET');
 
-  const w60 =
-    stats(claims, 60, nowSec);
+  const lastFunding = funding[0] || null;
+  const fundingActive15m = Boolean(funding.find(x=>within(x.timestamp,ACTIVE_FUNDING_WINDOW_MINUTES,nowSec)));
+  const fundingSilenceMinutes = lastFunding ? round((nowSec-lastFunding.timestamp)/60,1) : null;
 
-  const w24 =
-    stats(claims, 1440, nowSec);
+  const cycles = buildDistributionCycles(funding, claims);
+  const cycleAnalytics = buildCycleAnalytics(cycles, funding, baseline);
+  const predictor = buildPredictor(funding, cycleAnalytics, nowSec);
 
-  const prev5Rows =
-    claims.filter(
-      x =>
-        x.timestamp < nowSec - 300 &&
-        x.timestamp >= nowSec - 600
-    );
+  const rewardWalletActive15m = rewardFlow.some(x=>within(x.timestamp,15,nowSec));
 
-  const prev5Total =
-    sum(prev5Rows, x => x.amount);
-
-  const claimVelocityPct =
-    prev5Rows.length
-      ? round(
-          (
-            (
-              w5.rewards -
-              prev5Rows.length
-            ) /
-            prev5Rows.length
-          ) * 100,
-          1
-        )
-      : w5.rewards
-        ? 100
-        : 0;
-
-  const volumeVelocityPct =
-    prev5Total
-      ? round(
-          (
-            (
-              w5.wpondDistributed -
-              prev5Total
-            ) /
-            prev5Total
-          ) * 100,
-          1
-        )
-      : w5.wpondDistributed
-        ? 100
-        : 0;
-
-  const lastClaim =
-    claims[0] || null;
-
-  const silenceMinutes =
-    lastClaim
-      ? round(
-          (
-            nowSec -
-            lastClaim.timestamp
-          ) / 60,
-          1
-        )
-      : null;
-
-  const activityState =
-    w5.rewards >= 10
-      ? 'SURGING'
-      : w5.rewards >= 4
-        ? 'HIGH'
-        : w5.rewards >= 1
-          ? 'ACTIVE'
-          : w15.rewards
-            ? 'COOLING'
-            : 'QUIET';
-
-  const lastFunding =
-    funding[0] || null;
-
-  const fundingObservedInSample =
-    funding.length > 0;
-
-  const fundingActive15m =
-    Boolean(
-      funding.find(
-        x =>
-          within(
-            x.timestamp,
-            ACTIVE_FUNDING_WINDOW_MINUTES,
-            nowSec
-          )
-      )
-    );
-
-  const fundingSilenceMinutes =
-    lastFunding
-      ? round(
-          (
-            nowSec -
-            lastFunding.timestamp
-          ) / 60,
-          1
-        )
-      : null;
-
-  const distributionCycles =
-    buildDistributionCycles(
-      funding,
-      claims
-    );
-
-  const cycleAnalytics =
-    buildCycleAnalytics(
-      distributionCycles,
-      funding
-    );
-
-  const rewardWalletActive15m =
-    rewardFlow.some(
-      x =>
-        within(
-          x.timestamp,
-          15,
-          nowSec
-        )
-    );
-
-  const confirmationScore =
-    Math.min(
-      100,
-
-      (w5.rewards ? 35 : 0) +
-
-      (fundingActive15m ? 20 : 0) +
-
-      (
-        w5.uniqueRecipients >= 3
-          ? 15
-          : 0
-      ) +
-
-      (
-        rewardWalletActive15m
-          ? 10
-          : 0
-      ) +
-
-      (
-        cycleAnalytics.cycleSignal ===
-        'DISTRIBUTION_CYCLE_DETECTED'
-          ? 20
-          : 0
-      )
-    );
-
-  const latestCorrelatedCycle =
-    distributionCycles.find(
-      x => x.correlated
-    ) || null;
+  const confirmationScore = Math.min(100,
+    (w5.rewards?30:0) +
+    (fundingActive15m?20:0) +
+    (w5.uniqueRecipients>=3?10:0) +
+    (rewardWalletActive15m?10:0) +
+    (cycleAnalytics.cycleSignal==='DISTRIBUTION_CYCLE_DETECTED'?15:0) +
+    (predictor.status==='IN_FUNDING_WINDOW'?15:0)
+  );
 
   const output = {
-    generatedAt:
-      new Date().toISOString(),
-
-    version: '1.1.0',
-
-    status: 'LIVE',
-
-    confidence: 'VERY HIGH',
-
-    entities: {
-      wpondMint: WPOND_MINT,
-      claimDistributor: DISTRIBUTOR,
-      upstream: UPSTREAM,
-      rewardWallet: REWARD_WALLET,
-    },
-
+    generatedAt:new Date().toISOString(),
+    version:'1.2.0',
+    status:'LIVE',
+    confidence:'VERY HIGH',
+    entities:{wpondMint:WPOND_MINT,claimDistributor:DISTRIBUTOR,upstream:UPSTREAM,rewardWallet:REWARD_WALLET},
     activityState,
-
-    chainConfirmationScore:
-      confirmationScore,
-
+    chainConfirmationScore:confirmationScore,
     claimVelocityPct,
-
     volumeVelocityPct,
-
     silenceMinutes,
-
-    /*
-     * Backward-compatible field.
-     * TRUE only when funding is active
-     * during the last 15 minutes.
-     */
-    fundingDetected:
-      fundingActive15m,
-
-    fundingStatus: {
-      observedInFetchedSample:
-        fundingObservedInSample,
-
-      active15m:
-        fundingActive15m,
-
-      lastSeenMinutesAgo:
-        fundingSilenceMinutes,
-
+    fundingDetected:fundingActive15m,
+    fundingStatus:{
+      observedInFetchedSample:funding.length>0,
+      active15m:fundingActive15m,
+      lastSeenMinutesAgo:fundingSilenceMinutes,
       lastFunding,
     },
-
-    lastFunding,
-
-    lastClaim,
-
-    windows: {
-      '5m': w5,
-      '15m': w15,
-      '1h': w60,
-      '24h': w24,
-    },
-
+    predictor,
     cycleAnalytics,
-
-    latestCorrelatedCycle,
-
-    distributionCycles:
-      distributionCycles.slice(
-        0,
-        MAX_CYCLES_OUTPUT
-      ),
-
-    recentClaims:
-      claims.slice(0, 20),
-
-    recentFundingEvents:
-      funding.slice(0, 10),
-
-    methodology:
-      'Direct wPOND transfers from the high-confidence Pond0x Claim Distributor are classified as reward/claim candidates. UPSTREAM -> DISTRIBUTOR Jupiter/swap flows are treated as funding events. Claims are correlated to the nearest preceding funding event until the next funding event or a 5-minute correlation window, whichever comes first. DEX/swap flows remain separate from reward distributions.',
+    lastFunding,
+    lastClaim,
+    windows:{'5m':w5,'15m':w15,'1h':w60,'24h':w24},
+    latestCorrelatedCycle:cycles.find(x=>x.correlated)||null,
+    distributionCycles:cycles.slice(0,MAX_CYCLES_OUTPUT),
+    recentClaims:claims.slice(0,20),
+    recentFundingEvents:funding.slice(0,20),
+    methodology:'Direct wPOND transfers from the high-confidence Claim Distributor are treated as reward/claim candidates. UPSTREAM -> DISTRIBUTOR Jupiter/swap flows are treated as funding events. Cycle timing and prediction use a live sample plus an optional historical baseline. Funding cadence confidence and claim-after-funding probability are deliberately separated.',
   };
 
-  await fs.writeJson(
-    outputFile,
-    output,
-    { spaces: 2 }
-  );
+  await fs.writeJson(outputFile,output,{spaces:2});
 
-  let hist = [];
-
-  try {
-    hist =
-      await fs.readJson(historyFile);
-
-    if (!Array.isArray(hist))
-      hist = [];
-  } catch {}
-
+  let hist=[]; try { hist=await fs.readJson(historyFile); if(!Array.isArray(hist)) hist=[]; } catch {}
   hist.unshift({
-    generatedAt:
-      output.generatedAt,
-
+    generatedAt:output.generatedAt,
     activityState,
-
-    chainConfirmationScore:
-      confirmationScore,
-
-    claimVelocityPct,
-
-    fundingDetected:
-      fundingActive15m,
-
-    fundingObservedInSample,
-
-    fundingSilenceMinutes,
-
-    cycleSignal:
-      cycleAnalytics.cycleSignal,
-
-    automationConfidence:
-      cycleAnalytics.automationConfidence,
-
-    correlationRatePct:
-      cycleAnalytics.correlationRatePct,
-
-    medianFirstClaimDelaySeconds:
-      cycleAnalytics
-        .medianFirstClaimDelaySeconds,
-
-    windows:
-      output.windows,
+    chainConfirmationScore:confirmationScore,
+    fundingDetected:fundingActive15m,
+    cycleSignal:cycleAnalytics.cycleSignal,
+    automationConfidence:cycleAnalytics.automationConfidence,
+    cadenceConfidence:cycleAnalytics.cadenceConfidence,
+    claimAfterFundingProbabilityPct:cycleAnalytics.claimAfterFundingProbabilityPct,
+    medianFirstClaimDelaySeconds:cycleAnalytics.medianFirstClaimDelaySeconds,
+    medianFundingCadenceSeconds:cycleAnalytics.medianFundingCadenceSeconds,
+    predictorStatus:predictor.status,
+    nextFundingExpectedAt:predictor.nextFundingExpectedAt,
+    windows:output.windows,
   });
-
-  await fs.writeJson(
-    historyFile,
-    hist.slice(0, 2016),
-    { spaces: 2 }
-  );
+  await fs.writeJson(historyFile,hist.slice(0,2016),{spaces:2});
 
   console.log(
-    `Chain Intelligence: ${activityState}` +
-    ` | 5m=${w5.rewards} rewards` +
-    ` | ${w5.wpondDistributed} wPOND` +
-    ` | recipients=${w5.uniqueRecipients}` +
+    `Chain Intelligence v1.2: ${activityState}` +
     ` | cycle=${cycleAnalytics.cycleSignal}` +
-    ` | automation=${cycleAnalytics.automationConfidence}/100`
+    ` | automation=${cycleAnalytics.automationConfidence}/100` +
+    ` | cadence=${cycleAnalytics.cadenceConfidence}` +
+    ` | claim-after-funding=${cycleAnalytics.claimAfterFundingProbabilityPct}%` +
+    ` | predictor=${predictor.status}`
   );
 }
 
-main().catch(e => {
-  console.error(
-    'chain-intelligence failed:',
-    e
-  );
-
-  process.exit(1);
-});
+main().catch(e=>{console.error('chain-intelligence failed:',e);process.exit(1);});
