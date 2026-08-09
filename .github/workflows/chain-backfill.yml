@@ -1,0 +1,55 @@
+name: Pond0x Chain Historical Backfill
+
+on:
+  workflow_dispatch:
+    inputs:
+      pages:
+        description: 'Pages per address (100 transactions/page, max 20)'
+        required: false
+        default: '8'
+
+permissions:
+  contents: write
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install watcher dependencies
+        run: cd watcher && npm install
+
+      - name: Restore radar-data state
+        run: |
+          mkdir -p public/data
+          git fetch origin radar-data || true
+          rm -rf /tmp/radar-data
+          if git show-ref --verify --quiet refs/remotes/origin/radar-data; then
+            git worktree add /tmp/radar-data origin/radar-data
+            cp -f /tmp/radar-data/data/chain-baseline.json public/data/chain-baseline.json 2>/dev/null || true
+          fi
+
+      - name: Build historical baseline
+        env:
+          HELIUS_API_KEY: ${{ secrets.HELIUS_API_KEY }}
+          CHAIN_BACKFILL_PAGES: ${{ github.event.inputs.pages || '8' }}
+        run: node watcher/chain-backfill.js
+
+      - name: Publish baseline to radar-data
+        run: |
+          git fetch origin radar-data || true
+          rm -rf /tmp/radar-data
+          git worktree add /tmp/radar-data origin/radar-data
+          mkdir -p /tmp/radar-data/data
+          cp public/data/chain-baseline.json /tmp/radar-data/data/chain-baseline.json
+          cd /tmp/radar-data
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/chain-baseline.json
+          git commit -m "Update chain historical baseline" || exit 0
+          git push origin HEAD:radar-data
