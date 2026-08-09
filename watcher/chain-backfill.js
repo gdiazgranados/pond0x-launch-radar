@@ -34,7 +34,7 @@ function stdDev(values){
 
 async function fetchPage(address,before){
   if(!HELIUS_API_KEY)throw new Error('HELIUS_API_KEY is missing');
-  const q=new URLSearchParams({apiKey:HELIUS_API_KEY,limit:String(LIMIT)});
+  const q=new URLSearchParams({'api-key':HELIUS_API_KEY,limit:String(LIMIT)});
   if(before)q.set('before',before);
   const url=`https://api.helius.xyz/v0/addresses/${address}/transactions?${q.toString()}`;
   const res=await fetch(url,{headers:{accept:'application/json'}});
