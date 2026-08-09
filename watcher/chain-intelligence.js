@@ -236,6 +236,111 @@ function buildPredictor(funding, analytics, nowSec) {
   };
 }
 
+
+function clamp(v, min = 0, max = 100) {
+  return Math.max(min, Math.min(max, n(v)));
+}
+
+function similarityPct(actual, expected, tolerance) {
+  actual = n(actual); expected = n(expected); tolerance = Math.max(1, n(tolerance));
+  if (!actual || !expected) return null;
+  return round(clamp(100 - (Math.abs(actual - expected) / tolerance) * 100), 1);
+}
+
+function buildPatternMatch({ funding, cycles, analytics, predictor, baseline, nowSec }) {
+  if (!baseline || !n(baseline.cyclesAnalyzed)) {
+    return {
+      status: 'NO_BASELINE',
+      historicalPatternMatchPct: null,
+      confidence: 'LOW',
+      liveEvidence: false,
+      components: {},
+      interpretation: 'Historical baseline is not available yet.',
+    };
+  }
+
+  const chronologicalFunding = [...funding].sort((a,b)=>a.timestamp-b.timestamp);
+  const recentGaps = [];
+  for (let i=Math.max(1, chronologicalFunding.length-6); i<chronologicalFunding.length; i++) {
+    recentGaps.push(chronologicalFunding[i].timestamp - chronologicalFunding[i-1].timestamp);
+  }
+
+  const liveMedianCadence = median(recentGaps);
+  const historicalMedianCadence = n(baseline?.summary?.medianFundingCadenceSeconds || analytics.medianFundingCadenceSeconds);
+  const historicalCadenceSd = Math.max(15, n(baseline?.summary?.fundingCadenceStdDevSeconds || analytics.fundingCadenceStdDevSeconds));
+  const cadenceSimilarityPct = similarityPct(liveMedianCadence, historicalMedianCadence, historicalCadenceSd * 3);
+
+  const latestCorrelated = cycles.find(x=>x.correlated) || null;
+  const historicalMedianDelay = n(baseline?.summary?.medianFirstClaimDelaySeconds || analytics.medianFirstClaimDelaySeconds);
+  const delayTolerance = Math.max(30, historicalMedianDelay || 60);
+  const claimDelaySimilarityPct = latestCorrelated && latestCorrelated.firstClaimDelaySeconds !== null
+    ? similarityPct(latestCorrelated.firstClaimDelaySeconds, historicalMedianDelay, delayTolerance)
+    : null;
+
+  const predictorProximityPct =
+    predictor.status === 'IN_FUNDING_WINDOW' ? 100 :
+    predictor.status === 'WATCHING' && predictor.fundingWindowHalfWidthSeconds
+      ? round(clamp(100 - Math.max(0, n(predictor.secondsToExpectedFunding) - n(predictor.fundingWindowHalfWidthSeconds)) / Math.max(60, historicalMedianCadence) * 100), 1)
+      : predictor.status === 'WINDOW_PASSED' ? 20 : 0;
+
+  const correlationPct = clamp(analytics.claimAfterFundingProbabilityPct);
+  const automationPct = clamp(analytics.automationConfidence);
+  const cadencePct = cadenceSimilarityPct === null ? 50 : cadenceSimilarityPct;
+  const delayPct = claimDelaySimilarityPct === null ? 50 : claimDelaySimilarityPct;
+
+  const score = round(
+    cadencePct * 0.30 +
+    delayPct * 0.15 +
+    correlationPct * 0.20 +
+    automationPct * 0.20 +
+    predictorProximityPct * 0.15,
+    1
+  );
+
+  const latestFunding = funding[0] || null;
+  const fundingRecent = latestFunding ? within(latestFunding.timestamp, ACTIVE_FUNDING_WINDOW_MINUTES, nowSec) : false;
+  const latestClaimTs = Math.max(0, ...cycles.flatMap(c => (c.claims || []).map(x=>n(x.timestamp))));
+  const claimRecent = latestClaimTs ? within(latestClaimTs, 15, nowSec) : false;
+  const liveEvidence = fundingRecent || claimRecent || predictor.status === 'IN_FUNDING_WINDOW';
+
+  const confidence =
+    n(baseline.cyclesAnalyzed) >= 100 ? 'VERY HIGH' :
+    n(baseline.cyclesAnalyzed) >= 30 ? 'HIGH' :
+    n(baseline.cyclesAnalyzed) >= 12 ? 'MEDIUM' : 'LOW';
+
+  const status =
+    score >= 80 && liveEvidence ? 'STRONG_MATCH' :
+    score >= 65 ? 'MATCH' :
+    score >= 45 ? 'PARTIAL_MATCH' : 'WEAK_MATCH';
+
+  return {
+    status,
+    historicalPatternMatchPct: score,
+    confidence,
+    sampleCycles: n(baseline.cyclesAnalyzed),
+    liveEvidence,
+    components: {
+      cadenceSimilarityPct,
+      claimDelaySimilarityPct,
+      claimAfterFundingProbabilityPct: correlationPct,
+      automationConfidencePct: automationPct,
+      predictorProximityPct,
+    },
+    live: {
+      medianRecentFundingCadenceSeconds: liveMedianCadence === null ? null : round(liveMedianCadence,1),
+      latestCorrelatedClaimDelaySeconds: latestCorrelated?.firstClaimDelaySeconds ?? null,
+    },
+    baseline: {
+      medianFundingCadenceSeconds: historicalMedianCadence || null,
+      medianFirstClaimDelaySeconds: historicalMedianDelay || null,
+      correlationRatePct: n(baseline.correlationRatePct),
+    },
+    interpretation: liveEvidence
+      ? 'Current on-chain timing is compared with the historical reward-cycle baseline. This is a similarity score, not a probability of a claim or launch.'
+      : 'Historical timing similarity is present, but no fresh on-chain trigger is active. This is not a claim or launch probability.',
+  };
+}
+
 async function main() {
   await fs.ensureDir(dataDir);
 
@@ -279,6 +384,7 @@ async function main() {
   const cycles = buildDistributionCycles(funding, claims);
   const cycleAnalytics = buildCycleAnalytics(cycles, funding, baseline);
   const predictor = buildPredictor(funding, cycleAnalytics, nowSec);
+  const patternMatch = buildPatternMatch({ funding, cycles, analytics: cycleAnalytics, predictor, baseline, nowSec });
 
   const rewardWalletActive15m = rewardFlow.some(x=>within(x.timestamp,15,nowSec));
 
@@ -293,7 +399,7 @@ async function main() {
 
   const output = {
     generatedAt:new Date().toISOString(),
-    version:'1.2.0',
+    version:'1.3.0',
     status:'LIVE',
     confidence:'VERY HIGH',
     entities:{wpondMint:WPOND_MINT,claimDistributor:DISTRIBUTOR,upstream:UPSTREAM,rewardWallet:REWARD_WALLET},
@@ -310,6 +416,7 @@ async function main() {
       lastFunding,
     },
     predictor,
+    patternMatch,
     cycleAnalytics,
     lastFunding,
     lastClaim,
@@ -318,7 +425,7 @@ async function main() {
     distributionCycles:cycles.slice(0,MAX_CYCLES_OUTPUT),
     recentClaims:claims.slice(0,20),
     recentFundingEvents:funding.slice(0,20),
-    methodology:'Direct wPOND transfers from the high-confidence Claim Distributor are treated as reward/claim candidates. UPSTREAM -> DISTRIBUTOR Jupiter/swap flows are treated as funding events. Cycle timing and prediction use a live sample plus an optional historical baseline. Funding cadence confidence and claim-after-funding probability are deliberately separated.',
+    methodology:'Direct wPOND transfers from the high-confidence Claim Distributor are treated as reward/claim candidates. UPSTREAM -> DISTRIBUTOR Jupiter/swap flows are treated as funding events. Cycle timing and prediction use a live sample plus an optional historical baseline. Funding cadence confidence, claim-after-funding correlation, and historical pattern similarity are deliberately separated. Pattern Match is a similarity score, not a probability of a claim or launch.',
   };
 
   await fs.writeJson(outputFile,output,{spaces:2});
@@ -337,17 +444,21 @@ async function main() {
     medianFundingCadenceSeconds:cycleAnalytics.medianFundingCadenceSeconds,
     predictorStatus:predictor.status,
     nextFundingExpectedAt:predictor.nextFundingExpectedAt,
+    historicalPatternMatchPct:patternMatch.historicalPatternMatchPct,
+    patternMatchStatus:patternMatch.status,
+    patternMatchLiveEvidence:patternMatch.liveEvidence,
     windows:output.windows,
   });
   await fs.writeJson(historyFile,hist.slice(0,2016),{spaces:2});
 
   console.log(
-    `Chain Intelligence v1.2: ${activityState}` +
+    `Chain Intelligence v1.3: ${activityState}` +
     ` | cycle=${cycleAnalytics.cycleSignal}` +
     ` | automation=${cycleAnalytics.automationConfidence}/100` +
     ` | cadence=${cycleAnalytics.cadenceConfidence}` +
     ` | claim-after-funding=${cycleAnalytics.claimAfterFundingProbabilityPct}%` +
-    ` | predictor=${predictor.status}`
+    ` | predictor=${predictor.status}` +
+    ` | pattern=${patternMatch.historicalPatternMatchPct ?? 'n/a'}%/${patternMatch.status}`
   );
 }
 
