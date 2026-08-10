@@ -87,6 +87,17 @@ function buildCorpus(snapshot) {
   return normalizeTokens(textSources);
 }
 
+function buildChangeEvidenceCorpus(snapshot) {
+  const textSources = [
+    ...(snapshot.signals || []),
+    ...(snapshot.tags || []),
+    ...(snapshot.filePaths || []),
+    ...(snapshot.changedFiles || []),
+  ];
+
+  return normalizeTokens(textSources);
+}
+
 function detectFocusAreas(snapshot) {
   const joined = buildCorpus(snapshot).join(" ");
 
@@ -106,10 +117,16 @@ function detectSensitiveHits(snapshot) {
 }
 
 function detectChangeTypes(snapshot) {
-  const joined = buildCorpus(snapshot).join(" ");
+  const joined = buildChangeEvidenceCorpus(snapshot).join(" ");
+
+  if (!joined) {
+    return [];
+  }
 
   return Object.entries(RADAR_CHANGE_TYPE_KEYWORDS)
-    .filter(([, keywords]) => keywords.some((keyword) => joined.includes(keyword.toLowerCase())))
+    .filter(([, keywords]) =>
+      keywords.some((keyword) => joined.includes(keyword.toLowerCase()))
+    )
     .map(([changeType]) => changeType);
 }
 
