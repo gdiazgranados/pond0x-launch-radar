@@ -175,8 +175,8 @@ function extractTransfers(txs) {
   return out;
 }
 
-function stats(claims, minutes, nowSec) {
-  const rows = claims.filter(x => within(x.timestamp, minutes, nowSec));
+function stats(transfers, minutes, nowSec) {
+  const rows = transfers.filter(x => within(x.timestamp, minutes, nowSec));
   const total = sum(rows, x => x.amount);
   return {
     minutes,
@@ -188,9 +188,9 @@ function stats(claims, minutes, nowSec) {
   };
 }
 
-function buildDistributionCycles(funding, claims) {
+function buildDistributionCycles(funding, rewardTransfers) {
   const f = [...funding].sort((a,b)=>a.timestamp-b.timestamp);
-  const c = [...claims].sort((a,b)=>a.timestamp-b.timestamp);
+  const c = [...rewardTransfers].sort((a,b)=>a.timestamp-b.timestamp);
   const cycles = [];
 
   for (let i=0; i<f.length; i++) {
