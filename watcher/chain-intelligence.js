@@ -803,7 +803,13 @@ const rewardTxs = rewardResult.transactions;
     automationConfidence:cycleAnalytics.automationConfidence,
     cadenceConfidence:cycleAnalytics.cadenceConfidence,
     claimAfterFundingProbabilityPct:cycleAnalytics.claimAfterFundingProbabilityPct,
+    rewardTransferAfterFundingPct:
+      cycleAnalytics.rewardTransferAfterFundingPct ??
+      cycleAnalytics.claimAfterFundingProbabilityPct,
     medianFirstClaimDelaySeconds:cycleAnalytics.medianFirstClaimDelaySeconds,
+    medianFirstRewardTransferDelaySeconds:
+      cycleAnalytics.medianFirstRewardTransferDelaySeconds ??
+      cycleAnalytics.medianFirstClaimDelaySeconds,
     medianFundingCadenceSeconds:cycleAnalytics.medianFundingCadenceSeconds,
     predictorStatus:predictor.status,
     nextFundingExpectedAt:predictor.nextFundingExpectedAt,
@@ -819,7 +825,10 @@ const rewardTxs = rewardResult.transactions;
     ` | cycle=${cycleAnalytics.cycleSignal}` +
     ` | automation=${cycleAnalytics.automationConfidence}/100` +
     ` | cadence=${cycleAnalytics.cadenceConfidence}` +
-    ` | claim-after-funding=${cycleAnalytics.claimAfterFundingProbabilityPct}%` +
+    ` | reward-transfer-after-funding=${
+      cycleAnalytics.rewardTransferAfterFundingPct ??
+      cycleAnalytics.claimAfterFundingProbabilityPct
+    }%` +
     ` | predictor=${predictor.status}` +
     ` | pattern=${patternMatch.historicalPatternMatchPct ?? 'n/a'}%/${patternMatch.status}`
   );
