@@ -410,6 +410,27 @@ return {
     liveCorrelatedCycles: correlated.length,
     historicalCyclesAnalyzed: n(baseline?.cyclesAnalyzed),
     historicalCorrelatedCycles: n(baseline?.correlatedCycles),
+    liveMedianFirstRewardTransferDelaySeconds:
+      liveMedDelay === null ? null : round(liveMedDelay, 1),
+
+    historicalMedianFirstRewardTransferDelaySeconds:
+      historicalMedDelay === null ? null : round(historicalMedDelay, 1),
+
+    combinedMedianFirstRewardTransferDelaySeconds:
+      medDelay === null ? null : round(medDelay, 1),
+
+    medianFirstRewardTransferDelaySeconds:
+      liveMedDelay === null ? null : round(liveMedDelay, 1),
+
+    avgFirstRewardTransferDelaySeconds:
+      combinedDelays.length
+        ? round(
+            sum(combinedDelays, x => x) /
+              combinedDelays.length,
+            1
+          )
+        : null,
+
     liveMedianFirstClaimDelaySeconds:
       liveMedDelay === null ? null : round(liveMedDelay, 1),
 
@@ -420,9 +441,6 @@ return {
       medDelay === null ? null : round(medDelay, 1),
 
     medianFirstClaimDelaySeconds:
-      liveMedDelay === null ? null : round(liveMedDelay, 1),
-
-    medianFirstRewardTransferDelaySeconds:
       liveMedDelay === null ? null : round(liveMedDelay, 1),
 
     avgFirstClaimDelaySeconds:
