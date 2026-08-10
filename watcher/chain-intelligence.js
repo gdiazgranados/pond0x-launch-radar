@@ -288,13 +288,13 @@ const historicalMedCadence = median(baselineCadence);
     ? ((baselineCorrelationRate * n(baseline.cyclesAnalyzed)) + correlated.length) / (n(baseline.cyclesAnalyzed) + cycles.length)
     : correlationRate;
 
-  const liveClaimAfterFundingProbabilityPct =
+  const liveRewardTransferAfterFundingPct =
     round(correlationRate * 100, 1);
 
-  const historicalClaimAfterFundingProbabilityPct =
+  const historicalRewardTransferAfterFundingPct =
     round(baselineCorrelationRate * 100, 1);
 
-  const combinedClaimAfterFundingProbabilityPct =
+  const combinedRewardTransferAfterFundingPct =
     round(weightedCorrelationRate * 100, 1);
 
   let liveAutomationConfidence = 0;
@@ -376,7 +376,7 @@ const historicalMedCadence = median(baselineCadence);
           : 'LOW';
 
   const rewardTransferAfterFundingPct =
-    liveClaimAfterFundingProbabilityPct;
+    liveRewardTransferAfterFundingPct;
 
   const stableCycle =
     correlated.length >= 5 &&
@@ -394,9 +394,18 @@ return {
     rewardTransferAfterFundingPct,
     claimAfterFundingProbabilityPct:
       rewardTransferAfterFundingPct,
-    liveClaimAfterFundingProbabilityPct,
-    historicalClaimAfterFundingProbabilityPct,
-    combinedClaimAfterFundingProbabilityPct,
+    liveRewardTransferAfterFundingPct,
+    historicalRewardTransferAfterFundingPct,
+    combinedRewardTransferAfterFundingPct,
+
+    liveClaimAfterFundingProbabilityPct:
+      liveRewardTransferAfterFundingPct,
+
+    historicalClaimAfterFundingProbabilityPct:
+      historicalRewardTransferAfterFundingPct,
+
+    combinedClaimAfterFundingProbabilityPct:
+      combinedRewardTransferAfterFundingPct,
     liveFundingEventsAnalyzed: cycles.length,
     liveCorrelatedCycles: correlated.length,
     historicalCyclesAnalyzed: n(baseline?.cyclesAnalyzed),
