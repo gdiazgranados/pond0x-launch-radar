@@ -558,8 +558,13 @@ function detectLaunchImminent(current, history) {
     activationSignals &&
     strongPattern;
 
-  // Case 1: backend confirmation + strong setup
-  if (backendConfirmed && strongPattern) {
+  // Case 1: backend confirmation + strong setup + armed context
+  if (
+    backendConfirmed &&
+    strongPattern &&
+    portalArmedCandidate &&
+    (scoreJump || newSignals || focusExpansion || escalation)
+  ) {
     return true;
   }
 
