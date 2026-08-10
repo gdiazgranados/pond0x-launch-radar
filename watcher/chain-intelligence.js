@@ -39,12 +39,119 @@ function stdDev(values) {
   return Math.sqrt(sum(xs, x => (x - avg) ** 2) / xs.length);
 }
 
-async function fetchAddressTransactions(address, limit = 100) {
-  if (!HELIUS_API_KEY) throw new Error('HELIUS_API_KEY is missing');
-  const url = `https://api.helius.xyz/v0/addresses/${address}/transactions?api-key=${encodeURIComponent(HELIUS_API_KEY)}&limit=${limit}`;
-  const res = await fetch(url, { headers: { accept: 'application/json' } });
-  if (!res.ok) throw new Error(`Helius ${address.slice(0,6)} failed: ${res.status} ${await res.text()}`);
-  return res.json();
+async function fetchAddressTransactions(
+  address,
+  {
+    horizonMinutes = 1440,
+    pageSize = 100,
+    maxPages = 20,
+  } = {}
+) {
+  if (!HELIUS_API_KEY) {
+    throw new Error("HELIUS_API_KEY is missing");
+  }
+
+  const cutoffSec =
+    Math.floor(Date.now() / 1000) - horizonMinutes * 60;
+
+  const all = [];
+  const seenSignatures = new Set();
+
+  let beforeSignature = null;
+  let reachedCutoff = false;
+  let pagesFetched = 0;
+
+  while (pagesFetched < maxPages && !reachedCutoff) {
+    const params = new URLSearchParams({
+      "api-key": HELIUS_API_KEY,
+      limit: String(pageSize),
+    });
+
+    if (beforeSignature) {
+      params.set("before-signature", beforeSignature);
+    }
+
+    const url =
+      `https://api.helius.xyz/v0/addresses/${address}/transactions?` +
+      params.toString();
+
+    const res = await fetch(url, {
+      headers: {
+        accept: "application/json",
+      },
+    });
+
+    if (!res.ok) {
+      throw new Error(
+        `Helius ${address.slice(0, 6)} failed: ` +
+          `${res.status} ${await res.text()}`
+      );
+    }
+
+    const page = await res.json();
+
+    if (!Array.isArray(page) || page.length === 0) {
+      reachedCutoff = true;
+      break;
+    }
+
+    pagesFetched += 1;
+
+    for (const tx of page) {
+      const signature = tx?.signature;
+
+      if (signature && seenSignatures.has(signature)) {
+        continue;
+      }
+
+      if (signature) {
+        seenSignatures.add(signature);
+      }
+
+      const timestamp = n(tx?.timestamp);
+
+      if (timestamp >= cutoffSec) {
+        all.push(tx);
+      } else {
+        reachedCutoff = true;
+      }
+    }
+
+    const lastTx = page[page.length - 1];
+    const lastSignature = lastTx?.signature;
+    const lastTimestamp = n(lastTx?.timestamp);
+
+    if (!lastSignature) {
+      break;
+    }
+
+    beforeSignature = lastSignature;
+
+    if (lastTimestamp > 0 && lastTimestamp < cutoffSec) {
+      reachedCutoff = true;
+    }
+
+    if (page.length < pageSize) {
+      reachedCutoff = true;
+    }
+  }
+
+  const coverageComplete =
+    reachedCutoff || pagesFetched < maxPages;
+
+  return {
+    transactions: all,
+    coverage: {
+      address,
+      horizonMinutes,
+      pagesFetched,
+      transactionsFetched: all.length,
+      cutoffTime: new Date(cutoffSec * 1000).toISOString(),
+      coverageComplete,
+      maxPagesReached:
+        pagesFetched >= maxPages && !reachedCutoff,
+    },
+  };
 }
 
 function extractTransfers(txs) {
@@ -347,11 +454,22 @@ async function main() {
   let baseline = null;
   try { baseline = await fs.readJson(baselineFile); } catch {}
 
-  const [distTxs, upstreamTxs, rewardTxs] = await Promise.all([
-    fetchAddressTransactions(DISTRIBUTOR, 100),
-    fetchAddressTransactions(UPSTREAM, 100),
-    fetchAddressTransactions(REWARD_WALLET, 50),
+  const [distResult, upstreamResult, rewardResult] =
+  await Promise.all([
+    fetchAddressTransactions(DISTRIBUTOR, {
+      horizonMinutes: 1440,
+    }),
+    fetchAddressTransactions(UPSTREAM, {
+      horizonMinutes: 1440,
+    }),
+    fetchAddressTransactions(REWARD_WALLET, {
+      horizonMinutes: 60,
+    }),
   ]);
+
+const distTxs = distResult.transactions;
+const upstreamTxs = upstreamResult.transactions;
+const rewardTxs = rewardResult.transactions;
 
   const nowSec = Math.floor(Date.now()/1000);
   const distTransfers = extractTransfers(distTxs);
@@ -402,6 +520,13 @@ async function main() {
     version:'1.3.0',
     status:'LIVE',
     confidence:'VERY HIGH',
+    
+    dataCoverage: {
+    distributor: distResult.coverage,
+    upstream: upstreamResult.coverage,
+    rewardWallet: rewardResult.coverage,
+   },
+    
     entities:{wpondMint:WPOND_MINT,claimDistributor:DISTRIBUTOR,upstream:UPSTREAM,rewardWallet:REWARD_WALLET},
     activityState,
     chainConfirmationScore:confirmationScore,
