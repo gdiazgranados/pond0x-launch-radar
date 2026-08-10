@@ -17,25 +17,26 @@ const SURFACE_PRIORITY = {
   rewards: 5,
 };
 
-const STATE_PATH = path.join(__dirname, "output", "sentinel-state.json");
-const EVENTS_PATH = path.join(__dirname, "output", "sentinel-events.json");
+ const DATA_DIR = path.join(__dirname, "..", "public", "data");
+ const STATE_PATH = path.join(DATA_DIR, "sentinel-state.json");
+ const EVENTS_PATH = path.join(DATA_DIR, "sentinel-events.json");
 
-const SENSITIVE_KEYWORDS = [
-  "claim",
-  "reward",
-  "rewards",
-  "wallet",
-  "connect",
-  "verify",
-  "verification",
-  "auth",
-  "ethereum",
-  "solana",
-  "portal",
-  "dashboard",
-  "xp",
-  "points",
-];
+ const SENSITIVE_KEYWORDS = [
+   "claim",
+   "reward",
+   "rewards",
+   "wallet",
+   "connect",
+   "verify",
+   "verification",
+   "auth",
+   "ethereum",
+   "solana",
+   "portal",
+   "dashboard",
+   "xp",
+   "points",
+ ];
 
 function sha256(input) {
   return crypto.createHash("sha256").update(input).digest("hex");
