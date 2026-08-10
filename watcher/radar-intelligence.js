@@ -514,13 +514,21 @@ function detectLaunchImminent(current, history) {
     patterns.includes("EXPANDING_FOCUS") ||
     trend > 0;
 
-  const persistence =
-    [current, ...recent].filter((item) => Number(item?.score || 0) >= 120).length >= 3;
-
-  const highScores = [
-    Number(current.score || 0),
-    ...recent.map((r) => Number(r?.score || 0)),
+  const persistenceWindow = [
+    current,
+    ...recent.slice(0, 2),
   ];
+
+  const persistence =
+    persistenceWindow.length >= 3 &&
+    persistenceWindow.every(
+      (item) => Number(item?.score || 0) >= 120
+    );
+
+   const highScores = [
+     Number(current.score || 0),
+     ...recent.map((r) => Number(r?.score || 0)),
+   ];
 
   const uniqueScores = [...new Set(highScores)];
 
