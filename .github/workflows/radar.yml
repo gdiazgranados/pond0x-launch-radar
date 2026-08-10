@@ -108,7 +108,12 @@ jobs:
           };
           fs.writeFileSync(path, JSON.stringify(data, null, 2));
           '
-
+      - name: Run notify
+        run: node watcher/notify.js
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          
       - name: Prepare publish bundle
         run: |
           mkdir -p .publish/data
@@ -155,8 +160,3 @@ jobs:
           git worktree remove /tmp/radar-data --force || true
           rm -rf /tmp/radar-data || true
 
-      - name: Run notify
-        run: node watcher/notify.js
-        env:
-          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
