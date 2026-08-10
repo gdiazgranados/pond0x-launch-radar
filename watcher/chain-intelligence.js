@@ -354,10 +354,10 @@ const historicalMedCadence = median(baselineCadence);
     liveClaimAfterFundingProbabilityPct;
 
   const stableCycle =
-    totalCorrelated >= 8 &&
-    claimAfterFundingProbabilityPct >= 50 &&
-    medDelay !== null &&
-    medDelay <= CORRELATION_WINDOW_SECONDS &&
+    correlated.length >= 5 &&
+    liveClaimAfterFundingProbabilityPct >= 50 &&
+    liveMedDelay !== null &&
+    liveMedDelay <= CORRELATION_WINDOW_SECONDS &&
     cadenceConfidence !== 'LOW';
 
   return {
