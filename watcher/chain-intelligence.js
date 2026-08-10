@@ -662,7 +662,6 @@ const rewardTxs = rewardResult.transactions;
     rewardFlow.some(x => within(x.timestamp, 15, nowSec)) ||
     rewardWalletTransfers.some(
       x => within(x.timestamp, 15, nowSec)
-    )
     );
 
   const confirmationScore = Math.min(100,
