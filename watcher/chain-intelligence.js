@@ -255,7 +255,11 @@ function buildCycleAnalytics(cycles, funding, baseline) {
     .filter(x => x !== null);;
   const liveCadence = cadenceFromFunding(funding);
 
-  const baselineDelays = Array.isArray(baseline?.firstClaimDelaySeconds) ? baseline.firstClaimDelaySeconds : [];
+  const baselineDelays = Array.isArray(baseline?.firstRewardTransferDelaySeconds)
+    ? baseline.firstRewardTransferDelaySeconds
+    : Array.isArray(baseline?.firstClaimDelaySeconds)
+      ? baseline.firstClaimDelaySeconds
+      : [];
   const baselineCadence = Array.isArray(baseline?.fundingCadenceSeconds) ? baseline.fundingCadenceSeconds : [];
 
   const combinedDelays = [...baselineDelays, ...delays];
@@ -557,7 +561,12 @@ function buildPatternMatch({ funding, cycles, analytics, predictor, baseline, no
   const cadenceSimilarityPct = similarityPct(liveMedianCadence, historicalMedianCadence, historicalCadenceSd * 3);
 
   const latestCorrelated = cycles.find(x=>x.correlated) || null;
-  const historicalMedianDelay = n(baseline?.summary?.medianFirstClaimDelaySeconds || analytics.medianFirstClaimDelaySeconds);
+  const historicalMedianDelay = n(
+    baseline?.summary?.medianFirstRewardTransferDelaySeconds ??
+    baseline?.summary?.medianFirstClaimDelaySeconds ??
+    analytics.medianFirstRewardTransferDelaySeconds ??
+    analytics.medianFirstClaimDelaySeconds
+  );
   const delayTolerance = Math.max(30, historicalMedianDelay || 60);
   const rewardTransferDelaySimilarityPct =
     latestCorrelated &&
