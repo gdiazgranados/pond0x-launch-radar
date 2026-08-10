@@ -206,35 +206,197 @@ function getCriticalChanges(latest, lastAlert) {
 function classifyChangeSeverity(latest, lastAlert) {
   if (!lastAlert) return "INITIAL";
 
-  const eventTypeChanged = (lastAlert.eventType || "") !== (latest.eventType || "");
-  const triggerChanged = (lastAlert.triggerState || "") !== (latest.triggerState || "");
-  const alphaClassChanged = (lastAlert.alphaClass || "") !== (latest.alphaClass || "");
-  const regimeChanged = (lastAlert.signalRegime || "") !== (latest.signalRegime || "");
-  const fusionChanged = (lastAlert.signalFusion || "") !== (latest.signalFusion || "");
-  const imminentChanged = !!lastAlert.launchImminent !== !!latest.launchImminent;
-  const portalArmedChanged = !!lastAlert.portalArmed !== !!latest.portalArmed;
-  const portalArmedTagChanged = hasTag(lastAlert, "PORTAL_ARMED") !== hasTag(latest, "PORTAL_ARMED");
-  const claimAppeared = !hasSignal(lastAlert, "claim") && hasSignal(latest, "claim");
-  const enabledAppeared = !hasSignal(lastAlert, "enabled") && hasSignal(latest, "enabled");
-  const disabledGone = hasSignal(lastAlert, "disabled") && !hasSignal(latest, "disabled");
-  const verifyAppeared = !hasSignal(lastAlert, "verify") && hasSignal(latest, "verify");
+  const prevScore = Number(lastAlert.score || 0);
+  const nextScore = Number(latest.score || 0);
+
+  const prevMovement = Number(lastAlert.movementPct || 0);
+  const nextMovement = Number(latest.movementPct || 0);
+
+  const prevPriority = lastAlert.priority || "LOW";
+  const nextPriority = latest.priority || "LOW";
+
+  const prevTrigger = lastAlert.triggerState || "IDLE";
+  const nextTrigger = latest.triggerState || "IDLE";
+
+  const prevAlpha = lastAlert.alphaClass || "NOISE";
+  const nextAlpha = latest.alphaClass || "NOISE";
+
+  const prevEvent = lastAlert.eventType || "NOISE";
+  const nextEvent = latest.eventType || "NOISE";
+
+  const prevRegime = lastAlert.signalRegime || "";
+  const nextRegime = latest.signalRegime || "";
+
+  const prevFusion = lastAlert.signalFusion || "";
+  const nextFusion = latest.signalFusion || "";
+
+  const prevImminent = !!lastAlert.launchImminent;
+  const nextImminent = !!latest.launchImminent;
+
+  const prevPortalArmed =
+    !!lastAlert.portalArmed ||
+    hasTag(lastAlert, "PORTAL_ARMED");
+
+  const nextPortalArmed =
+    !!latest.portalArmed ||
+    hasTag(latest, "PORTAL_ARMED");
+
+  const claimAppeared =
+    !hasSignal(lastAlert, "claim") &&
+    hasSignal(latest, "claim");
+
+  const enabledAppeared =
+    !hasSignal(lastAlert, "enabled") &&
+    hasSignal(latest, "enabled");
+
+  const disabledGone =
+    hasSignal(lastAlert, "disabled") &&
+    !hasSignal(latest, "disabled");
+
+  const verifyAppeared =
+    !hasSignal(lastAlert, "verify") &&
+    hasSignal(latest, "verify");
+
+  /*
+   * ------------------------------------------------------------
+   * REAL ESCALATIONS
+   * ------------------------------------------------------------
+   *
+   * These represent movement toward a more actionable state.
+   */
+
+  const imminentAppeared =
+    !prevImminent &&
+    nextImminent;
+
+  const portalArmedAppeared =
+    !prevPortalArmed &&
+    nextPortalArmed;
+
+  const triggerEscalated =
+    prevTrigger !== "TRIGGERED" &&
+    nextTrigger === "TRIGGERED";
+
+  const priorityRank = {
+    LOW: 0,
+    MEDIUM: 1,
+    HIGH: 2,
+    "VERY HIGH": 3,
+    CRITICAL: 4,
+  };
+
+  const priorityEscalated =
+    (priorityRank[nextPriority] ?? 0) >
+    (priorityRank[prevPriority] ?? 0);
+
+  const alphaEscalated =
+    prevAlpha !== nextAlpha &&
+    nextAlpha !== "NOISE";
+
+  const eventEscalated =
+    prevEvent !== nextEvent &&
+    nextEvent !== "NOISE";
+
+  /*
+   * A regime/fusion change is only considered critical when the
+   * new state represents a meaningful activation configuration.
+   */
+
+  const criticalRegimes = new Set([
+    "PRE-LAUNCH REAL",
+    "HIGH-CONVICTION SETUP",
+  ]);
+
+  const criticalFusions = new Set([
+    "FULL ACTIVATION STACK",
+    "REWARD + WALLET + AUTH CLUSTER",
+    "PORTAL READINESS CLUSTER",
+  ]);
+
+  const regimeEscalated =
+    prevRegime !== nextRegime &&
+    criticalRegimes.has(nextRegime);
+
+  const fusionEscalated =
+    prevFusion !== nextFusion &&
+    criticalFusions.has(nextFusion);
 
   if (
     claimAppeared ||
     enabledAppeared ||
     disabledGone ||
     verifyAppeared ||
-    imminentChanged ||
-    portalArmedChanged ||
-    portalArmedTagChanged ||
-    eventTypeChanged ||
-    triggerChanged ||
-    alphaClassChanged ||
-    regimeChanged ||
-    fusionChanged
+    imminentAppeared ||
+    portalArmedAppeared ||
+    triggerEscalated ||
+    priorityEscalated ||
+    alphaEscalated ||
+    eventEscalated ||
+    regimeEscalated ||
+    fusionEscalated
   ) {
     return "CRITICAL_FIELD_CHANGE";
   }
+
+  /*
+   * ------------------------------------------------------------
+   * DE-ESCALATIONS / RECOVERY
+   * ------------------------------------------------------------
+   *
+   * These should never be treated as critical alerts.
+   */
+
+  const imminentCleared =
+    prevImminent &&
+    !nextImminent;
+
+  const portalCleared =
+    prevPortalArmed &&
+    !nextPortalArmed;
+
+  const triggerCleared =
+    prevTrigger === "TRIGGERED" &&
+    nextTrigger !== "TRIGGERED";
+
+  const priorityDeescalated =
+    (priorityRank[nextPriority] ?? 0) <
+    (priorityRank[prevPriority] ?? 0);
+
+  const returnedToNoise =
+    nextAlpha === "NOISE" ||
+    nextEvent === "NOISE";
+
+  if (
+    imminentCleared ||
+    portalCleared ||
+    triggerCleared ||
+    priorityDeescalated ||
+    returnedToNoise
+  ) {
+    return "RECOVERY";
+  }
+
+  /*
+   * ------------------------------------------------------------
+   * MATERIAL NUMERIC CHANGE
+   * ------------------------------------------------------------
+   */
+
+  const scoreDelta =
+    Math.abs(nextScore - prevScore);
+
+  const movementDelta =
+    Math.abs(nextMovement - prevMovement);
+
+  if (
+    scoreDelta >= 5 ||
+    movementDelta >= 10
+  ) {
+    return "MATERIAL_CHANGE";
+  }
+
+  return "MINOR_CHANGE";
+}
 
   const scoreDelta = Math.abs(Number(latest.score || 0) - Number(lastAlert.score || 0));
   const movementDelta = Math.abs(Number(latest.movementPct || 0) - Number(lastAlert.movementPct || 0));
