@@ -207,19 +207,29 @@ function buildDistributionCycles(funding, claims) {
       fundingTimestamp: fe.timestamp,
       fundingAmount: round(fe.amount),
       fundingSource: fe.source,
-      claimCount: cc.length,
+      rewardTransferCount: cc.length,
       uniqueRecipients: uniq(cc.map(x=>x.to)).length,
       distributedAmount: round(distributed),
-      distributionRatioPct: fe.amount ? round((distributed / fe.amount) * 100, 2) : null,
-      firstClaimDelaySeconds: delays.length ? Math.min(...delays) : null,
-      lastClaimDelaySeconds: delays.length ? Math.max(...delays) : null,
+      distributionRatioPct: fe.amount
+        ? round((distributed / fe.amount) * 100, 2)
+        : null,
+      firstRewardTransferDelaySeconds: delays.length
+        ? Math.min(...delays)
+        : null,
+      lastRewardTransferDelaySeconds: delays.length
+        ? Math.max(...delays)
+        : null,
       correlated: cc.length > 0,
-      claims: cc.map(x=>({
-        signature:x.signature, time:x.time, timestamp:x.timestamp,
-        to:x.to, amount:round(x.amount), delaySeconds:x.timestamp-fe.timestamp
+      rewardTransfers: cc.map(x=>({
+        signature: x.signature,
+        time: x.time,
+        timestamp: x.timestamp,
+        to: x.to,
+        amount: round(x.amount),
+        delaySeconds: x.timestamp - fe.timestamp
       })),
-    });
-  }
+     });
+   }
   return cycles.sort((a,b)=>b.fundingTimestamp-a.fundingTimestamp);
 }
 
