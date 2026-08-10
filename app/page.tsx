@@ -506,7 +506,7 @@ export default function Home() {
   if (loading) {
     return (
       <main className="min-h-screen bg-[#020406] text-white">
-        <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
+        <div className="mx-auto w-full max-w-[1600px] px-4 py-6 sm:px-6 lg:px-8 2xl:px-10">
           <div className="animate-pulse space-y-4">
             <div className="h-10 w-72 rounded bg-white/10" />
             <div className="h-24 w-full rounded bg-white/5" />
@@ -522,7 +522,7 @@ export default function Home() {
     <main
       className={`min-h-screen overflow-x-hidden text-white transition-colors duration-500 ${priorityMode.mainBg}`}
     >
-      <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 xl:px-8">
+      <div className="mx-auto w-full max-w-[1600px] px-4 py-5 sm:px-6 lg:px-8 2xl:px-10">
         {isElevated && (
           <div
             className={`mb-4 rounded-2xl border px-4 py-3 transition-all duration-500 ${
@@ -728,10 +728,10 @@ export default function Home() {
           />
         </section>
 
-        <section className="grid gap-5 xl:grid-cols-[1fr_1fr]">
+        <section className="grid grid-cols-1 gap-5 xl:grid-cols-12">
           {isPriorityView && (
-            <div className="mb-5 space-y-5">
-              <div className="rounded-3xl border border-orange-500/30 bg-orange-500/10 p-5">
+            <div className="grid gap-5 xl:col-span-12 xl:grid-cols-12">
+              <div className="rounded-3xl border border-orange-500/30 bg-orange-500/10 p-4 sm:p-5 xl:col-span-8">
                 <SectionTitle title="Priority Readout" subtitle="Immediate signal interpretation" />
 
                 <div className="grid gap-4 lg:grid-cols-2">
@@ -748,14 +748,14 @@ export default function Home() {
                     <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">
                       Why it matters
                     </div>
-                    <div className="mt-2 text-sm text-white">
+                    <div className="mt-2 text-sm leading-6 text-white">
                       {current?.whyItMatters || "No escalation context available."}
                     </div>
                   </div>
                 </div>
               </div>
 
-              <div className="rounded-3xl border border-orange-500/20 bg-orange-500/[0.05] p-5">
+              <div className="rounded-3xl border border-orange-500/20 bg-orange-500/[0.05] p-4 sm:p-5 xl:col-span-4">
                 <SectionTitle
                   title="Pattern Highlights"
                   subtitle="Key signals driving activation"
@@ -778,196 +778,206 @@ export default function Home() {
             </div>
           )}
 
-          <div className="space-y-5">
-            <div className="rounded-3xl border border-white/10 bg-[#05070a] p-5">
-              <SectionTitle
-                title="Flight Instruments"
-                subtitle="Core radar metrics"
-                right={
-                  <span className="rounded-full border border-cyan-500/20 bg-cyan-500/10 px-3 py-1 text-xs font-medium text-cyan-300">
-                    LIVE SNAPSHOT
-                  </span>
-                }
+          <div className="rounded-3xl border border-white/10 bg-[#05070a] p-4 sm:p-5 xl:col-span-12">
+            <SectionTitle
+              title="Flight Instruments"
+              subtitle="Core radar metrics"
+              right={
+                <span className="rounded-full border border-cyan-500/20 bg-cyan-500/10 px-3 py-1 text-xs font-medium text-cyan-300">
+                  LIVE SNAPSHOT
+                </span>
+              }
+            />
+
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              <MetricCard label="Total Files" value={current?.totalFiles ?? 0} />
+              <MetricCard
+                label="Added"
+                value={current?.added ?? 0}
+                subvalue={`${current?.addedPercent ?? current?.addedPct ?? 0}% of surface`}
+                valueClassName="text-cyan-300"
               />
-
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                <MetricCard label="Total Files" value={current?.totalFiles ?? 0} />
-                <MetricCard
-                  label="Added"
-                  value={current?.added ?? 0}
-                  subvalue={`${current?.addedPercent ?? current?.addedPct ?? 0}% of surface`}
-                  valueClassName="text-cyan-300"
-                />
-                <MetricCard
-                  label="Changed"
-                  value={current?.changed ?? 0}
-                  subvalue={`${current?.changedPercent ?? current?.changedPct ?? 0}% of surface`}
-                  valueClassName="text-yellow-300"
-                />
-                <MetricCard
-                  label="Movement"
-                  value={`${uiMovement}%`}
-                  subvalue={`raw: ${current?.movementPct ?? 0}%`}
-                  valueClassName="text-emerald-300"
-                />
-              </div>
-
-              <div className="mt-4 grid gap-4 lg:grid-cols-2">
-                <Gauge label="Radar Score" value={uiScorePercent} />
-                <Gauge label="Activation Probability" value={activationProbability} tone="orange" />
-                <Gauge
-                  label="Changed %"
-                  value={Number(current?.changedPercent ?? current?.changedPct ?? 0)}
-                  tone="yellow"
-                />
-                <Gauge label="Movement %" value={uiMovement} tone="emerald" />
-              </div>
+              <MetricCard
+                label="Changed"
+                value={current?.changed ?? 0}
+                subvalue={`${current?.changedPercent ?? current?.changedPct ?? 0}% of surface`}
+                valueClassName="text-yellow-300"
+              />
+              <MetricCard
+                label="Movement"
+                value={`${uiMovement}%`}
+                subvalue={`raw: ${current?.movementPct ?? 0}%`}
+                valueClassName="text-emerald-300"
+              />
             </div>
 
-            {!isPriorityView && (
-              <div className="grid gap-5 lg:grid-cols-[1fr_1fr]">
-                <div className="rounded-3xl border border-white/10 bg-[#05070a] p-5">
-                  <SectionTitle title="Signals & Tags" subtitle="Semantic surface scan" />
+            <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              <Gauge label="Radar Score" value={uiScorePercent} />
+              <Gauge label="Activation Probability" value={activationProbability} tone="orange" />
+              <Gauge
+                label="Changed %"
+                value={Number(current?.changedPercent ?? current?.changedPct ?? 0)}
+                tone="yellow"
+              />
+              <Gauge label="Movement %" value={uiMovement} tone="emerald" />
+            </div>
+          </div>
 
-                  {current?.signals?.length ? (
+          {!isPriorityView && (
+            <div className="grid gap-5 xl:col-span-12 xl:grid-cols-2">
+              <div className="rounded-3xl border border-white/10 bg-[#05070a] p-4 sm:p-5">
+                <SectionTitle title="Signals & Tags" subtitle="Semantic surface scan" />
+
+                {current?.signals?.length ? (
+                  <div className="flex flex-wrap gap-2">
+                    {current.signals.map((signal: string) => (
+                      <span
+                        key={signal}
+                        className="rounded-full border border-cyan-500/20 bg-cyan-500/10 px-3 py-1 text-sm text-cyan-300"
+                      >
+                        {signal}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm text-slate-500">
+                    No signals detected.
+                  </div>
+                )}
+
+                <div className="mt-5">
+                  <div className="mb-2 text-[11px] uppercase tracking-[0.24em] text-slate-500">
+                    Tags
+                  </div>
+
+                  {!!current?.tags?.length ? (
                     <div className="flex flex-wrap gap-2">
-                      {current.signals.map((signal: string) => (
+                      {current.tags.map((tag: string) => (
                         <span
-                          key={signal}
-                          className="rounded-full border border-cyan-500/20 bg-cyan-500/10 px-3 py-1 text-sm text-cyan-300"
+                          key={tag}
+                          className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-300"
                         >
-                          {signal}
+                          {tag}
                         </span>
                       ))}
                     </div>
                   ) : (
-                    <div className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm text-slate-500">
-                      No signals detected.
-                    </div>
+                    <div className="text-sm text-slate-500">No tags assigned.</div>
                   )}
-
-                  <div className="mt-5">
-                    <div className="mb-2 text-[11px] uppercase tracking-[0.24em] text-slate-500">
-                      Tags
-                    </div>
-
-                    {!!current?.tags?.length ? (
-                      <div className="flex flex-wrap gap-2">
-                        {current.tags.map((tag: string) => (
-                          <span
-                            key={tag}
-                            className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-300"
-                          >
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-sm text-slate-500">No tags assigned.</div>
-                    )}
-                  </div>
-
-                  <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                    <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-                      <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">
-                        Signal Type
-                      </div>
-                      <div className="mt-2 text-lg font-semibold text-cyan-300">{signalType}</div>
-                    </div>
-
-                    <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-                      <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">
-                        Generated
-                      </div>
-                      <div className="mt-2 text-sm text-slate-300">{formatDate(current?.generatedAt)}</div>
-                    </div>
-                  </div>
                 </div>
 
-                <div className="rounded-3xl border border-white/10 bg-[#05070a] p-5">
-                  <SectionTitle
-                    title="Executive Readout"
-                    subtitle="Human-readable interpretation layer"
-                    right={
-                      <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-300">
-                        Confidence {confidenceScore}%
-                      </span>
-                    }
-                  />
+                <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                  <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                    <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">
+                      Signal Type
+                    </div>
+                    <div className="mt-2 text-lg font-semibold text-cyan-300">{signalType}</div>
+                  </div>
 
                   <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
                     <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">
-                      Summary
+                      Generated
                     </div>
-                    <p className="mt-2 text-sm leading-7 text-slate-300">{current?.summary || "..."}</p>
-                  </div>
-
-                  <div className="mt-4 rounded-2xl border border-cyan-500/20 bg-cyan-500/[0.04] p-4">
-                    <div className="text-[11px] uppercase tracking-[0.24em] text-cyan-300">
-                      AI Insight
-                    </div>
-                    <div className="mt-2 text-lg font-bold leading-7 text-white">
-                      {current?.insight || "No insight"}
-                    </div>
-                  </div>
-
-                  <div className="mt-4 rounded-2xl border border-white/10 bg-black/20 p-4">
-                    <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">
-                      Reading
-                    </div>
-                    <p className="mt-2 text-sm leading-7 text-slate-400">{current?.note || "..."}</p>
+                    <div className="mt-2 text-sm text-slate-300">{formatDate(current?.generatedAt)}</div>
                   </div>
                 </div>
               </div>
-            )}
 
-            <HistoryPanel history={recentHistory} />
-          </div>
+              <div className="rounded-3xl border border-white/10 bg-[#05070a] p-4 sm:p-5">
+                <SectionTitle
+                  title="Executive Readout"
+                  subtitle="Human-readable interpretation layer"
+                  right={
+                    <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-300">
+                      Confidence {confidenceScore}%
+                    </span>
+                  }
+                />
 
-          <aside className="space-y-5">
-            <div className="rounded-3xl border border-white/10 bg-[#05070a] p-5">
-              <SectionTitle title="Right Console" subtitle="Operational side instruments" />
-
-              <div className="grid gap-3">
                 <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
                   <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">
-                    Terminal Status
+                    Summary
                   </div>
-                  <div className="mt-2 text-lg font-semibold text-white">{palette.label}</div>
+                  <p className="mt-2 text-sm leading-7 text-slate-300">{current?.summary || "..."}</p>
                 </div>
 
-                <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-                  <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">
-                    Readiness State
+                <div className="mt-4 rounded-2xl border border-cyan-500/20 bg-cyan-500/[0.04] p-4">
+                  <div className="text-[11px] uppercase tracking-[0.24em] text-cyan-300">
+                    AI Insight
                   </div>
-                  <div className={`mt-2 text-lg font-semibold ${readinessState.tone}`}>
-                    {readinessState.label}
-                  </div>
-                  <div className="mt-1 text-xs text-slate-400">{readinessState.note}</div>
-                </div>
-
-                <AlphaPanel alpha={alpha} />
-
-                <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-                  <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">
-                    Why This Matters
-                  </div>
-                  <div className="mt-2 text-sm leading-6 text-white">
-                    {current?.whyItMatters || "No escalation context available yet."}
+                  <div className="mt-2 text-lg font-bold leading-7 text-white">
+                    {current?.insight || "No insight"}
                   </div>
                 </div>
 
-                <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                <div className="mt-4 rounded-2xl border border-white/10 bg-black/20 p-4">
                   <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">
-                    Pattern Boost
+                    Reading
                   </div>
-                  <div className="mt-2 text-2xl font-semibold text-orange-300">
-                    {breakdown?.patternBoost ?? 0}
-                  </div>
+                  <p className="mt-2 text-sm leading-7 text-slate-400">{current?.note || "..."}</p>
                 </div>
               </div>
             </div>
+          )}
 
+          <div className="min-w-0 xl:col-span-12">
+            <HistoryPanel history={recentHistory} />
+          </div>
+
+          <div className="rounded-3xl border border-white/10 bg-[#05070a] p-4 sm:p-5 xl:col-span-12">
+            <SectionTitle title="Operational Intelligence" subtitle="Live operational side instruments" />
+
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">
+                  Terminal Status
+                </div>
+                <div className="mt-2 text-lg font-semibold text-white">{palette.label}</div>
+              </div>
+
+              <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">
+                  Readiness State
+                </div>
+                <div className={`mt-2 text-lg font-semibold ${readinessState.tone}`}>
+                  {readinessState.label}
+                </div>
+                <div className="mt-1 text-xs text-slate-400">{readinessState.note}</div>
+              </div>
+
+              <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">
+                  Pattern Boost
+                </div>
+                <div className="mt-2 text-2xl font-semibold text-orange-300">
+                  {breakdown?.patternBoost ?? 0}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">
+                  Confidence
+                </div>
+                <div className="mt-2 text-2xl font-semibold text-emerald-300">{confidenceScore}%</div>
+                <div className="mt-1 text-xs text-slate-400">weighted launch confidence</div>
+              </div>
+
+              <div className="sm:col-span-2 xl:col-span-2">
+                <AlphaPanel alpha={alpha} />
+              </div>
+
+              <div className="rounded-2xl border border-white/10 bg-black/20 p-4 sm:col-span-2 xl:col-span-2">
+                <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">
+                  Why This Matters
+                </div>
+                <div className="mt-2 text-sm leading-6 text-white">
+                  {current?.whyItMatters || "No escalation context available yet."}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-3 xl:col-span-12">
             <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
               <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">Velocity</div>
               <div className="mt-2 text-2xl font-semibold text-cyan-300">
@@ -987,17 +997,26 @@ export default function Home() {
               <div className="mt-2 text-2xl font-semibold text-emerald-300">{confidenceScore}%</div>
               <div className="mt-1 text-xs text-slate-400">weighted launch confidence</div>
             </div>
+          </div>
 
+          <div className="min-w-0 xl:col-span-12">
             <TrendGraph values={recentHistory.map((h) => h.score)} />
-            <RecentAlerts alerts={alerts} />
+          </div>
 
+          <div className="min-w-0 xl:col-span-12">
+            <RecentAlerts alerts={alerts} />
+          </div>
+
+          <div className="min-w-0 xl:col-span-12">
             <ChainIntelligencePanel
               chain={chainIntelligence}
               baseline={chainBaseline}
             />
+          </div>
 
+          <div className="min-w-0 xl:col-span-12">
             <SentinelPanel event={latestEvent} />
-          </aside>
+          </div>
         </section>
       </div>
     </main>
