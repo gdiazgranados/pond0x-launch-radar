@@ -497,7 +497,8 @@ function buildPredictor(funding, analytics, nowSec) {
       nextFundingWindowEnd: null,
       secondsToExpectedFunding: null,
       fundingCadenceConfidence: analytics.cadenceConfidence,
-      claimAfterFundingProbabilityPct: analytics.claimAfterFundingProbabilityPct,
+      claimAfterFundingProbabilityPct: analytics.rewardTransferAfterFundingPct ??
+      analytics.claimAfterFundingProbabilityPct
       expectedClaimWindowSeconds: null,
       rewardTransferAfterFundingPct:
         analytics.rewardTransferAfterFundingPct ??
@@ -531,7 +532,8 @@ function buildPredictor(funding, analytics, nowSec) {
     fundingWindowHalfWidthSeconds: round(halfWindow,0),
     secondsToExpectedFunding: secondsTo,
     fundingCadenceConfidence: analytics.cadenceConfidence,
-    claimAfterFundingProbabilityPct: analytics.claimAfterFundingProbabilityPct,
+    claimAfterFundingProbabilityPct: analytics.rewardTransferAfterFundingPct ??
+    analytics.claimAfterFundingProbabilityPct
     expectedClaimWindowSeconds: medDelay
       ? { start: Math.max(10, round(medDelay - 20,0)), center: round(medDelay,0), end: Math.min(CORRELATION_WINDOW_SECONDS, round(medDelay + 45,0)) }
       : null,
@@ -612,6 +614,7 @@ function buildPatternMatch({ funding, cycles, analytics, predictor, baseline, no
       : predictor.status === 'WINDOW_PASSED' ? 20 : 0;
 
   const correlationPct = clamp(
+    analytics.rewardTransferAfterFundingPct ??
     analytics.rewardTransferAfterFundingPct ??
     analytics.claimAfterFundingProbabilityPct
   );
