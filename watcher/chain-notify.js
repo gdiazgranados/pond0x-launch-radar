@@ -108,7 +108,7 @@ async function main() {
   const spike =
     Number(w.rewards || 0) >= 5 &&
     (
-      Number(c.claimVelocityPct || 0) >= 100 ||
+      Number(c.rewardTransferVelocityPct ?? c.claimVelocityPct ?? 0) >= 100 ||
       Number(c.volumeVelocityPct || 0) >= 100
     );
 
@@ -162,7 +162,7 @@ async function main() {
 
 🧠 <b>Cycle Intelligence</b>
 Cadence confidence: <b>${esc(a.cadenceConfidence || "LOW")}</b>
-Claim-after-funding: <b>${fmt(a.claimAfterFundingProbabilityPct)}%</b>
+Reward-transfer-after-funding: <b>${fmt(a.rewardTransferAfterFundingPct ?? a.claimAfterFundingProbabilityPct)}%</b>
 Automation confidence: <b>${fmt(a.automationConfidence)}/100</b>
 Predictor: <b>${esc(p.status || "N/A")}</b>
 Next funding estimate: <b>${esc(p.nextFundingExpectedAt)}</b>`
@@ -189,7 +189,7 @@ Unique recipients: <b>${fmt(w.uniqueRecipients)}</b>
 Avg reward: <b>${fmt(w.avgReward)}</b>
 Largest: <b>${fmt(w.largestReward)}</b>
 
-📈 Claim velocity: <b>${Number(c.claimVelocityPct || 0) >= 0 ? "+" : ""}${fmt(c.claimVelocityPct)}%</b>
+📈 Reward transfer velocity: <b>${Number(c.rewardTransferVelocityPct ?? c.claimVelocityPct ?? 0) >= 0 ? "+" : ""}${fmt(c.rewardTransferVelocityPct ?? c.claimVelocityPct)}%</b>
 💧 Volume velocity: <b>${Number(c.volumeVelocityPct || 0) >= 0 ? "+" : ""}${fmt(c.volumeVelocityPct)}%</b>
 💰 Distributor funding: <b>${c.fundingDetected ? "DETECTED" : "not detected"}</b>
 🔗 Chain confirmation: <b>${fmt(c.chainConfirmationScore)}/100</b>
