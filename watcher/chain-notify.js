@@ -144,7 +144,7 @@ async function main() {
     periodic;
 
   const reason = resumed
-    ? "CLAIM ACTIVITY RESUMED"
+    ? "REWARD TRANSFER ACTIVITY RESUMED"
     : spike
       ? "REWARD FLOW SPIKE"
       : funding
