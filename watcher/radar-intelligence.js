@@ -267,20 +267,6 @@ function scoreToLevel(score) {
   return "VERY HIGH";
 }
 
-function shouldTriggerAlert(current, history) {
-  const focusAreas = detectFocusAreas(current);
-  const rarityScore = computeRarityScore(current, history);
-  const finalScore = computeFinalScore(current, history);
-  const significance = computeSignificance(finalScore, focusAreas);
-
-  if (significance === "HIGH") return true;
-  if (rarityScore >= 70) return true;
-  if (focusAreas.includes("REWARDS")) return true;
-  if (focusAreas.includes("CLAIM")) return true;
-
-  return false;
-}
-
 function summarizeRadarIntelligence(current, history) {
   const focusAreas = detectFocusAreas(current);
   const sensitiveHits = detectSensitiveHits(current);
@@ -317,7 +303,6 @@ function summarizeRadarIntelligence(current, history) {
     launchImminent,
     portalArmed,
     activationProbability,
-    shouldAlert: shouldTriggerAlert(current, history),
     whyItMatters,
   };
 }
