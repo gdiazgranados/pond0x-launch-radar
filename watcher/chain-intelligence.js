@@ -15,6 +15,7 @@ const historyFile = path.join(dataDir, 'chain-history.json');
 const baselineFile = path.join(dataDir, 'chain-baseline.json');
 
 const CORRELATION_WINDOW_SECONDS = 5 * 60;
+const MAX_CADENCE_GAP_SECONDS = 30 * 60;
 const ACTIVE_FUNDING_WINDOW_MINUTES = 15;
 const MAX_CYCLES_OUTPUT = 12;
 
@@ -225,7 +226,15 @@ function buildDistributionCycles(funding, claims) {
 function cadenceFromFunding(funding) {
   const f = [...funding].sort((a,b)=>a.timestamp-b.timestamp);
   const gaps = [];
-  for (let i=1; i<f.length; i++) gaps.push(f[i].timestamp - f[i-1].timestamp);
+
+  for (let i = 1; i < f.length; i++) {
+    const gap = f[i].timestamp - f[i - 1].timestamp;
+
+    if (gap <= MAX_CADENCE_GAP_SECONDS) {
+      gaps.push(gap);
+    }
+  }
+
   return gaps;
 }
 
