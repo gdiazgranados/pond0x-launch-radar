@@ -15,6 +15,7 @@ const PAGES = Math.max(1, Math.min(20, Number(process.env.CHAIN_BACKFILL_PAGES |
 const LIMIT = 100;
 const SLEEP_MS = 650;
 const CORRELATION_WINDOW_SECONDS = 300;
+const MAX_CADENCE_GAP_SECONDS = 30 * 60;
 
 const sleep = ms => new Promise(r=>setTimeout(r,ms));
 const n = v => { const x=Number(v||0); return Number.isFinite(x)?x:0; };
@@ -118,11 +119,28 @@ async function main(){
   const correlated=cycles.filter(x=>x.correlated);
   const delays=correlated.map(x=>x.firstClaimDelaySeconds).filter(x=>x!==null);
 
-  const chronological=[...funding].sort((a,b)=>a.timestamp-b.timestamp);
-  const cadence=[];
-  for(let i=1;i<chronological.length;i++)cadence.push(chronological[i].timestamp-chronological[i-1].timestamp);
+  const chronological = [...funding]
+   .sort((a,b)=>a.timestamp-b.timestamp);
 
-  const medCad=median(cadence), sd=stdDev(cadence);
+  const allCadenceGaps = [];
+
+  for (let i = 1; i < chronological.length; i++) {
+    allCadenceGaps.push(
+      chronological[i].timestamp -
+      chronological[i - 1].timestamp
+    );
+  }
+
+  const cadence = allCadenceGaps.filter(
+    gap => gap <= MAX_CADENCE_GAP_SECONDS
+  );
+
+  const sessionBreaks = allCadenceGaps.filter(
+    gap => gap > MAX_CADENCE_GAP_SECONDS
+  );
+
+  const medCad = median(cadence);
+  const sd = stdDev(cadence);
 
   const baseline={
     generatedAt:new Date().toISOString(),
@@ -138,13 +156,17 @@ async function main(){
     correlatedCycles:correlated.length,
     correlationRatePct:cycles.length?round(correlated.length/cycles.length*100,1):0,
     firstClaimDelaySeconds:delays,
-    fundingCadenceSeconds:cadence,
+    fundingCadenceSeconds: cadence,
+    sessionBreaksSeconds: sessionBreaks,
     summary:{
       medianFirstClaimDelaySeconds:median(delays),
       medianFundingCadenceSeconds:medCad,
       fundingCadenceStdDevSeconds:round(sd,1),
-      fundingCadenceCV:medCad?round(sd/medCad,3):null
-    }
+      fundingCadenceCV:medCad?round(sd/medCad,3):null,
+      sessionBreakCount:sessionBreaks.length,
+      largestSessionBreakSeconds:sessionBreaks.length
+        ? Math.max(...sessionBreaks)
+        : null    }
   };
 
   await fs.writeJson(baselineFile,baseline,{spaces:2});
