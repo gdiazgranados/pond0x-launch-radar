@@ -5,6 +5,7 @@ require('dotenv').config();
 const HELIUS_API_KEY = process.env.HELIUS_API_KEY;
 const DISTRIBUTOR = 'AYg4dKoZJudVkD7Eu3ZaJjkzfoaATUqfiv8w8pS53opT';
 const UPSTREAM = 'BbMgFxZGVq5x6WC1yFeVzgtyckMZgj5FjPwdppMtShf';
+const REWARD_WALLET = '1orFCnFfgwPzSgUaoK6Wr3MjgXZ7mtk8NGz9Hh4iWWL';
 const WPOND_MINT = '3JgFwoYV74f6LwWjQWnr3YDPFnmBdwQfNyubv99jqUoq';
 
 const dataDir = path.join(__dirname, '..', 'public', 'data');
@@ -96,13 +97,24 @@ async function main(){
   await sleep(SLEEP_MS);
   const upstreamTxs=await fetchPaged(UPSTREAM);
 
-  const claims=extract(distributorTxs)
-    .filter(x=>x.from===DISTRIBUTOR&&x.to&&x.to!==DISTRIBUTOR);
+  const distributorOutflows = extract(distributorTxs)
+    .filter(
+      x =>
+        x.from === DISTRIBUTOR &&
+        x.to &&
+        x.to !== DISTRIBUTOR
+    );
+
+  const rewardWalletTransfers = distributorOutflows
+    .filter(x => x.to === REWARD_WALLET);
+
+  const externalClaims = distributorOutflows
+    .filter(x => x.to !== REWARD_WALLET);
 
   const funding=extract(upstreamTxs)
     .filter(x=>x.from===UPSTREAM&&x.to===DISTRIBUTOR);
 
-  const cycles=buildCycles(funding,claims);
+  const cycles=buildCycles(funding,rewardWalletTransfers);
   const correlated=cycles.filter(x=>x.correlated);
   const delays=correlated.map(x=>x.firstClaimDelaySeconds).filter(x=>x!==null);
 
@@ -118,7 +130,9 @@ async function main(){
     pagesPerAddress:PAGES,
     distributorTransactionsFetched:distributorTxs.length,
     upstreamTransactionsFetched:upstreamTxs.length,
-    claimsFound:claims.length,
+    distributorOutflowsFound: distributorOutflows.length,
+    rewardWalletTransfersFound: rewardWalletTransfers.length,
+    externalClaimsFound: externalClaims.length,
     fundingEventsFound:funding.length,
     cyclesAnalyzed:cycles.length,
     correlatedCycles:correlated.length,
