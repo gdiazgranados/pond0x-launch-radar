@@ -546,9 +546,21 @@ function buildPatternMatch({ funding, cycles, analytics, predictor, baseline, no
 
   const latestFunding = funding[0] || null;
   const fundingRecent = latestFunding ? within(latestFunding.timestamp, ACTIVE_FUNDING_WINDOW_MINUTES, nowSec) : false;
-  const latestClaimTs = Math.max(0, ...cycles.flatMap(c => (c.claims || []).map(x=>n(x.timestamp))));
-  const claimRecent = latestClaimTs ? within(latestClaimTs, 15, nowSec) : false;
-  const liveEvidence = fundingRecent || claimRecent || predictor.status === 'IN_FUNDING_WINDOW';
+  const latestRewardTransferTs = Math.max(
+    0,
+    ...cycles.flatMap(c =>
+      (c.claims || []).map(x => n(x.timestamp))
+    )
+  );
+  
+  const rewardTransferRecent = latestRewardTransferTs
+    ? within(latestRewardTransferTs, 15, nowSec)
+    : false;
+  
+  const liveEvidence =
+    fundingRecent ||
+    rewardTransferRecent ||
+    predictor.status === 'IN_FUNDING_WINDOW';
 
   const confidence =
     n(baseline.cyclesAnalyzed) >= 100 ? 'VERY HIGH' :
