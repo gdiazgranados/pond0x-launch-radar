@@ -168,6 +168,15 @@ function computeRarityScore(current, history) {
   if (recent.length >= 6 && quietRecent.length >= 6) rarity += 30;
 
   const currentFocus = detectFocusAreas(current);
+  const hasCurrentEvidence =
+    Number(current.movementCount ?? 0) > 0 ||
+    Number(current.movementPct ?? 0) > 0 ||
+    (current.signals || []).length > 0 ||
+    currentFocus.length > 0;
+
+  if (!hasCurrentEvidence) {
+    return 0;
+  }
   const seen = new Set(recent.flatMap((item) => item.focusAreas || []));
 
   currentFocus.forEach((area) => {
