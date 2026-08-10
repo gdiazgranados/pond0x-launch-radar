@@ -1042,11 +1042,41 @@ async function main() {
   const discoveryPath = path.join(publicDir, "discovery.json");
   const apiFile = path.join(newDir, "api.json");
 
-  const existingHistory = await readJsonArraySafe(historyPath);
-  const discovery = await readJsonSafe(discoveryPath, {
-    checkedAt: null,
-    sourceSnapshotId: null,
-    snapshotDir: null,
+ const existingHistory = await readJsonArraySafe(historyPath);
+
+ let discovery = await readJsonSafe(discoveryPath, {
+   checkedAt: null,
+   sourceSnapshotId: null,
+   snapshotDir: null,
+   newUnknownChange: false,
+   keyFunctionCandidate: null,
+   newLabels: [],
+   newRoutes: [],
+   newApiRoutes: [],
+   newKeywords: [],
+   criticalKeywords: [],
+ });
+
+ const currentSnapshotId = path.basename(newDir);
+
+ const discoverySnapshotId =
+   discovery.snapshotDir ||
+   discovery.sourceSnapshotId ||
+   null;
+
+const discoveryMatchesCurrentSnapshot =
+  !!discoverySnapshotId &&
+  discoverySnapshotId === currentSnapshotId;
+
+if (!discoveryMatchesCurrentSnapshot) {
+  console.warn(
+    `Ignoring stale discovery data: discovery=${
+      discoverySnapshotId || "unknown"
+    } current=${currentSnapshotId}`
+  );
+
+  discovery = {
+    ...discovery,
     newUnknownChange: false,
     keyFunctionCandidate: null,
     newLabels: [],
@@ -1054,8 +1084,19 @@ async function main() {
     newApiRoutes: [],
     newKeywords: [],
     criticalKeywords: [],
-  });
-  const apiData = await readJsonSafe(apiFile, []);
+    staleIgnored: true,
+  };
+}
+
+const apiData = await readJsonSafe(apiFile, []);
+
+const oldApiFile = oldDir
+  ? path.join(oldDir, "api.json")
+  : null;
+
+const oldApiData = oldApiFile
+  ? await readJsonSafe(oldApiFile, [])
+  : [];
 
   const discoveryCriticalKeywords = uniqueSortedStrings(discovery.criticalKeywords);
   const discoveryNewApiRoutes = uniqueSortedStrings(discovery.newApiRoutes);
@@ -1064,14 +1105,36 @@ async function main() {
   const discoveryNewKeywords = uniqueSortedStrings(discovery.newKeywords);
   const discoveryCandidate = String(discovery.keyFunctionCandidate || "");
 
-  const backendSignals = [];
-  for (const entry of ensureArray(apiData)) {
-    for (const sig of ensureArray(entry.backendSignals)) {
-      backendSignals.push(sig);
-    }
-  }
-  const uniqueBackendSignals = uniqueSortedStrings(backendSignals);
+  function collectBackendSignals(entries) {
+    const collected = [];
 
+    for (const entry of ensureArray(entries)) {
+      for (const sig of ensureArray(entry.backendSignals)) {
+        collected.push(sig);
+      }
+    }
+
+    return uniqueSortedStrings(collected);
+  }
+
+  const observedBackendSignals =
+    collectBackendSignals(apiData);
+
+  const previousBackendSignals =
+    collectBackendSignals(oldApiData);
+
+  const previousBackendSet =
+    new Set(previousBackendSignals);
+
+  const freshBackendSignals =
+    observedBackendSignals.filter(
+      (sig) => !previousBackendSet.has(sig)
+    );
+
+  // Compatibility alias:
+  // everything below that previously used
+  // uniqueBackendSignals now receives ONLY fresh deltas.
+  const uniqueBackendSignals = freshBackendSignals;
   const advancedSignals = buildSignals({
     combinedText,
     changedFiles,
@@ -1238,6 +1301,35 @@ async function main() {
   else if (rawScore >= 40) effectiveLevel = "HIGH";
   else if (rawScore >= 15) effectiveLevel = "MEDIUM";
   else effectiveLevel = "LOW";
+  const hasFreshDiscoveryEvidence =
+    discoveryMatchesCurrentSnapshot &&
+    (
+      !!discovery.newUnknownChange ||
+      discoveryNewApiRoutes.length > 0 ||
+      discoveryCriticalKeywords.length > 0 ||
+      discoveryNewLabels.length > 0 ||
+      discoveryNewRoutes.length > 0 ||
+      discoveryNewKeywords.length > 0
+    );
+
+  const hasFreshBackendEvidence =
+    freshBackendSignals.length > 0;
+
+  const hasFreshSurfaceMovement =
+    movementCount > 0 &&
+    movementPct > 0;
+
+  const hasFreshActivationEvidence =
+    hasFreshSurfaceMovement ||
+    hasFreshDiscoveryEvidence ||
+    hasFreshBackendEvidence;
+
+  if (!hasFreshActivationEvidence) {
+    effectiveLevel =
+      rawScore >= 15
+        ? "MEDIUM"
+        : "LOW";
+  }
 
   const baseResult = {
     id: `${snapshotId}__${generatedAt}`,
@@ -1309,33 +1401,38 @@ async function main() {
   const signalFusion = detectSignalFusion(baseResult, alpha, eventType);
 
   const launchImminent =
+    hasFreshActivationEvidence &&
     !!baseResult.launchImminent &&
     eventType === "CLAIM READINESS" &&
     (
       signalFusion === "FULL ACTIVATION STACK" ||
-      signalFusion === "REWARD + WALLET + AUTH CLUSTER"
+      signalFusion ===
+        "REWARD + WALLET + AUTH CLUSTER"
     );
 
   const portalArmed =
+    hasFreshActivationEvidence &&
     !!baseResult.portalArmed &&
     (
-      signalFusion === "REWARD + WALLET + AUTH CLUSTER" ||
-      signalFusion === "FULL ACTIVATION STACK"
+      signalFusion ===
+        "REWARD + WALLET + AUTH CLUSTER" ||
+      signalFusion ===
+        "FULL ACTIVATION STACK"
     ) &&
     eventType === "CLAIM READINESS";
 
-  const enrichedBaseResult = {
-    ...baseResult,
-    launchImminent,
-    portalArmed,
-    tags: [
-      ...new Set([
-        ...ensureArray(baseResult.tags),
-        ...(launchImminent ? ["LAUNCH_IMMINENT"] : []),
-        ...(portalArmed ? ["PORTAL_ARMED"] : []),
-      ]),
-    ],
-  };
+    const enrichedBaseResult = {
+      ...baseResult,
+      launchImminent,
+      portalArmed,
+      tags: [
+        ...new Set([
+          ...ensureArray(baseResult.tags),
+          ...(launchImminent ? ["LAUNCH_IMMINENT"] : []),
+          ...(portalArmed ? ["PORTAL_ARMED"] : []),
+        ]),
+      ],
+    };
 
   let alphaClass = alpha.alphaClass;
   let triggerState = alpha.triggerState;
