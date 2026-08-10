@@ -240,6 +240,15 @@ function buildCycleAnalytics(cycles, funding, baseline) {
   const combinedDelays = [...baselineDelays, ...delays];
   const combinedCadence = [...baselineCadence, ...liveCadence];
 
+  const liveMedCadence = median(liveCadence);
+  const liveCadenceStdDev = stdDev(liveCadence);
+  const liveCadenceCV =
+    liveMedCadence && liveCadence.length >= 2
+      ? liveCadenceStdDev / liveMedCadence
+      : null;
+
+const historicalMedCadence = median(baselineCadence);
+
   const medDelay = median(combinedDelays);
   const medCadence = median(combinedCadence);
   const cadenceStdDev = stdDev(combinedCadence);
@@ -264,9 +273,17 @@ function buildCycleAnalytics(cycles, funding, baseline) {
   automationConfidence = Math.min(100, automationConfidence);
 
   const cadenceConfidence =
-    combinedCadence.length >= 20 && cadenceCV !== null && cadenceCV <= 0.10 ? 'VERY HIGH' :
-    combinedCadence.length >= 8 && cadenceCV !== null && cadenceCV <= 0.20 ? 'HIGH' :
-    combinedCadence.length >= 4 ? 'MEDIUM' : 'LOW';
+    liveCadence.length >= 12 &&
+    liveCadenceCV !== null &&
+    liveCadenceCV <= 0.10
+      ? 'VERY HIGH'
+      : liveCadence.length >= 6 &&
+          liveCadenceCV !== null &&
+          liveCadenceCV <= 0.20
+        ? 'HIGH'
+        : liveCadence.length >= 3
+          ? 'MEDIUM'
+          : 'LOW';
 
   const claimAfterFundingProbabilityPct = round(weightedCorrelationRate * 100, 1);
 
@@ -288,6 +305,23 @@ function buildCycleAnalytics(cycles, funding, baseline) {
     historicalCorrelatedCycles: n(baseline?.correlatedCycles),
     medianFirstClaimDelaySeconds: medDelay === null ? null : round(medDelay,1),
     avgFirstClaimDelaySeconds: combinedDelays.length ? round(sum(combinedDelays,x=>x)/combinedDelays.length,1) : null,
+    liveMedianFundingCadenceSeconds:
+      liveMedCadence === null ? null : round(liveMedCadence, 1),
+
+    liveFundingCadenceStdDevSeconds:
+      liveCadence.length ? round(liveCadenceStdDev, 1) : null,
+
+    liveFundingCadenceCV:
+      liveCadenceCV === null ? null : round(liveCadenceCV, 3),
+
+    liveFundingCadenceSamples:
+      liveCadence.length,
+
+    historicalMedianFundingCadenceSeconds:
+      historicalMedCadence === null ? null : round(historicalMedCadence, 1),
+
+    historicalFundingCadenceSamples:
+      baselineCadence.length,
     medianFundingCadenceSeconds: medCadence === null ? null : round(medCadence,1),
     fundingCadenceStdDevSeconds: combinedCadence.length ? round(cadenceStdDev,1) : null,
     fundingCadenceCV: cadenceCV === null ? null : round(cadenceCV,3),
@@ -298,8 +332,15 @@ function buildCycleAnalytics(cycles, funding, baseline) {
 
 function buildPredictor(funding, analytics, nowSec) {
   const latest = [...funding].sort((a,b)=>b.timestamp-a.timestamp)[0] || null;
-  const cadence = n(analytics.medianFundingCadenceSeconds);
-  const sigma = n(analytics.fundingCadenceStdDevSeconds);
+  const cadence = n(
+    analytics.liveMedianFundingCadenceSeconds ||
+    analytics.medianFundingCadenceSeconds
+  );
+
+  const sigma = n(
+    analytics.liveFundingCadenceStdDevSeconds ||
+    analytics.fundingCadenceStdDevSeconds
+  );
 
   if (!latest || !cadence) {
     return {
