@@ -498,7 +498,7 @@ function buildPredictor(funding, analytics, nowSec) {
       secondsToExpectedFunding: null,
       fundingCadenceConfidence: analytics.cadenceConfidence,
       claimAfterFundingProbabilityPct: analytics.rewardTransferAfterFundingPct ??
-      analytics.claimAfterFundingProbabilityPct
+      analytics.claimAfterFundingProbabilityPct,
       expectedClaimWindowSeconds: null,
       rewardTransferAfterFundingPct:
         analytics.rewardTransferAfterFundingPct ??
