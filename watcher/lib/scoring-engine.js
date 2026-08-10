@@ -62,7 +62,7 @@ function computeRadarScore(signals, history = []) {
 
   let finalScore = baseScore + patternBoost
 
-  if (signals.hasOnchainMovement) {
+  if (signals.hasOnchainMovement === true) {
     finalScore += 10
   }
 
