@@ -1,105 +1,99 @@
 {
-  "id": "2026-08-10_014607__2026-08-10T01:46:16.451Z",
-  "snapshotId": "2026-08-10_014607",
+  "id": "2026-08-10_073944__2026-08-10T07:39:54.351Z",
+  "snapshotId": "2026-08-10_073944",
   "totalFiles": 62,
-  "added": 0,
-  "changed": 0,
-  "movementCount": 0,
-  "movementPct": 0,
-  "addedPct": 0,
-  "changedPct": 0,
-  "rawScore": 180,
-  "rawActivationProbability": 57,
-  "movementPercent": 0,
-  "addedPercent": 0,
-  "changedPercent": 0,
-  "scorePercent": 100,
-  "activationProbability": 57,
-  "score": 180,
-  "intensityClass": "EXTREME",
-  "overdrive": true,
-  "portalArmed": true,
-  "launchImminent": true,
+  "added": 1,
+  "changed": 1,
+  "movementCount": 2,
+  "movementPct": 3.23,
+  "addedPct": 1.61,
+  "changedPct": 1.61,
+  "rawScore": 81.25,
+  "rawActivationProbability": 55,
+  "movementPercent": 3.23,
+  "addedPercent": 1.61,
+  "changedPercent": 1.61,
+  "scorePercent": 95.76,
+  "activationProbability": 55,
+  "score": 81.25,
+  "intensityClass": "VERY HIGH",
+  "overdrive": false,
+  "portalArmed": false,
+  "launchImminent": false,
   "signals": [
     "account",
-    "active",
-    "claim",
-    "enabled",
+    "connect",
+    "launch",
     "nonce",
     "reward",
     "rewards",
-    "signin",
-    "verify",
-    "verifysignature",
+    "solana",
     "wallet"
   ],
-  "backendSignals": [
-    "rewards_array"
-  ],
-  "patternScore": 40,
+  "backendSignals": [],
+  "patternScore": 45,
   "patterns": [
     {
-      "tag": "REWARD_PREP",
-      "boost": 20,
+      "tag": "PRE-ACTIVATION",
+      "boost": 15,
       "confidence": "HIGH",
       "reasons": [
-        "Reward logic detected in code or strings",
-        "No confirming on-chain movement yet"
+        "Wallet-related strings detected",
+        "Connect UI detected",
+        "UI still appears disabled"
       ]
     },
     {
-      "tag": "BEHAVIOR_SPIKE",
-      "boost": 10,
-      "confidence": "MEDIUM",
+      "tag": "UI_ARMING",
+      "boost": 12,
+      "confidence": "HIGH",
       "reasons": [
-        "Recent change frequency increased",
-        "Movement threshold exceeded"
+        "Connect UI visible",
+        "CTA or interactive surface changed"
       ]
     }
   ],
-  "level": "CRITICAL",
+  "level": "VERY HIGH",
   "significance": "HIGH",
-  "rarityScore": 0,
+  "rarityScore": 20,
   "focusAreas": [
     "REWARDS",
     "AUTH",
     "WALLET",
     "ACCOUNT",
-    "SYSTEM",
-    "CLAIM"
+    "SYSTEM"
   ],
   "sensitiveHits": [
     "reward",
     "rewards",
     "auth",
-    "verify",
     "wallet",
-    "signature",
+    "connect",
+    "solana",
     "account",
-    "launch",
-    "enabled",
-    "claim"
+    "launch"
   ],
   "changeTypes": [
-    "button"
+    "asset"
   ],
-  "insight": "New API surface or critical discovery candidate detected alongside activation signals",
-  "confidence": 0.92,
+  "insight": "No significant activity detected",
+  "confidence": 0.2,
   "tags": [
     "AUTH",
     "REWARDS",
     "CHAIN",
     "SYSTEM",
-    "REWARD_PREP",
-    "BEHAVIOR_SPIKE",
-    "LAUNCH_IMMINENT",
-    "PORTAL_ARMED"
+    "PRE-ACTIVATION",
+    "UI_ARMING"
   ],
-  "summary": "No se detectaron cambios en 62 archivos analizados.",
-  "note": "Señales muy fuertes de activación real o launch inminente.",
-  "changedFiles": [],
-  "generatedAt": "2026-08-10T01:46:16.451Z",
-  "trend": -92.2,
+  "summary": "2 de 62 archivos muestran movimiento (3.23%). 1 nuevos (1.61%) y 1 modificados (1.61). Señales: account, connect, launch, nonce, reward, rewards, solana, wallet.",
+  "note": "Cambios importantes en frontend y señales relevantes.",
+  "changedFiles": [
+    "_next_static_chunks_51972-7ceb7c0e8c10d370.js",
+    "_next_static_chunks_webpack-8b998328429f96e7.js"
+  ],
+  "generatedAt": "2026-08-10T07:39:54.351Z",
+  "trend": -115.55,
   "trendDirection": "DOWN",
   "breakdown": {
     "frontend": {
@@ -107,162 +101,106 @@
       "weighted": 35,
       "hits": [
         "wallet_strings",
+        "connect_ui",
         "disabled_state",
-        "enabled_state",
         "cta_change",
-        "auth_flow",
-        "api_surface"
+        "auth_flow"
       ]
     },
     "infra": {
       "raw": 40,
       "weighted": 10,
       "hits": [
-        "reward_api",
-        "auth_api"
+        "new_chunks",
+        "js_change"
       ]
     },
     "rewards": {
-      "raw": 100,
-      "weighted": 25,
+      "raw": 25,
+      "weighted": 6.25,
       "hits": [
-        "reward_logic",
-        "reward_activation",
-        "claim_signal",
-        "active_signal",
-        "reward_api_signal",
-        "rewards_array_signal"
+        "reward_logic"
       ]
     },
     "behavior": {
-      "raw": 100,
-      "weighted": 15,
-      "hits": [
-        "wallet_auth_reward_convergence",
-        "discovery_keyword_cluster",
-        "api_surface_candidate",
-        "backend_rewards_payload"
-      ]
+      "raw": 0,
+      "weighted": 0,
+      "hits": []
     },
     "onchain": {},
-    "patternBoost": 30,
-    "weightedBoost": 80,
-    "discoveryApiCount": 16,
-    "discoveryKeywordCount": 12,
-    "backendSignalCount": 1
+    "patternBoost": 27,
+    "weightedBoost": 3,
+    "discoveryApiCount": 0,
+    "discoveryKeywordCount": 0,
+    "backendSignalCount": 0
   },
   "advancedSignals": {
     "frontend": [
       "wallet_strings",
+      "connect_ui",
       "disabled_state",
-      "enabled_state",
       "cta_change",
-      "auth_flow",
-      "api_surface"
+      "auth_flow"
     ],
     "infra": [
-      "reward_api",
-      "auth_api"
+      "new_chunks",
+      "js_change"
     ],
     "rewards": [
-      "reward_logic",
-      "reward_activation",
-      "claim_signal",
-      "active_signal",
-      "reward_api_signal",
-      "rewards_array_signal"
+      "reward_logic"
     ],
-    "behavior": [
-      "wallet_auth_reward_convergence",
-      "discovery_keyword_cluster",
-      "api_surface_candidate",
-      "backend_rewards_payload"
-    ],
+    "behavior": [],
     "frontendScore": 100,
     "infraScore": 40,
-    "rewardsScore": 100,
-    "behaviorScore": 100,
-    "movementPct": 0,
-    "recentChangesCount": 0,
+    "rewardsScore": 25,
+    "behaviorScore": 0,
+    "movementPct": 3.23,
+    "recentChangesCount": 2,
     "hasWalletStrings": true,
-    "hasConnectUI": false,
+    "hasConnectUI": true,
     "hasDisabledState": true,
-    "hasEnabledState": true,
+    "hasEnabledState": false,
     "hasRewardLogic": true,
-    "hasRewardActivation": true,
+    "hasRewardActivation": false,
     "hasAuthSignals": true,
-    "hasClaimSignal": true,
+    "hasClaimSignal": false,
     "hasEligibilitySignal": false,
-    "hasActiveSignal": true,
-    "hasApiSurface": true,
+    "hasActiveSignal": false,
+    "hasApiSurface": false,
     "hasClaimApi": false,
-    "hasRewardApi": true,
-    "hasAuthApi": true,
+    "hasRewardApi": false,
+    "hasAuthApi": false,
     "hasAccountApi": false,
     "hasEligibleTrue": false,
     "hasCanClaimTrue": false,
     "hasEnabledTrue": false,
     "hasActiveTrue": false,
-    "hasRewardsArray": true,
-    "hasNewChunks": false,
+    "hasRewardsArray": false,
+    "hasNewChunks": true,
     "hasVisibleCTAChange": true
   },
   "discovery": {
-    "checkedAt": "2026-08-09T23:32:28.091Z",
-    "sourceSnapshotId": "2026-08-09_233218__2026-08-09T23:32:27.950Z",
-    "snapshotDir": "2026-08-09_233218",
-    "newUnknownChange": true,
-    "keyFunctionCandidate": "critical:claim",
-    "newLabels": [
-      "a&&2e3"
-    ],
+    "checkedAt": "2026-08-10T07:39:54.193Z",
+    "sourceSnapshotId": "2026-08-10_073944",
+    "snapshotDir": "2026-08-10_073944",
+    "newUnknownChange": false,
+    "keyFunctionCandidate": null,
+    "newLabels": [],
     "newRoutes": [],
-    "newApiRoutes": [
-      "/api/auth",
-      "/api/auth/session",
-      "/api/broadcast",
-      "/api/chat",
-      "/api/chat/health",
-      "/api/geoff/pair",
-      "/api/mp/broadcast",
-      "/api/mp/build",
-      "/api/mp/fund-build",
-      "/api/rewards",
-      "/api/rewards/feed",
-      "/api/version",
-      "http://localhost:3000/api/auth",
-      "https://www.pond0x.com/api/auth/session",
-      "https://www.pond0x.com/api/rewards/feed",
-      "https://www.pond0x.com/api/version"
-    ],
-    "newKeywords": [
-      "earn"
-    ],
-    "criticalKeywords": [
-      "account",
-      "active",
-      "claim",
-      "disabled",
-      "enabled",
-      "nonce",
-      "reward",
-      "rewards",
-      "signin",
-      "verify",
-      "verifysignature",
-      "wallet"
-    ]
+    "newApiRoutes": [],
+    "newKeywords": [],
+    "criticalKeywords": []
   },
-  "whyItMatters": "Reward claim infrastructure appears to be activating. Wallet and authentication layers are being tightly integrated. Low activity but high-sensitivity changes suggest stealth deployment. Reward systems are a primary focus of current changes.",
-  "alphaScore": 9,
-  "alphaClass": "ACTIONABLE",
-  "triggerState": "TRIGGERED",
-  "suggestedAction": "Launch imminent. Escalate immediately and monitor backend/UI flips aggressively.",
-  "eventType": "CLAIM READINESS",
-  "signalRegime": "HIGH-CONVICTION SETUP",
-  "signalFusion": "REWARD + WALLET + AUTH CLUSTER",
-  "priority": "CRITICAL",
-  "eta": "< 2h",
-  "signature": "CRITICAL::180::AUTH|BEHAVIOR_SPIKE|CHAIN|LAUNCH_IMMINENT|PORTAL_ARMED|REWARDS|REWARD_PREP|SYSTEM::BEHAVIOR_SPIKE|REWARD_PREP",
-  "alertSignature": "06714deeef8454f6aa05f3fafbdc6abb5d5d99f9e92df731a62e8222c5cf20e6"
+  "whyItMatters": "Wallet and authentication layers are being tightly integrated. Low activity but high-sensitivity changes suggest stealth deployment. Breakout detected after a period of inactivity. Reward systems are a primary focus of current changes.",
+  "alphaScore": 0,
+  "alphaClass": "NOISE",
+  "triggerState": "IDLE",
+  "suggestedAction": "Ignore noise and continue baseline monitoring.",
+  "eventType": "AUTH STACK CHANGE",
+  "signalRegime": "TRANSITIONAL SIGNAL",
+  "signalFusion": "ELEVATED MULTI-SIGNAL EVENT",
+  "priority": "VERY HIGH",
+  "eta": "24h - 72h",
+  "signature": "VERY HIGH::80::AUTH|CHAIN|PRE-ACTIVATION|REWARDS|SYSTEM|UI_ARMING::PRE-ACTIVATION|UI_ARMING",
+  "alertSignature": "6b80dcee79a7b4da8ede31a39fd78e4d2c90d2a97689bb8fd1751f49b4763aee"
 }
