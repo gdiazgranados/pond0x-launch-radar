@@ -11,6 +11,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: pond0x-radar-data-writer
+  cancel-in-progress: false  
+
 jobs:
   backfill:
     runs-on: ubuntu-latest
