@@ -21,7 +21,8 @@ function detectPatterns(signals) {
   if (
     signals.hasRewardLogic &&
     signals.rewardsScore >= 55 &&
-    !signals.hasOnchainMovement
+    signals.onchainFresh === true &&
+    signals.hasOnchainMovement === false
   ) {
     patterns.push({
       tag: "REWARD_PREP",
@@ -86,7 +87,7 @@ function detectPatterns(signals) {
   if (
     signals.frontendScore >= 65 &&
     signals.hasRewardLogic &&
-    signals.hasOnchainMovement
+    signals.hasOnchainMovement === true
   ) {
     patterns.push({
       tag: "CONFIRMED_ACTIVATION",
