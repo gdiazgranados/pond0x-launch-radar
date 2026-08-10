@@ -214,7 +214,6 @@ function classifyChangeSeverity(latest, lastAlert) {
   const imminentChanged = !!lastAlert.launchImminent !== !!latest.launchImminent;
   const portalArmedChanged = !!lastAlert.portalArmed !== !!latest.portalArmed;
   const portalArmedTagChanged = hasTag(lastAlert, "PORTAL_ARMED") !== hasTag(latest, "PORTAL_ARMED");
-
   const claimAppeared = !hasSignal(lastAlert, "claim") && hasSignal(latest, "claim");
   const enabledAppeared = !hasSignal(lastAlert, "enabled") && hasSignal(latest, "enabled");
   const disabledGone = hasSignal(lastAlert, "disabled") && !hasSignal(latest, "disabled");
@@ -255,9 +254,53 @@ function buildDecision(latest, lastAlert) {
   const movementPct = Number(latest.movementPct || 0);
   const launchImminent = !!latest.launchImminent;
   const portalArmed = !!latest.portalArmed || hasTag(latest, "PORTAL_ARMED");
+  const isCurrentNoiseState =
+  latest.priority === "LOW" &&
+  latest.level === "LOW" &&
+  Number(latest.score || 0) < 15 &&
+  latest.triggerState === "IDLE" &&
+  latest.alphaClass === "NOISE" &&
+  latest.eventType === "NOISE";
+
+const hasFreshDiscoveryEvidence =
+  !!latest.discovery?.newUnknownChange ||
+  ensureArray(latest.discovery?.newApiRoutes).length > 0 ||
+  ensureArray(latest.discovery?.criticalKeywords).length > 0 ||
+  ensureArray(latest.discovery?.newRoutes).length > 0 ||
+  ensureArray(latest.discovery?.newLabels).length > 0 ||
+  ensureArray(latest.discovery?.newKeywords).length > 0;
+
+const hasFreshSurfaceEvidence =
+  Number(latest.movementPct || 0) > 0 ||
+  Number(latest.changed || 0) > 0 ||
+  Number(latest.added || 0) > 0;
+
+const hasFreshBackendEvidence =
+  ensureArray(latest.backendSignals).length > 0;
+
+const hasFreshEvidence =
+  hasFreshDiscoveryEvidence ||
+  hasFreshSurfaceEvidence ||
+  hasFreshBackendEvidence;
+  
+  if (isCurrentNoiseState) {
+  return {
+    send: false,
+    reason: "Current Radar state is LOW/NOISE/IDLE",
+    signature,
+    priority: "LOW",
+    changeSeverity: "NONE",
+    criticalChanges: [],
+  };
+}
 
   // 🚨 IMMINENT OVERRIDE
-  if (launchImminent) {
+  if (
+    launchImminent &&
+    hasFreshEvidence &&
+    triggerState === "TRIGGERED" &&
+    (priority === "CRITICAL" || priority === "VERY HIGH")
+  ) {
     return {
       send: true,
       reason: "Launch imminent override",
@@ -269,7 +312,16 @@ function buildDecision(latest, lastAlert) {
   }
 
   // 🔥 PORTAL ARMED OVERRIDE
-  if (portalArmed) {
+  if (
+    portalArmed &&
+    hasFreshEvidence &&
+    triggerState === "TRIGGERED" &&
+    (
+      priority === "CRITICAL" ||
+      priority === "VERY HIGH" ||
+      priority === "HIGH"
+    )
+  ) {
     return {
       send: true,
       reason: "Portal armed override",
