@@ -486,7 +486,7 @@ function detectLaunchImminent(current, history) {
     : [];
 
   const recent = sortedHistory.slice(0, 6);
-  const prev = recent[1] || recent[0] || null;
+  const prev = recent[0] || null;
 
   const prevScore = Number(prev?.score || 0);
   const prevSignals = Array.isArray(prev?.signals) ? prev.signals : [];
