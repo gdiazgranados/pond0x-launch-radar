@@ -172,8 +172,27 @@ function analyzeChanges(previousState, currentResults) {
     const previousKeywordSet = new Set(previousKeywords);
     const newKeywords = currentKeywords.filter((keyword) => !previousKeywordSet.has(keyword));
 
+    const onlyLastModifiedChanged =
+      previous &&
+      !diff.firstSeen &&
+      !diff.statusChanged &&
+      !diff.finalUrlChanged &&
+      !diff.etagChanged &&
+      diff.lastModifiedChanged &&
+      !diff.contentLengthChanged &&
+      !diff.htmlHashChanged;
+
+    const isStableErrorSurface =
+      previous &&
+      previous.status >= 400 &&
+      current.status >= 400;
+
     const signatureChanged =
-      !previous || buildSurfaceSignature(previous) !== buildSurfaceSignature(current);
+      !previous ||
+      (
+        buildSurfaceSignature(previous) !== buildSurfaceSignature(current) &&
+        !(isStableErrorSurface && onlyLastModifiedChanged)
+      );
 
     if (signatureChanged) {
       changedSurfaces.push({
