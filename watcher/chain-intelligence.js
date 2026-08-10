@@ -250,7 +250,9 @@ function cadenceFromFunding(funding) {
 
 function buildCycleAnalytics(cycles, funding, baseline) {
   const correlated = cycles.filter(x=>x.correlated);
-  const delays = correlated.map(x=>x.firstClaimDelaySeconds).filter(x=>x !== null);
+  const delays = correlated
+    .map(x => x.firstRewardTransferDelaySeconds)
+    .filter(x => x !== null);;
   const liveCadence = cadenceFromFunding(funding);
 
   const baselineDelays = Array.isArray(baseline?.firstClaimDelaySeconds) ? baseline.firstClaimDelaySeconds : [];
@@ -530,9 +532,15 @@ function buildPatternMatch({ funding, cycles, analytics, predictor, baseline, no
   const latestCorrelated = cycles.find(x=>x.correlated) || null;
   const historicalMedianDelay = n(baseline?.summary?.medianFirstClaimDelaySeconds || analytics.medianFirstClaimDelaySeconds);
   const delayTolerance = Math.max(30, historicalMedianDelay || 60);
-  const claimDelaySimilarityPct = latestCorrelated && latestCorrelated.firstClaimDelaySeconds !== null
-    ? similarityPct(latestCorrelated.firstClaimDelaySeconds, historicalMedianDelay, delayTolerance)
-    : null;
+  const rewardTransferDelaySimilarityPct =
+    latestCorrelated &&
+    latestCorrelated.firstRewardTransferDelaySeconds !== null
+      ? similarityPct(
+          latestCorrelated.firstRewardTransferDelaySeconds,
+          historicalMedianDelay,
+          delayTolerance
+        )
+      : null;
 
   const predictorProximityPct =
     predictor.status === 'IN_FUNDING_WINDOW' ? 100 :
@@ -543,7 +551,10 @@ function buildPatternMatch({ funding, cycles, analytics, predictor, baseline, no
   const correlationPct = clamp(analytics.claimAfterFundingProbabilityPct);
   const automationPct = clamp(analytics.automationConfidence);
   const cadencePct = cadenceSimilarityPct === null ? 50 : cadenceSimilarityPct;
-  const delayPct = claimDelaySimilarityPct === null ? 50 : claimDelaySimilarityPct;
+  const delayPct =
+    rewardTransferDelaySimilarityPct === null
+      ? 50
+      : rewardTransferDelaySimilarityPct;
 
   const score = round(
     cadencePct * 0.30 +
@@ -559,7 +570,7 @@ function buildPatternMatch({ funding, cycles, analytics, predictor, baseline, no
   const latestRewardTransferTs = Math.max(
     0,
     ...cycles.flatMap(c =>
-      (c.claims || []).map(x => n(x.timestamp))
+      (c.rewardTransfers || []).map(x => n(x.timestamp))
     )
   );
   
@@ -592,14 +603,15 @@ function buildPatternMatch({ funding, cycles, analytics, predictor, baseline, no
     liveEvidence,
     components: {
       cadenceSimilarityPct,
-      claimDelaySimilarityPct,
+      rewardTransferDelaySimilarityPct,
       claimAfterFundingProbabilityPct: correlationPct,
       automationConfidencePct: automationPct,
       predictorProximityPct,
     },
     live: {
       medianRecentFundingCadenceSeconds: liveMedianCadence === null ? null : round(liveMedianCadence,1),
-      latestCorrelatedClaimDelaySeconds: latestCorrelated?.firstClaimDelaySeconds ?? null,
+      latestCorrelatedRewardTransferDelaySeconds:
+        latestCorrelated?.firstRewardTransferDelaySeconds ?? null,
     },
     baseline: {
       medianFundingCadenceSeconds: historicalMedianCadence || null,
