@@ -2,7 +2,12 @@ const fs=require('fs-extra'); const path=require('path'); require('dotenv').conf
 const TOKEN=process.env.TELEGRAM_TOKEN, CHAT=process.env.TELEGRAM_CHAT_ID;
 const dataDir=path.join(__dirname,'..','public','data');
 const chainFile=path.join(dataDir,'chain-intelligence.json'); const stateFile=path.join(dataDir,'chain-notify-state.json');
-function esc(s){return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function esc(s){
+  return String(s ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
 function fmt(n){return Number(n||0).toLocaleString('en-US',{maximumFractionDigits:2})}
 async function send(text){if(!TOKEN||!CHAT){console.log('Telegram credentials missing');return false} const r=await fetch(`https://api.telegram.org/bot${TOKEN}/sendMessage`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({chat_id:CHAT,text,parse_mode:'HTML',disable_web_page_preview:true})}); if(!r.ok) throw new Error(await r.text()); return true}
 async function main(){
