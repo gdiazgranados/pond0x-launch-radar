@@ -12,6 +12,7 @@ import { RecentAlerts } from "./components/radar/RecentAlerts"
 import { TrendGraph } from "./components/radar/TrendGraph"
 import { useSentinelData } from "./hooks/useSentinelData"
 import { SentinelPanel } from "./components/radar/SentinelPanel"
+import { ChainIntelligencePanel } from "./components/radar/ChainIntelligencePanel"
 import { evaluateAlpha } from "./lib/alpha"
 import { AlphaPanel } from "./components/AlphaPanel"
 import {
@@ -231,7 +232,15 @@ function getTriggerStateTone(triggerState: string) {
 }
 
 export default function Home() {
-  const { data, history, alerts, loading, heartbeatData } = useRadarData()
+  const {
+    data,
+    history,
+    alerts,
+    loading,
+    heartbeatData,
+    chainIntelligence,
+    chainBaseline,
+  } = useRadarData()
   const { latestEvent } = useSentinelData()
   const [now, setNow] = useState(Date.now())
 
@@ -981,6 +990,12 @@ export default function Home() {
 
             <TrendGraph values={recentHistory.map((h) => h.score)} />
             <RecentAlerts alerts={alerts} />
+
+            <ChainIntelligencePanel
+              chain={chainIntelligence}
+              baseline={chainBaseline}
+            />
+
             <SentinelPanel event={latestEvent} />
           </aside>
         </section>
