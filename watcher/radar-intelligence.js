@@ -525,21 +525,22 @@ function detectLaunchImminent(current, history) {
       (item) => Number(item?.score || 0) >= 120
     );
 
-   const highScores = [
-     Number(current.score || 0),
-     ...recent.map((r) => Number(r?.score || 0)),
-   ];
+   const toggleWindow = [
+    Number(current.score || 0),
+    ...recent.slice(0, 2).map((r) => Number(r?.score || 0)),
+  ];
 
-  const uniqueScores = [...new Set(highScores)];
+  const uniqueToggleScores = [...new Set(toggleWindow)];
 
   const toggleDetected =
-    uniqueScores.length >= 2 &&
-    Math.max(...highScores) - Math.min(...highScores) >= 6;
+    toggleWindow.length >= 3 &&
+    uniqueToggleScores.length >= 2 &&
+    Math.max(...toggleWindow) - Math.min(...toggleWindow) >= 6;
 
-  const strongPattern =
-    patterns.includes("CLAIM_FLOW_ACTIVATION") ||
-    patterns.includes("SENSITIVE_CLUSTER") ||
-    patterns.includes("AUTH_WALLET_COUPLING") ||
+    const strongPattern =
+      patterns.includes("CLAIM_FLOW_ACTIVATION") ||
+      patterns.includes("SENSITIVE_CLUSTER") ||
+      patterns.includes("AUTH_WALLET_COUPLING") ||
 
     // 🔥 NEW: real-world cluster detection
     (
