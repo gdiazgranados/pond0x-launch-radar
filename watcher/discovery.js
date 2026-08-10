@@ -1,7 +1,6 @@
 const fs = require("fs-extra");
 const path = require("path");
 
-const snapshotFile = path.join(__dirname, "..", "public", "data", "latest.json");
 const knownSurfaceFile = path.join(__dirname, "known-surface.json");
 const outputFile = path.join(__dirname, "..", "public", "data", "discovery.json");
 
@@ -166,6 +165,7 @@ function extractApiRoutesFromText(text) {
 
   for (const regex of patterns) {
     const matches = source.match(regex) || [];
+
     for (const m of matches) {
       routes.add(
         String(m)
@@ -232,6 +232,7 @@ function extractKeywordCandidates(labels) {
 
 function extractCriticalKeywordsFromText(text) {
   const source = normalizeText(text);
+
   const candidates = [
     "claim",
     "claim now",
@@ -259,7 +260,13 @@ function extractCriticalKeywordsFromText(text) {
   return candidates.filter((k) => source.includes(k));
 }
 
-function pickKeyFunctionCandidate(newLabels, newRoutes, newApiRoutes, newKeywords, criticalKeywords) {
+function pickKeyFunctionCandidate(
+  newLabels,
+  newRoutes,
+  newApiRoutes,
+  newKeywords,
+  criticalKeywords
+) {
   const firstCritical = criticalKeywords.find(Boolean);
   if (firstCritical) return `critical:${firstCritical}`;
 
@@ -279,7 +286,13 @@ function pickKeyFunctionCandidate(newLabels, newRoutes, newApiRoutes, newKeyword
 }
 
 async function readSnapshotTextFiles(snapshotDir) {
-  if (!snapshotDir) return { html: "", jsText: "", apiText: "" };
+  if (!snapshotDir) {
+    return {
+      html: "",
+      jsText: "",
+      apiText: "",
+    };
+  }
 
   const htmlFile = path.join(snapshotDir, "index.html");
   const apiFile = path.join(snapshotDir, "api.json");
@@ -304,23 +317,32 @@ async function readSnapshotTextFiles(snapshotDir) {
 
   if (await fs.pathExists(assetsDir)) {
     const files = await fs.readdir(assetsDir);
-    const jsFiles = files.filter((f) => f.endsWith(".js")).slice(0, 15);
+
+    const jsFiles = files
+      .filter((f) => f.endsWith(".js"))
+      .slice(0, 15);
 
     const chunks = [];
+
     for (const file of jsFiles) {
       try {
         const full = path.join(assetsDir, file);
         const content = await fs.readFile(full, "utf8");
+
         chunks.push(content.slice(0, 50000));
       } catch {
-        // ignore binary/minified read failures
+        // Ignore binary/minified read failures.
       }
     }
 
     jsText = chunks.join("\n");
   }
 
-  return { html, jsText, apiText };
+  return {
+    html,
+    jsText,
+    apiText,
+  };
 }
 
 async function main() {
@@ -338,70 +360,346 @@ async function main() {
     known = await fs.readJson(knownSurfaceFile);
   }
 
-  const knownLabels = new Set(uniqueClean(known.knownLabels || []));
-  const knownRoutes = new Set((known.knownRoutes || []).map((x) => String(x).toLowerCase().trim()));
-  const knownApiRoutes = new Set((known.knownApiRoutes || []).map((x) => String(x).toLowerCase().trim()));
-  const knownKeywords = new Set(uniqueClean(known.knownKeywords || []));
-  const ignoredWords = new Set(uniqueClean(known.ignoredWords || []));
+  const knownLabels = new Set(
+    uniqueClean(known.knownLabels || [])
+  );
 
-  let latest = {};
-  if (await fs.pathExists(snapshotFile)) {
-    latest = await fs.readJson(snapshotFile);
+  const knownRoutes = new Set(
+    (known.knownRoutes || []).map((x) =>
+      String(x).toLowerCase().trim()
+    )
+  );
+
+  const knownApiRoutes = new Set(
+    (known.knownApiRoutes || []).map((x) =>
+      String(x).toLowerCase().trim()
+    )
+  );
+
+  const knownKeywords = new Set(
+    uniqueClean(known.knownKeywords || [])
+  );
+
+  const ignoredWords = new Set(
+    uniqueClean(known.ignoredWords || [])
+  );
+
+  const {
+    html,
+    jsText,
+    apiText,
+  } = await readSnapshotTextFiles(snapshotDir);
+
+  const combinedText = [
+    html,
+    jsText,
+    apiText,
+  ].join("\n\n");
+
+  const labelsFromHtml =
+    extractVisibleLabelsFromHtml(html);
+
+  const routesFromHtml =
+    extractRoutesFromHtml(html);
+
+  const apiRoutes =
+    extractApiRoutesFromText(combinedText);
+
+  const keywordCandidates =
+    extractKeywordCandidates(labelsFromHtml).filter(
+      (word) => !ignoredWords.has(word)
+    );
+
+  const criticalKeywords =
+    extractCriticalKeywordsFromText(combinedText);
+
+  let previousDiscovery = {};
+
+  if (await fs.pathExists(outputFile)) {
+    try {
+      previousDiscovery =
+        await fs.readJson(outputFile);
+    } catch {
+      previousDiscovery = {};
+    }
   }
 
-  const { html, jsText, apiText } = await readSnapshotTextFiles(snapshotDir);
-  const combinedText = [html, jsText, apiText].join("\n\n");
-
-  const labelsFromHtml = extractVisibleLabelsFromHtml(html);
-  const routesFromHtml = extractRoutesFromHtml(html);
-  const apiRoutes = extractApiRoutesFromText(combinedText);
-  const keywordCandidates = extractKeywordCandidates(labelsFromHtml).filter(
-    (word) => !ignoredWords.has(word)
+  const previousObservedLabels = new Set(
+    uniqueClean(
+      previousDiscovery.observedLabels ||
+      previousDiscovery.newLabels ||
+      []
+    )
   );
-  const criticalKeywords = extractCriticalKeywordsFromText(combinedText);
+
+  const previousObservedRoutes = new Set(
+    (
+      previousDiscovery.observedRoutes ||
+      previousDiscovery.newRoutes ||
+      []
+    ).map((x) =>
+      String(x).toLowerCase().trim()
+    )
+  );
+
+  const previousObservedApiRoutes = new Set(
+    (
+      previousDiscovery.observedApiRoutes ||
+      previousDiscovery.newApiRoutes ||
+      []
+    ).map((x) =>
+      String(x).toLowerCase().trim()
+    )
+  );
+
+  const previousObservedKeywords = new Set(
+    uniqueClean(
+      previousDiscovery.observedKeywords ||
+      previousDiscovery.newKeywords ||
+      []
+    )
+  );
+
+  const previousObservedCriticalKeywords = new Set(
+    uniqueClean(
+      previousDiscovery.observedCriticalKeywords ||
+      previousDiscovery.criticalKeywords ||
+      []
+    )
+  );
+
+  /*
+   * ============================================================
+   * FRESH DISCOVERY DELTA
+   * ============================================================
+   *
+   * Something is considered NEW only when it is absent from:
+   *
+   * 1. The long-term known surface.
+   * 2. The previous discovery sweep.
+   *
+   * This prevents persistent routes and strings such as:
+   *
+   * /rewards
+   * /claim
+   * wallet
+   * account
+   * auth
+   * portal
+   *
+   * from being interpreted as fresh evidence every sweep.
+   */
 
   const newLabels = labelsFromHtml.filter((label) => {
     const normalized = normalizeText(label);
-    return normalized && !knownLabels.has(normalized);
+
+    return (
+      normalized &&
+      !knownLabels.has(normalized) &&
+      !previousObservedLabels.has(normalized)
+    );
   });
 
-  const newRoutes = routesFromHtml.filter((route) => !knownRoutes.has(route));
-  const newApiRoutes = apiRoutes.filter((route) => !knownApiRoutes.has(route));
-  const newKeywords = keywordCandidates.filter((word) => {
-    const normalized = normalizeText(word);
-    return normalized && !knownKeywords.has(normalized) && !knownLabels.has(normalized);
+  const newRoutes = routesFromHtml.filter((route) => {
+    const normalized =
+      String(route || "")
+        .toLowerCase()
+        .trim();
+
+    return (
+      normalized &&
+      !knownRoutes.has(normalized) &&
+      !previousObservedRoutes.has(normalized)
+    );
   });
 
-  const keyFunctionCandidate = pickKeyFunctionCandidate(
-    newLabels,
-    newRoutes,
-    newApiRoutes,
-    newKeywords,
-    criticalKeywords
+  const newApiRoutes = apiRoutes.filter((route) => {
+    const normalized =
+      String(route || "")
+        .toLowerCase()
+        .trim();
+
+    return (
+      normalized &&
+      !knownApiRoutes.has(normalized) &&
+      !previousObservedApiRoutes.has(normalized)
+    );
+  });
+
+  const newKeywords = keywordCandidates.filter(
+    (word) => {
+      const normalized = normalizeText(word);
+
+      return (
+        normalized &&
+        !knownKeywords.has(normalized) &&
+        !knownLabels.has(normalized) &&
+        !previousObservedKeywords.has(normalized)
+      );
+    }
   );
+
+  /*
+   * Critical keywords require the same treatment.
+   *
+   * Seeing "claim" repeatedly is OBSERVED STATE.
+   * Seeing "claim" for the first time is FRESH DISCOVERY.
+   */
+
+  const newCriticalKeywords =
+    criticalKeywords.filter((keyword) => {
+      const normalized =
+        normalizeText(keyword);
+
+      return (
+        normalized &&
+        !previousObservedCriticalKeywords.has(
+          normalized
+        )
+      );
+    });
+
+  /*
+   * Candidate selection now uses ONLY fresh evidence.
+   */
+
+  const keyFunctionCandidate =
+    pickKeyFunctionCandidate(
+      newLabels,
+      newRoutes,
+      newApiRoutes,
+      newKeywords,
+      newCriticalKeywords
+    );
+
+  /*
+   * Unknown change is TRUE only when a fresh delta exists.
+   */
 
   const newUnknownChange =
     newLabels.length > 0 ||
     newRoutes.length > 0 ||
     newApiRoutes.length > 0 ||
     newKeywords.length > 0 ||
-    criticalKeywords.length > 0;
+    newCriticalKeywords.length > 0;
+
+  /*
+   * Bind discovery to the snapshot that was ACTUALLY inspected.
+   *
+   * This is intentionally NOT taken from latest.json.
+   *
+   * radar.js can compare this value against its current snapshot
+   * and reject stale discovery evidence.
+   */
+
+  const currentSnapshotId =
+    snapshotDir
+      ? path.basename(snapshotDir)
+      : null;
 
   const result = {
     checkedAt: new Date().toISOString(),
-    sourceSnapshotId: latest?.id || null,
-    snapshotDir: snapshotDir ? path.basename(snapshotDir) : null,
+
+    sourceSnapshotId: currentSnapshotId,
+    snapshotDir: currentSnapshotId,
+
     newUnknownChange,
     keyFunctionCandidate,
-    newLabels: newLabels.slice(0, 15),
-    newRoutes: newRoutes.slice(0, 15),
-    newApiRoutes: newApiRoutes.slice(0, 20),
-    newKeywords: newKeywords.slice(0, 20),
-    criticalKeywords: criticalKeywords.slice(0, 20),
+
+    /*
+     * ==========================================================
+     * FRESH DELTAS
+     * ==========================================================
+     *
+     * These fields represent genuinely new discoveries.
+     *
+     * Radar scoring may use these as fresh evidence.
+     */
+
+    newLabels:
+      newLabels.slice(0, 15),
+
+    newRoutes:
+      newRoutes.slice(0, 15),
+
+    newApiRoutes:
+      newApiRoutes.slice(0, 20),
+
+    newKeywords:
+      newKeywords.slice(0, 20),
+
+    criticalKeywords:
+      newCriticalKeywords.slice(0, 20),
+
+    /*
+     * ==========================================================
+     * OBSERVED STATE
+     * ==========================================================
+     *
+     * These fields preserve what currently exists in the
+     * inspected surface.
+     *
+     * They are useful for research and diagnostics but MUST NOT
+     * automatically be interpreted as fresh activation evidence.
+     */
+
+    observedLabels:
+      labelsFromHtml.slice(0, 250),
+
+    observedRoutes:
+      routesFromHtml.slice(0, 250),
+
+    observedApiRoutes:
+      apiRoutes.slice(0, 250),
+
+    observedKeywords:
+      keywordCandidates.slice(0, 250),
+
+    observedCriticalKeywords:
+      criticalKeywords.slice(0, 100),
+
+    /*
+     * Diagnostics make it easier to verify that the false-positive
+     * fix is behaving correctly.
+     */
+
+    diagnostics: {
+      previousSnapshotId:
+        previousDiscovery.snapshotDir ||
+        previousDiscovery.sourceSnapshotId ||
+        null,
+
+      freshCounts: {
+        labels: newLabels.length,
+        routes: newRoutes.length,
+        apiRoutes: newApiRoutes.length,
+        keywords: newKeywords.length,
+        criticalKeywords:
+          newCriticalKeywords.length,
+      },
+
+      observedCounts: {
+        labels: labelsFromHtml.length,
+        routes: routesFromHtml.length,
+        apiRoutes: apiRoutes.length,
+        keywords: keywordCandidates.length,
+        criticalKeywords:
+          criticalKeywords.length,
+      },
+    },
   };
 
-  await fs.ensureDir(path.dirname(outputFile));
-  await fs.writeJson(outputFile, result, { spaces: 2 });
+  await fs.ensureDir(
+    path.dirname(outputFile)
+  );
+
+  await fs.writeJson(
+    outputFile,
+    result,
+    {
+      spaces: 2,
+    }
+  );
 
   console.log(
     `Discovery complete | unknown=${result.newUnknownChange} | candidate=${result.keyFunctionCandidate || "none"}`
@@ -409,6 +707,10 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error("discovery.js failed:", error);
+  console.error(
+    "discovery.js failed:",
+    error
+  );
+
   process.exit(1);
 });
