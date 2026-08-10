@@ -388,6 +388,8 @@ const historicalMedCadence = median(baselineCadence);
     combinedAutomationConfidence,
     cadenceConfidence,
     claimAfterFundingProbabilityPct,
+    rewardTransferAfterFundingPct:
+      claimAfterFundingProbabilityPct,
     liveClaimAfterFundingProbabilityPct,
     historicalClaimAfterFundingProbabilityPct,
     combinedClaimAfterFundingProbabilityPct,
@@ -405,6 +407,9 @@ const historicalMedCadence = median(baselineCadence);
       medDelay === null ? null : round(medDelay, 1),
 
     medianFirstClaimDelaySeconds:
+      liveMedDelay === null ? null : round(liveMedDelay, 1),
+
+    medianFirstRewardTransferDelaySeconds:
       liveMedDelay === null ? null : round(liveMedDelay, 1),
 
     avgFirstClaimDelaySeconds:
@@ -740,6 +745,7 @@ const rewardTxs = rewardResult.transactions;
     activityState,
     chainConfirmationScore:confirmationScore,
     claimVelocityPct,
+    rewardTransferVelocityPct: claimVelocityPct,
     volumeVelocityPct,
     silenceMinutes,
     fundingDetected:fundingActive15m,
