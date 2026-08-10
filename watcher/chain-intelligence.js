@@ -533,7 +533,7 @@ function buildPredictor(funding, analytics, nowSec) {
     secondsToExpectedFunding: secondsTo,
     fundingCadenceConfidence: analytics.cadenceConfidence,
     claimAfterFundingProbabilityPct: analytics.rewardTransferAfterFundingPct ??
-    analytics.claimAfterFundingProbabilityPct
+    analytics.claimAfterFundingProbabilityPct,
     expectedClaimWindowSeconds: medDelay
       ? { start: Math.max(10, round(medDelay - 20,0)), center: round(medDelay,0), end: Math.min(CORRELATION_WINDOW_SECONDS, round(medDelay + 45,0)) }
       : null,
