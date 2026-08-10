@@ -722,7 +722,12 @@ const rewardTxs = rewardResult.transactions;
       x.timestamp >= nowSec - 600
   );
   const prev5Total = sum(prev5Rows,x=>x.amount);
-  const claimVelocityPct = prev5Rows.length ? round(((w5.rewards-prev5Rows.length)/prev5Rows.length)*100,1) : (w5.rewards?100:0);
+  const rewardTransferVelocityPct = prev5Rows.length
+    ? round(
+        ((w5.rewards - prev5Rows.length) / prev5Rows.length) * 100,
+        1
+      )
+    : (w5.rewards ? 100 : 0);
   const volumeVelocityPct = prev5Total ? round(((w5.wpondDistributed-prev5Total)/prev5Total)*100,1) : (w5.wpondDistributed?100:0);
 
   const lastRewardTransfer = rewardWalletTransfers[0] || null;
@@ -779,8 +784,8 @@ const rewardTxs = rewardResult.transactions;
     
     activityState,
     chainConfirmationScore:confirmationScore,
-    claimVelocityPct,
-    rewardTransferVelocityPct: claimVelocityPct,
+    claimVelocityPct: rewardTransferVelocityPct,
+    rewardTransferVelocityPct,
     volumeVelocityPct,
     silenceMinutes,
     fundingDetected:fundingActive15m,
