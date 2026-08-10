@@ -22,7 +22,7 @@ function computeTrend(currentScore, history = [], signals = null) {
     return { trend: 0, trendDirection: "FLAT" }
   }
 
-  const recent = history.slice(-5)
+  const recent = history.slice(0, 5)
   const avg =
     recent.reduce((sum, item) => sum + Number(item.score || 0), 0) / recent.length
 
