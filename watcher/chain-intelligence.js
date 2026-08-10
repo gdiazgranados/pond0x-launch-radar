@@ -375,25 +375,25 @@ const historicalMedCadence = median(baselineCadence);
           ? 'MEDIUM'
           : 'LOW';
 
-  const claimAfterFundingProbabilityPct =
+  const rewardTransferAfterFundingPct =
     liveClaimAfterFundingProbabilityPct;
 
   const stableCycle =
     correlated.length >= 5 &&
-    liveClaimAfterFundingProbabilityPct >= 50 &&
+    rewardTransferAfterFundingPct >= 50 &&
     liveMedDelay !== null &&
     liveMedDelay <= CORRELATION_WINDOW_SECONDS &&
     cadenceConfidence !== 'LOW';
 
-  return {
+return {
     cycleSignal: stableCycle ? 'DISTRIBUTION_CYCLE_DETECTED' : 'NO_STABLE_CYCLE',
     automationConfidence,
     liveAutomationConfidence,
     combinedAutomationConfidence,
     cadenceConfidence,
-    claimAfterFundingProbabilityPct,
-    rewardTransferAfterFundingPct:
-      claimAfterFundingProbabilityPct,
+    rewardTransferAfterFundingPct,
+    claimAfterFundingProbabilityPct:
+      rewardTransferAfterFundingPct,
     liveClaimAfterFundingProbabilityPct,
     historicalClaimAfterFundingProbabilityPct,
     combinedClaimAfterFundingProbabilityPct,
