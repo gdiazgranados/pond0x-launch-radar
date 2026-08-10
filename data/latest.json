@@ -1,95 +1,204 @@
 {
-  "id": "2026-08-10_045408__2026-08-10T04:54:19.144Z",
-  "snapshotId": "2026-08-10_045408",
+  "id": "2026-08-10_052615__2026-08-10T05:26:25.604Z",
+  "snapshotId": "2026-08-10_052615",
   "totalFiles": 62,
-  "added": 0,
+  "added": 3,
   "changed": 0,
-  "movementCount": 0,
-  "movementPct": 0,
-  "addedPct": 0,
+  "movementCount": 3,
+  "movementPct": 4.84,
+  "addedPct": 4.84,
   "changedPct": 0,
-  "rawScore": 0,
-  "rawActivationProbability": 33,
-  "movementPercent": 0,
-  "addedPercent": 0,
+  "rawScore": 114,
+  "rawActivationProbability": 86,
+  "movementPercent": 4.84,
+  "addedPercent": 4.84,
   "changedPercent": 0,
-  "scorePercent": 0,
-  "activationProbability": 33,
-  "score": 0,
-  "intensityClass": "LOW",
-  "overdrive": false,
+  "scorePercent": 100,
+  "activationProbability": 86,
+  "score": 114,
+  "intensityClass": "EXTREME",
+  "overdrive": true,
   "portalArmed": false,
   "launchImminent": false,
-  "signals": [],
+  "signals": [
+    "account",
+    "active",
+    "airdrop",
+    "connect",
+    "disabled",
+    "enabled",
+    "launch",
+    "nonce",
+    "reward",
+    "rewards",
+    "solana",
+    "wallet"
+  ],
   "backendSignals": [],
-  "patternScore": 0,
-  "patterns": [],
-  "level": "LOW",
-  "significance": "WATCH",
-  "rarityScore": 50,
-  "focusAreas": [],
-  "sensitiveHits": [],
+  "patternScore": 60,
+  "patterns": [
+    {
+      "tag": "PRE-ACTIVATION",
+      "boost": 15,
+      "confidence": "HIGH",
+      "reasons": [
+        "Wallet-related strings detected",
+        "Connect UI detected",
+        "UI still appears disabled"
+      ]
+    },
+    {
+      "tag": "REWARD_PREP",
+      "boost": 20,
+      "confidence": "HIGH",
+      "reasons": [
+        "Reward logic detected in code or strings",
+        "No confirming on-chain movement yet"
+      ]
+    },
+    {
+      "tag": "UI_ARMING",
+      "boost": 12,
+      "confidence": "HIGH",
+      "reasons": [
+        "Connect UI visible",
+        "CTA or interactive surface changed"
+      ]
+    }
+  ],
+  "level": "CRITICAL",
+  "significance": "HIGH",
+  "rarityScore": 100,
+  "focusAreas": [
+    "REWARDS",
+    "AUTH",
+    "WALLET",
+    "ACCOUNT",
+    "SYSTEM"
+  ],
+  "sensitiveHits": [
+    "reward",
+    "rewards",
+    "airdrop",
+    "auth",
+    "wallet",
+    "connect",
+    "solana",
+    "account",
+    "launch",
+    "enabled",
+    "disabled"
+  ],
   "changeTypes": [
-    "button"
+    "asset",
+    "style"
   ],
   "insight": "No significant activity detected",
   "confidence": 0.2,
-  "tags": [],
-  "summary": "No se detectaron cambios en 62 archivos analizados.",
-  "note": "Sin señales fuertes por ahora.",
-  "changedFiles": [],
-  "generatedAt": "2026-08-10T04:54:19.144Z",
-  "trend": 0,
-  "trendDirection": "FLAT",
+  "tags": [
+    "AUTH",
+    "REWARDS",
+    "CHAIN",
+    "SYSTEM",
+    "PRE-ACTIVATION",
+    "REWARD_PREP",
+    "UI_ARMING"
+  ],
+  "summary": "3 de 62 archivos muestran movimiento (4.84%). 3 nuevos (4.84%) y 0 modificados (0). Señales: account, active, airdrop, connect, disabled, enabled, launch, nonce, reward, rewards, solana, wallet.",
+  "note": "Señales muy fuertes de activación real o launch inminente.",
+  "changedFiles": [
+    "_next_static_chunks_51972-3369a5751ffa2414.js",
+    "_next_static_chunks_webpack-8b998328429f96e7.js",
+    "_next_static_css_0e12e742651f0f4c.css"
+  ],
+  "generatedAt": "2026-08-10T05:26:25.604Z",
+  "trend": -92.2,
+  "trendDirection": "DOWN",
   "breakdown": {
     "frontend": {
-      "raw": 0,
-      "weighted": 0,
-      "hits": []
+      "raw": 100,
+      "weighted": 35,
+      "hits": [
+        "wallet_strings",
+        "connect_ui",
+        "disabled_state",
+        "enabled_state",
+        "cta_change",
+        "auth_flow"
+      ]
     },
     "infra": {
-      "raw": 0,
-      "weighted": 0,
-      "hits": []
+      "raw": 60,
+      "weighted": 15,
+      "hits": [
+        "new_chunks",
+        "css_change",
+        "js_change"
+      ]
     },
     "rewards": {
-      "raw": 0,
-      "weighted": 0,
-      "hits": []
+      "raw": 75,
+      "weighted": 18.75,
+      "hits": [
+        "reward_logic",
+        "reward_activation",
+        "active_signal"
+      ]
     },
     "behavior": {
-      "raw": 0,
-      "weighted": 0,
-      "hits": []
+      "raw": 50,
+      "weighted": 7.5,
+      "hits": [
+        "recent_change_cluster",
+        "wallet_auth_reward_convergence"
+      ]
     },
     "onchain": {},
-    "patternBoost": 0,
-    "weightedBoost": 0,
+    "patternBoost": 47,
+    "weightedBoost": 14,
     "discoveryApiCount": 0,
     "discoveryKeywordCount": 0,
     "backendSignalCount": 0
   },
   "advancedSignals": {
-    "frontend": [],
-    "infra": [],
-    "rewards": [],
-    "behavior": [],
-    "frontendScore": 0,
-    "infraScore": 0,
-    "rewardsScore": 0,
-    "behaviorScore": 0,
-    "movementPct": 0,
-    "recentChangesCount": 0,
-    "hasWalletStrings": false,
-    "hasConnectUI": false,
-    "hasDisabledState": false,
-    "hasEnabledState": false,
-    "hasRewardLogic": false,
-    "hasRewardActivation": false,
-    "hasAuthSignals": false,
+    "frontend": [
+      "wallet_strings",
+      "connect_ui",
+      "disabled_state",
+      "enabled_state",
+      "cta_change",
+      "auth_flow"
+    ],
+    "infra": [
+      "new_chunks",
+      "css_change",
+      "js_change"
+    ],
+    "rewards": [
+      "reward_logic",
+      "reward_activation",
+      "active_signal"
+    ],
+    "behavior": [
+      "recent_change_cluster",
+      "wallet_auth_reward_convergence"
+    ],
+    "frontendScore": 100,
+    "infraScore": 60,
+    "rewardsScore": 75,
+    "behaviorScore": 50,
+    "movementPct": 4.84,
+    "recentChangesCount": 3,
+    "hasWalletStrings": true,
+    "hasConnectUI": true,
+    "hasDisabledState": true,
+    "hasEnabledState": true,
+    "hasRewardLogic": true,
+    "hasRewardActivation": true,
+    "hasAuthSignals": true,
     "hasClaimSignal": false,
     "hasEligibilitySignal": false,
-    "hasActiveSignal": false,
+    "hasActiveSignal": true,
     "hasApiSurface": false,
     "hasClaimApi": false,
     "hasRewardApi": false,
@@ -100,13 +209,13 @@
     "hasEnabledTrue": false,
     "hasActiveTrue": false,
     "hasRewardsArray": false,
-    "hasNewChunks": false,
-    "hasVisibleCTAChange": false
+    "hasNewChunks": true,
+    "hasVisibleCTAChange": true
   },
   "discovery": {
-    "checkedAt": "2026-08-10T04:54:19.004Z",
-    "sourceSnapshotId": "2026-08-10_045408",
-    "snapshotDir": "2026-08-10_045408",
+    "checkedAt": "2026-08-10T05:26:25.429Z",
+    "sourceSnapshotId": "2026-08-10_052615",
+    "snapshotDir": "2026-08-10_052615",
     "newUnknownChange": false,
     "keyFunctionCandidate": null,
     "newLabels": [],
@@ -115,16 +224,16 @@
     "newKeywords": [],
     "criticalKeywords": []
   },
-  "whyItMatters": "",
+  "whyItMatters": "Wallet and authentication layers are being tightly integrated. Low activity but high-sensitivity changes suggest stealth deployment. Breakout detected after a period of inactivity. Reward systems are a primary focus of current changes.",
   "alphaScore": 0,
   "alphaClass": "NOISE",
   "triggerState": "IDLE",
   "suggestedAction": "Ignore noise and continue baseline monitoring.",
-  "eventType": "NOISE",
-  "signalRegime": "NOISE DISGUISED AS SIGNAL",
-  "signalFusion": "UNCLASSIFIED SIGNAL MIX",
+  "eventType": "REWARD ACTIVATION",
+  "signalRegime": "TRANSITIONAL SIGNAL",
+  "signalFusion": "ELEVATED MULTI-SIGNAL EVENT",
   "priority": "LOW",
-  "eta": "unknown",
-  "signature": "LOW::0::::",
-  "alertSignature": "7aef7b3bee83f8d6972dca1bd596f637ed0f884299f81e360390deef6395b895"
+  "eta": "24h - 72h",
+  "signature": "CRITICAL::110::AUTH|CHAIN|PRE-ACTIVATION|REWARDS|REWARD_PREP|SYSTEM|UI_ARMING::PRE-ACTIVATION|REWARD_PREP|UI_ARMING",
+  "alertSignature": "6723e61085bb72cef61a0c06475dc4a96c3806ddac7f1366a645f2296167a013"
 }
