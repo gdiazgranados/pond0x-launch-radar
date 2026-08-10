@@ -288,6 +288,7 @@ function buildSignals({
   recentChangesCount = 0,
   discovery = {},
   backendSignals = [],
+  onchain = {},
 }) {
   const frontendHits = [];
   const infraHits = [];
@@ -461,6 +462,9 @@ function buildSignals({
     behaviorScore,
     movementPct,
     recentChangesCount,
+    hasOnchainMovement: onchain.hasOnchainMovement,
+    onchainScore: Number(onchain.onchainScore || 0),
+    onchain: ensureArray(onchain.onchain),
     hasWalletStrings,
     hasConnectUI,
     hasDisabledState,
@@ -1039,23 +1043,103 @@ async function main() {
 
   const publicDir = path.join(__dirname, "..", "public", "data");
   const historyPath = path.join(publicDir, "history.json");
+  const chainIntelligencePath = path.join(publicDir, "chain-intelligence.json");
   const discoveryPath = path.join(publicDir, "discovery.json");
   const apiFile = path.join(newDir, "api.json");
+  const chainIntelligence = await readJsonSafe(chainIntelligencePath, null);
 
- const existingHistory = await readJsonArraySafe(historyPath);
+  function normalizeOnchainState(chain) {
+    if (!chain || !chain.generatedAt) {
+      return {
+        status: "UNKNOWN",
+        available: false,
+        fresh: false,
+        hasOnchainMovement: undefined,
+        onchainScore: 0,
+        onchain: [],
+      };
+    }
 
- let discovery = await readJsonSafe(discoveryPath, {
-   checkedAt: null,
-   sourceSnapshotId: null,
-   snapshotDir: null,
-   newUnknownChange: false,
-   keyFunctionCandidate: null,
-   newLabels: [],
-   newRoutes: [],
-   newApiRoutes: [],
-   newKeywords: [],
-   criticalKeywords: [],
- });
+    const generatedAtMs = new Date(chain.generatedAt).getTime();
+    const ageMs = Date.now() - generatedAtMs;
+
+    const fresh =
+      Number.isFinite(generatedAtMs) &&
+      ageMs >= 0 &&
+      ageMs <= 15 * 60 * 1000;
+
+    if (!fresh) {
+      return {
+        status: "UNKNOWN",
+        available: true,
+        fresh: false,
+        hasOnchainMovement: undefined,
+        onchainScore: 0,
+        onchain: [],
+      };
+    }
+
+    const w5 = chain.windows?.["5m"] || {};
+    const w15 = chain.windows?.["15m"] || {};
+
+    const rewards5m = Number(w5.rewards || 0);
+    const recipients5m = Number(w5.uniqueRecipients || 0);
+
+    const fundingActive15m =
+      chain.fundingStatus?.active15m === true ||
+      chain.fundingDetected === true;
+
+    const rewardActivity5m =
+      rewards5m > 0 ||
+      recipients5m > 0;
+
+    const hasOnchainMovement =
+      fundingActive15m ||
+      rewardActivity5m;
+
+    const evidence = [];
+  
+    if (rewards5m > 0) {
+      evidence.push(`rewards_5m:${rewards5m}`);
+    }
+
+    if (recipients5m > 0) {
+      evidence.push(`recipients_5m:${recipients5m}`);
+    }
+
+    if (fundingActive15m) {
+      evidence.push("funding_active_15m");
+    }
+
+    return {
+      status: hasOnchainMovement ? "ACTIVE" : "QUIET",
+      available: true,
+      fresh: true,
+      hasOnchainMovement,
+      onchainScore: hasOnchainMovement
+        ? Number(chain.chainConfirmationScore || 0)
+        : 0,
+      onchain: evidence,
+    };
+  }
+
+  const normalizedOnchain =
+    normalizeOnchainState(chainIntelligence);
+
+   const existingHistory = await readJsonArraySafe(historyPath);
+
+   let discovery = await readJsonSafe(discoveryPath, {
+     checkedAt: null,
+     sourceSnapshotId: null,
+     snapshotDir: null,
+     newUnknownChange: false,
+     keyFunctionCandidate: null,
+     newLabels: [],
+     newRoutes: [],
+     newApiRoutes: [],
+     newKeywords: [],
+     criticalKeywords: [],
+   });
 
  const currentSnapshotId = path.basename(newDir);
 
@@ -1146,6 +1230,7 @@ const oldApiData = oldApiFile
       newApiRoutes: discoveryNewApiRoutes,
     },
     backendSignals: uniqueBackendSignals,
+    onchain: normalizedOnchain,
   });
 
   discoveryCriticalKeywords
