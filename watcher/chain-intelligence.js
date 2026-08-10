@@ -260,6 +260,15 @@ const historicalMedCadence = median(baselineCadence);
     ? ((baselineCorrelationRate * n(baseline.cyclesAnalyzed)) + correlated.length) / (n(baseline.cyclesAnalyzed) + cycles.length)
     : correlationRate;
 
+  const liveClaimAfterFundingProbabilityPct =
+    round(correlationRate * 100, 1);
+
+  const historicalClaimAfterFundingProbabilityPct =
+    round(baselineCorrelationRate * 100, 1);
+
+  const combinedClaimAfterFundingProbabilityPct =
+    round(weightedCorrelationRate * 100, 1);
+
   let automationConfidence = 0;
   const totalCorrelated = n(baseline?.correlatedCycles) + correlated.length;
   if (totalCorrelated >= 1) automationConfidence += 20;
@@ -285,7 +294,8 @@ const historicalMedCadence = median(baselineCadence);
           ? 'MEDIUM'
           : 'LOW';
 
-  const claimAfterFundingProbabilityPct = round(weightedCorrelationRate * 100, 1);
+  const claimAfterFundingProbabilityPct =
+    liveClaimAfterFundingProbabilityPct;
 
   const stableCycle =
     totalCorrelated >= 8 &&
@@ -299,6 +309,9 @@ const historicalMedCadence = median(baselineCadence);
     automationConfidence,
     cadenceConfidence,
     claimAfterFundingProbabilityPct,
+    liveClaimAfterFundingProbabilityPct,
+    historicalClaimAfterFundingProbabilityPct,
+    combinedClaimAfterFundingProbabilityPct,
     liveFundingEventsAnalyzed: cycles.length,
     liveCorrelatedCycles: correlated.length,
     historicalCyclesAnalyzed: n(baseline?.cyclesAnalyzed),
