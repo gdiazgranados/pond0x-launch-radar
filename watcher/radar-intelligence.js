@@ -99,15 +99,25 @@ function buildChangeEvidenceCorpus(snapshot) {
 }
 
 function detectFocusAreas(snapshot) {
-  const joined = buildCorpus(snapshot).join(" ");
+  const joined = buildChangeEvidenceCorpus(snapshot).join(" ");
+
+  if (!joined) {
+    return [];
+  }
 
   return Object.entries(RADAR_KEYWORDS)
-    .filter(([, keywords]) => keywords.some((keyword) => joined.includes(keyword.toLowerCase())))
+    .filter(([, keywords]) =>
+      keywords.some((keyword) => joined.includes(keyword.toLowerCase()))
+    )
     .map(([focusArea]) => focusArea);
 }
 
 function detectSensitiveHits(snapshot) {
-  const joined = buildCorpus(snapshot).join(" ");
+  const joined = buildChangeEvidenceCorpus(snapshot).join(" ");
+
+  if (!joined) {
+    return [];
+  }
 
   const hits = Object.values(RADAR_KEYWORDS)
     .flat()
