@@ -353,6 +353,16 @@ function detectEscalationPattern(current, history) {
   const previous = (history || [])[0];
   if (!previous) return [];
 
+  const hasCurrentEvidence =
+  Number(current.movementCount ?? 0) > 0 ||
+  Number(current.movementPct ?? 0) > 0 ||
+  (current.signals || []).length > 0 ||
+  detectFocusAreas(current).length > 0;
+
+if (!hasCurrentEvidence) {
+  return [];
+}
+
   const patterns = [];
   const currentScore = Number(current.score ?? 0);
   const previousScore = Number(previous.score ?? 0);
