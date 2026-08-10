@@ -605,42 +605,64 @@ const rewardTxs = rewardResult.transactions;
   const nowSec = Math.floor(Date.now()/1000);
   const distTransfers = extractTransfers(distTxs);
 
-  const claims = distTransfers
-    .filter(x=>x.from===DISTRIBUTOR && x.to && x.to!==DISTRIBUTOR)
+  const distributorOutflows = distTransfers
+    .filter(
+      x =>
+        x.from === DISTRIBUTOR &&
+        x.to &&
+        x.to !== DISTRIBUTOR
+    )
     .sort((a,b)=>b.timestamp-a.timestamp);
-
+  
+  const rewardWalletTransfers = distributorOutflows
+    .filter(x => x.to === REWARD_WALLET);
+  
+  const externalClaims = distributorOutflows
+    .filter(x => x.to !== REWARD_WALLET);
+  
   const funding = extractTransfers(upstreamTxs)
     .filter(x=>x.from===UPSTREAM && x.to===DISTRIBUTOR)
     .sort((a,b)=>b.timestamp-a.timestamp);
 
   const rewardFlow = extractTransfers(rewardTxs).sort((a,b)=>b.timestamp-a.timestamp);
 
-  const w5=stats(claims,5,nowSec), w15=stats(claims,15,nowSec), w60=stats(claims,60,nowSec), w24=stats(claims,1440,nowSec);
+  const w5 = stats(rewardWalletTransfers, 5, nowSec);
+  const w15 = stats(rewardWalletTransfers, 15, nowSec);
+  const w60 = stats(rewardWalletTransfers, 60, nowSec);
+  const w24 = stats(rewardWalletTransfers, 1440, nowSec);
 
-  const prev5Rows = claims.filter(x=>x.timestamp < nowSec-300 && x.timestamp >= nowSec-600);
+  const prev5Rows = rewardWalletTransfers.filter(
+    x =>
+      x.timestamp < nowSec - 300 &&
+      x.timestamp >= nowSec - 600
+  );
   const prev5Total = sum(prev5Rows,x=>x.amount);
   const claimVelocityPct = prev5Rows.length ? round(((w5.rewards-prev5Rows.length)/prev5Rows.length)*100,1) : (w5.rewards?100:0);
   const volumeVelocityPct = prev5Total ? round(((w5.wpondDistributed-prev5Total)/prev5Total)*100,1) : (w5.wpondDistributed?100:0);
 
-  const lastClaim = claims[0] || null;
-  const silenceMinutes = lastClaim ? round((nowSec-lastClaim.timestamp)/60,1) : null;
+  const lastRewardTransfer = rewardWalletTransfers[0] || null;
+  const silenceMinutes = lastRewardTransfer
+    ? round((nowSec - lastRewardTransfer.timestamp) / 60, 1)
+    : null;
   const activityState = w5.rewards>=10?'SURGING':w5.rewards>=4?'HIGH':w5.rewards>=1?'ACTIVE':(w15.rewards?'COOLING':'QUIET');
 
   const lastFunding = funding[0] || null;
   const fundingActive15m = Boolean(funding.find(x=>within(x.timestamp,ACTIVE_FUNDING_WINDOW_MINUTES,nowSec)));
   const fundingSilenceMinutes = lastFunding ? round((nowSec-lastFunding.timestamp)/60,1) : null;
 
-  const cycles = buildDistributionCycles(funding, claims);
+  const cycles = buildDistributionCycles(
+    funding,
+    rewardWalletTransfers
+  );
   const cycleAnalytics = buildCycleAnalytics(cycles, funding, baseline);
   const predictor = buildPredictor(funding, cycleAnalytics, nowSec);
   const patternMatch = buildPatternMatch({ funding, cycles, analytics: cycleAnalytics, predictor, baseline, nowSec });
 
   const rewardWalletActive15m =
     rewardFlow.some(x => within(x.timestamp, 15, nowSec)) ||
-    claims.some(
-      x =>
-        x.to === REWARD_WALLET &&
-        within(x.timestamp, 15, nowSec)
+    rewardWalletTransfers.some(
+      x => within(x.timestamp, 15, nowSec)
+    )
     );
 
   const confirmationScore = Math.min(100,
@@ -665,6 +687,12 @@ const rewardTxs = rewardResult.transactions;
    },
     
     entities:{wpondMint:WPOND_MINT,claimDistributor:DISTRIBUTOR,upstream:UPSTREAM,rewardWallet:REWARD_WALLET},
+    flowClassification: {
+    distributorOutflows: distributorOutflows.length,
+    rewardWalletTransfers: rewardWalletTransfers.length,
+    externalClaims: externalClaims.length,
+  },
+    
     activityState,
     chainConfirmationScore:confirmationScore,
     claimVelocityPct,
@@ -681,13 +709,14 @@ const rewardTxs = rewardResult.transactions;
     patternMatch,
     cycleAnalytics,
     lastFunding,
-    lastClaim,
+    lastRewardTransfer,
     windows:{'5m':w5,'15m':w15,'1h':w60,'24h':w24},
     latestCorrelatedCycle:cycles.find(x=>x.correlated)||null,
     distributionCycles:cycles.slice(0,MAX_CYCLES_OUTPUT),
-    recentClaims:claims.slice(0,20),
+    recentRewardWalletTransfers: rewardWalletTransfers.slice(0,20),
+    recentExternalClaims: externalClaims.slice(0,20),
     recentFundingEvents:funding.slice(0,20),
-    methodology:'Direct wPOND transfers from the high-confidence Claim Distributor are treated as reward/claim candidates. UPSTREAM -> DISTRIBUTOR Jupiter/swap flows are treated as funding events. Cycle timing and prediction use a live sample plus an optional historical baseline. Funding cadence confidence, claim-after-funding correlation, and historical pattern similarity are deliberately separated. Pattern Match is a similarity score, not a probability of a claim or launch.',
+    methodology:'Direct wPOND transfers from the Distributor are classified into reward-wallet transfers and external claims. DISTRIBUTOR -> REWARD_WALLET flows are treated as reward-distribution activity, while DISTRIBUTOR -> other recipients are tracked separately as external claim candidates. UPSTREAM -> DISTRIBUTOR Jupiter/swap flows are treated as funding events. Cycle timing and prediction currently analyze reward-wallet distribution cycles. Historical pattern similarity is contextual and is not a probability of a claim or launch.',
   };
 
   await fs.writeJson(outputFile,output,{spaces:2});
