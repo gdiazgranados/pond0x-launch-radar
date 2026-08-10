@@ -84,6 +84,10 @@ function buildCycles(funding,claims){
       fundingTimestamp:fe.timestamp,
       correlated:cc.length>0,
       firstClaimDelaySeconds:cc.length?Math.min(...cc.map(x=>x.timestamp-fe.timestamp)):null,
+      firstRewardTransferDelaySeconds:
+        cc.length
+          ? Math.min(...cc.map(x=>x.timestamp-fe.timestamp))
+          : null,
       claimCount:cc.length
     });
   }
@@ -117,7 +121,9 @@ async function main(){
 
   const cycles=buildCycles(funding,rewardWalletTransfers);
   const correlated=cycles.filter(x=>x.correlated);
-  const delays=correlated.map(x=>x.firstClaimDelaySeconds).filter(x=>x!==null);
+  const delays = correlated
+    .map(x => x.firstRewardTransferDelaySeconds ?? x.firstClaimDelaySeconds)
+    .filter(x => x !== null);
 
   const chronological = [...funding]
    .sort((a,b)=>a.timestamp-b.timestamp);
@@ -156,10 +162,12 @@ async function main(){
     correlatedCycles:correlated.length,
     correlationRatePct:cycles.length?round(correlated.length/cycles.length*100,1):0,
     firstClaimDelaySeconds:delays,
+    firstRewardTransferDelaySeconds: delays,
     fundingCadenceSeconds: cadence,
     sessionBreaksSeconds: sessionBreaks,
     summary:{
       medianFirstClaimDelaySeconds:median(delays),
+      medianFirstRewardTransferDelaySeconds: median(delays),
       medianFundingCadenceSeconds:medCad,
       fundingCadenceStdDevSeconds:round(sd,1),
       fundingCadenceCV:medCad?round(sd/medCad,3):null,
