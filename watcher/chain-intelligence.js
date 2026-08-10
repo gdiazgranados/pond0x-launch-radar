@@ -615,7 +615,6 @@ function buildPatternMatch({ funding, cycles, analytics, predictor, baseline, no
 
   const correlationPct = clamp(
     analytics.rewardTransferAfterFundingPct ??
-    analytics.rewardTransferAfterFundingPct ??
     analytics.claimAfterFundingProbabilityPct
   );
   const automationPct = clamp(analytics.automationConfidence);
