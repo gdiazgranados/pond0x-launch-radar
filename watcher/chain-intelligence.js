@@ -504,7 +504,13 @@ const rewardTxs = rewardResult.transactions;
   const predictor = buildPredictor(funding, cycleAnalytics, nowSec);
   const patternMatch = buildPatternMatch({ funding, cycles, analytics: cycleAnalytics, predictor, baseline, nowSec });
 
-  const rewardWalletActive15m = rewardFlow.some(x=>within(x.timestamp,15,nowSec));
+  const rewardWalletActive15m =
+    rewardFlow.some(x => within(x.timestamp, 15, nowSec)) ||
+    claims.some(
+      x =>
+        x.to === REWARD_WALLET &&
+        within(x.timestamp, 15, nowSec)
+    );
 
   const confirmationScore = Math.min(100,
     (w5.rewards?30:0) +
