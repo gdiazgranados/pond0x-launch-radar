@@ -260,6 +260,44 @@ function extractCriticalKeywordsFromText(text) {
   return candidates.filter((k) => source.includes(k));
 }
 
+function isNoisyDynamicLabel(value) {
+  const normalized = normalizeText(value);
+
+  if (!normalized) return true;
+
+  const exactNoise = new Set([
+    "just now",
+    "messages",
+    "maybe",
+    "maybe pond0x",
+  ]);
+
+  if (exactNoise.has(normalized)) {
+    return true;
+  }
+
+  // Relative-time UI text.
+  if (
+    /^(just now|\d+\s*(s|sec|secs|second|seconds|m|min|mins|minute|minutes|h|hr|hrs|hour|hours)\s*ago)$/.test(
+      normalized
+    )
+  ) {
+    return true;
+  }
+
+  // Dynamic mining/feed counters such as:
+  // "⛏️ mining burned 5.7m b"
+  if (
+    normalized.includes("mining") &&
+    normalized.includes("burned") &&
+    /\d/.test(normalized)
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
 function pickKeyFunctionCandidate(
   newLabels,
   newRoutes,
@@ -495,6 +533,7 @@ async function main() {
 
     return (
       normalized &&
+      !isNoisyDynamicLabel(label) &&
       !knownLabels.has(normalized) &&
       !previousObservedLabels.has(normalized)
     );
@@ -532,6 +571,7 @@ async function main() {
 
       return (
         normalized &&
+        !isNoisyDynamicLabel(word) &&
         !knownKeywords.has(normalized) &&
         !knownLabels.has(normalized) &&
         !previousObservedKeywords.has(normalized)
