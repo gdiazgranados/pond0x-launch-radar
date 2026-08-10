@@ -423,6 +423,16 @@ function computeActivationProbability(current, history) {
   const rarityScore = computeRarityScore(current, history);
   const patternScore = computePatternScore(current, history);
 
+  const hasCurrentEvidence =
+    Number(current.movementCount ?? 0) > 0 ||
+    Number(current.movementPct ?? 0) > 0 ||
+    (current.signals || []).length > 0 ||
+    detectFocusAreas(current).length > 0;
+
+  if (!hasCurrentEvidence) {
+    return 0;
+  }
+
   const value =
     finalScore * 0.45 +
     rarityScore * 0.2 +
