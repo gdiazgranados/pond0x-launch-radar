@@ -373,7 +373,9 @@ async function main() {
     `Trigger threshold: priority=${analysis.maxPriority} | candidate=${hasCandidateActivation} | keywords=${hasKeywordTrigger} | multiSurface=${multipleSurfaceChange}`
   );
 
-  await runDeepPipeline();
+  console.log(
+    "Sentinel trigger recorded. Deep pipeline execution is owned by the GitHub workflow."
+  );
 }
 
 main().catch((err) => {
