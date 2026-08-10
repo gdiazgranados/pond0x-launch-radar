@@ -398,16 +398,6 @@ function classifyChangeSeverity(latest, lastAlert) {
   return "MINOR_CHANGE";
 }
 
-  const scoreDelta = Math.abs(Number(latest.score || 0) - Number(lastAlert.score || 0));
-  const movementDelta = Math.abs(Number(latest.movementPct || 0) - Number(lastAlert.movementPct || 0));
-
-  if (scoreDelta >= 5 || movementDelta >= 10) {
-    return "MATERIAL_CHANGE";
-  }
-
-  return "MINOR_CHANGE";
-}
-
 function buildDecision(latest, lastAlert) {
   const signature = getStableSignature(latest);
   const priority = latest.priority || "LOW";
