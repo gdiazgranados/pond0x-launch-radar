@@ -557,8 +557,10 @@ function buildPatternMatch({ funding, cycles, analytics, predictor, baseline, no
 
   const status =
     score >= 80 && liveEvidence ? 'STRONG_MATCH' :
-    score >= 65 ? 'MATCH' :
-    score >= 45 ? 'PARTIAL_MATCH' : 'WEAK_MATCH';
+    score >= 65 && liveEvidence ? 'MATCH' :
+    score >= 65 ? 'HISTORICAL_MATCH' :
+    score >= 45 ? 'PARTIAL_MATCH' :
+    'WEAK_MATCH';
 
   return {
     status,
