@@ -240,6 +240,9 @@ function buildCycleAnalytics(cycles, funding, baseline) {
   const combinedDelays = [...baselineDelays, ...delays];
   const combinedCadence = [...baselineCadence, ...liveCadence];
 
+  const liveMedDelay = median(delays);
+  const historicalMedDelay = median(baselineDelays);
+
   const liveMedCadence = median(liveCadence);
   const liveCadenceStdDev = stdDev(liveCadence);
   const liveCadenceCV =
@@ -269,17 +272,70 @@ const historicalMedCadence = median(baselineCadence);
   const combinedClaimAfterFundingProbabilityPct =
     round(weightedCorrelationRate * 100, 1);
 
-  let automationConfidence = 0;
-  const totalCorrelated = n(baseline?.correlatedCycles) + correlated.length;
-  if (totalCorrelated >= 1) automationConfidence += 20;
-  if (totalCorrelated >= 3) automationConfidence += 20;
-  if (totalCorrelated >= 5) automationConfidence += 15;
-  if (weightedCorrelationRate >= 0.5) automationConfidence += 15;
-  if (weightedCorrelationRate >= 0.75) automationConfidence += 10;
-  if (medDelay !== null && medDelay <= 180) automationConfidence += 10;
-  if (medDelay !== null && medDelay <= 60) automationConfidence += 5;
-  if (cadenceCV !== null && cadenceCV <= 0.25) automationConfidence += 5;
-  automationConfidence = Math.min(100, automationConfidence);
+  let liveAutomationConfidence = 0;
+
+  if (correlated.length >= 1) liveAutomationConfidence += 20;
+  if (correlated.length >= 3) liveAutomationConfidence += 20;
+  if (correlated.length >= 5) liveAutomationConfidence += 15;
+
+  if (correlationRate >= 0.5) liveAutomationConfidence += 15;
+  if (correlationRate >= 0.75) liveAutomationConfidence += 10;
+
+  if (liveMedDelay !== null && liveMedDelay <= 180) {
+    liveAutomationConfidence += 10;
+  }
+
+  if (liveMedDelay !== null && liveMedDelay <= 60) {
+    liveAutomationConfidence += 5;
+  }
+
+  if (
+    liveCadenceCV !== null &&
+    liveCadenceCV <= 0.25
+  ) {
+    liveAutomationConfidence += 5;
+  }
+
+  liveAutomationConfidence = Math.min(
+    100,
+    liveAutomationConfidence
+  );
+
+  let combinedAutomationConfidence = 0;
+
+  const totalCorrelated =
+    n(baseline?.correlatedCycles) + correlated.length;
+
+  if (totalCorrelated >= 1) combinedAutomationConfidence += 20;
+  if (totalCorrelated >= 3) combinedAutomationConfidence += 20;
+  if (totalCorrelated >= 5) combinedAutomationConfidence += 15;
+
+  if (weightedCorrelationRate >= 0.5) {
+    combinedAutomationConfidence += 15;
+  }
+
+  if (weightedCorrelationRate >= 0.75) {
+    combinedAutomationConfidence += 10;
+  }
+
+  if (medDelay !== null && medDelay <= 180) {
+    combinedAutomationConfidence += 10;
+  }
+
+  if (medDelay !== null && medDelay <= 60) {
+    combinedAutomationConfidence += 5;
+  }
+
+  if (cadenceCV !== null && cadenceCV <= 0.25) {
+    combinedAutomationConfidence += 5;
+  }
+
+  combinedAutomationConfidence = Math.min(
+    100,
+    combinedAutomationConfidence
+  );
+
+  const automationConfidence = liveAutomationConfidence;
 
   const cadenceConfidence =
     liveCadence.length >= 12 &&
@@ -307,6 +363,8 @@ const historicalMedCadence = median(baselineCadence);
   return {
     cycleSignal: stableCycle ? 'DISTRIBUTION_CYCLE_DETECTED' : 'NO_STABLE_CYCLE',
     automationConfidence,
+    liveAutomationConfidence,
+    combinedAutomationConfidence,
     cadenceConfidence,
     claimAfterFundingProbabilityPct,
     liveClaimAfterFundingProbabilityPct,
@@ -316,8 +374,27 @@ const historicalMedCadence = median(baselineCadence);
     liveCorrelatedCycles: correlated.length,
     historicalCyclesAnalyzed: n(baseline?.cyclesAnalyzed),
     historicalCorrelatedCycles: n(baseline?.correlatedCycles),
-    medianFirstClaimDelaySeconds: medDelay === null ? null : round(medDelay,1),
-    avgFirstClaimDelaySeconds: combinedDelays.length ? round(sum(combinedDelays,x=>x)/combinedDelays.length,1) : null,
+    liveMedianFirstClaimDelaySeconds:
+      liveMedDelay === null ? null : round(liveMedDelay, 1),
+
+    historicalMedianFirstClaimDelaySeconds:
+      historicalMedDelay === null ? null : round(historicalMedDelay, 1),
+
+    combinedMedianFirstClaimDelaySeconds:
+      medDelay === null ? null : round(medDelay, 1),
+
+    medianFirstClaimDelaySeconds:
+      liveMedDelay === null ? null : round(liveMedDelay, 1),
+
+    avgFirstClaimDelaySeconds:
+      combinedDelays.length
+        ? round(
+            sum(combinedDelays, x => x) /
+              combinedDelays.length,
+            1
+          )
+        : null,
+    
     liveMedianFundingCadenceSeconds:
       liveMedCadence === null ? null : round(liveMedCadence, 1),
 
