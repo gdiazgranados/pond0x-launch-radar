@@ -468,6 +468,11 @@ function buildPredictor(funding, analytics, nowSec) {
       fundingCadenceConfidence: analytics.cadenceConfidence,
       claimAfterFundingProbabilityPct: analytics.claimAfterFundingProbabilityPct,
       expectedClaimWindowSeconds: null,
+      rewardTransferAfterFundingPct:
+        analytics.rewardTransferAfterFundingPct ??
+        analytics.claimAfterFundingProbabilityPct,
+
+      expectedRewardTransferWindowSeconds: null,
     };
   }
 
@@ -481,7 +486,10 @@ function buildPredictor(funding, analytics, nowSec) {
     Math.abs(secondsTo) <= halfWindow ? 'IN_FUNDING_WINDOW' :
     secondsTo > halfWindow ? 'WATCHING' : 'WINDOW_PASSED';
 
-  const medDelay = n(analytics.medianFirstClaimDelaySeconds);
+  const medDelay = n(
+    analytics.medianFirstRewardTransferDelaySeconds ??
+    analytics.medianFirstClaimDelaySeconds
+  );
 
   return {
     status,
@@ -497,6 +505,20 @@ function buildPredictor(funding, analytics, nowSec) {
       ? { start: Math.max(10, round(medDelay - 20,0)), center: round(medDelay,0), end: Math.min(CORRELATION_WINDOW_SECONDS, round(medDelay + 45,0)) }
       : null,
     warning: 'Predictive timing is statistical, not a guarantee of a claim or launch.',
+    rewardTransferAfterFundingPct:
+      analytics.rewardTransferAfterFundingPct ??
+      analytics.claimAfterFundingProbabilityPct,
+
+    expectedRewardTransferWindowSeconds: medDelay
+      ? {
+          start: Math.max(10, round(medDelay - 20, 0)),
+          center: round(medDelay, 0),
+          end: Math.min(
+            CORRELATION_WINDOW_SECONDS,
+            round(medDelay + 45, 0)
+          )
+        }
+      : null,
   };
 }
 
