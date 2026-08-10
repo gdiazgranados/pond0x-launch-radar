@@ -12,6 +12,15 @@ function fmt(n){return Number(n||0).toLocaleString('en-US',{maximumFractionDigit
 async function send(text){if(!TOKEN||!CHAT){console.log('Telegram credentials missing');return false} const r=await fetch(`https://api.telegram.org/bot${TOKEN}/sendMessage`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({chat_id:CHAT,text,parse_mode:'HTML',disable_web_page_preview:true})}); if(!r.ok) throw new Error(await r.text()); return true}
 async function main(){
  if(!await fs.pathExists(chainFile))return; const c=await fs.readJson(chainFile); let prev={}; try{prev=await fs.readJson(stateFile)}catch{};
+  const prevObservedAt=prev.observedAt?new Date(prev.observedAt).getTime():0;
+  const prevAgeMinutes=prevObservedAt?(Date.now()-prevObservedAt)/60000:Infinity;
+  const prevIsFresh=prevAgeMinutes>=0 && prevAgeMinutes<=15;
+  
+  if(!prevIsFresh){
+    prev={
+      lastSentAt:prev.lastSentAt||null
+    };
+  }
  const w=c.windows?.['5m']||{}, p=c.predictor||{}, a=c.cycleAnalytics||{}, m=c.patternMatch||{}; const now=Date.now(); const lastSent=prev.lastSentAt?new Date(prev.lastSentAt).getTime():0; const mins=(now-lastSent)/60000;
  const resumed=(prev.activityState==='QUIET'||prev.activityState==='COOLING') && w.rewards>0;
  const spike=w.rewards>=5 && (c.claimVelocityPct>=100 || c.volumeVelocityPct>=100);
