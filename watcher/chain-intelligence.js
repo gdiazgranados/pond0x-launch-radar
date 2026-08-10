@@ -584,7 +584,10 @@ function buildPatternMatch({ funding, cycles, analytics, predictor, baseline, no
       ? round(clamp(100 - Math.max(0, n(predictor.secondsToExpectedFunding) - n(predictor.fundingWindowHalfWidthSeconds)) / Math.max(60, historicalMedianCadence) * 100), 1)
       : predictor.status === 'WINDOW_PASSED' ? 20 : 0;
 
-  const correlationPct = clamp(analytics.claimAfterFundingProbabilityPct);
+  const correlationPct = clamp(
+    analytics.rewardTransferAfterFundingPct ??
+    analytics.claimAfterFundingProbabilityPct
+  );
   const automationPct = clamp(analytics.automationConfidence);
   const cadencePct = cadenceSimilarityPct === null ? 50 : cadenceSimilarityPct;
   const delayPct =
@@ -640,6 +643,7 @@ function buildPatternMatch({ funding, cycles, analytics, predictor, baseline, no
     components: {
       cadenceSimilarityPct,
       rewardTransferDelaySimilarityPct,
+      rewardTransferAfterFundingPct: correlationPct,
       claimAfterFundingProbabilityPct: correlationPct,
       automationConfidencePct: automationPct,
       predictorProximityPct,
