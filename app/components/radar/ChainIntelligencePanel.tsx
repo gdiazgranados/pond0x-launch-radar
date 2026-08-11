@@ -257,12 +257,11 @@ export function ChainIntelligencePanel({
         <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
           <div className="text-xs text-slate-500">Last 5 Minutes</div>
           <div className="mt-1 text-lg">
-            {fmt(w.rewards, 0)} rewards · {fmt(w.wpondDistributed)} wPOND
-          </div>
-          <div className="mt-2 text-xs text-slate-500">
-            {fmt(w.uniqueRecipients, 0)} unique recipients · chain score{" "}
-            {fmt(chain.chainConfirmationScore, 0)}/100
-          </div>
+            {fmt(w.rewards, 0)} reward transfers · {fmt(w.wpondDistributed)} wPOND
+         </div>
+         <div className="mt-2 text-xs text-slate-500">
+           Chain score {fmt(chain.chainConfirmationScore, 0)}/100
+         </div>
         </div>
 
         <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
