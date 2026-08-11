@@ -90,7 +90,7 @@ export function ChainIntelligencePanel({
 
   const freshTrigger =
     chain.fundingDetected === true ||
-    Number(w.rewards || 0) > 0 ||
+    Number(w.rewardTransfers ?? w.rewards ?? 0) > 0 ||
     p.status === "IN_FUNDING_WINDOW"
 
   const windowState = getWindowState(p)
@@ -268,7 +268,7 @@ export function ChainIntelligencePanel({
         <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
           <div className="text-xs text-slate-500">Last 5 Minutes</div>
           <div className="mt-1 text-lg">
-            {fmt(w.rewards, 0)} reward transfers · {fmt(w.wpondDistributed)} wPOND
+            {fmt(w.rewardTransfers ?? w.rewards, 0)} reward transfers · {fmt(w.wpondDistributed)} wPOND
          </div>
          <div className="mt-2 text-xs text-slate-500">
            Chain score {fmt(chain.chainConfirmationScore, 0)}/100
