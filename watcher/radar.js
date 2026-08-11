@@ -1092,7 +1092,7 @@ async function main() {
       chain.fundingDetected === true;
 
     const rewardActivity5m =
-      rewardTransfers5m > 0;
+      rewardTransfers5m >= 3;
 
     const hasOnchainMovement =
       fundingActive15m ||
