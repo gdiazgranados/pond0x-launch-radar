@@ -1086,15 +1086,14 @@ async function main() {
     const w15 = chain.windows?.["15m"] || {};
 
     const rewards5m = Number(w5.rewards || 0);
-    const recipients5m = Number(w5.uniqueRecipients || 0);
+    const rewardTransfers5m = Number(w5.rewards || 0);
 
     const fundingActive15m =
       chain.fundingStatus?.active15m === true ||
       chain.fundingDetected === true;
 
     const rewardActivity5m =
-      rewards5m > 0 ||
-      recipients5m > 0;
+      rewardTransfers5m > 0;
 
     const hasOnchainMovement =
       fundingActive15m ||
@@ -1106,8 +1105,9 @@ async function main() {
       evidence.push(`rewards_5m:${rewards5m}`);
     }
 
-    if (recipients5m > 0) {
-      evidence.push(`recipients_5m:${recipients5m}`);
+    if (rewardTransfers5m > 0) {
+      evidence.push(`reward_transfers_5m:${rewardTransfers5m}`);
+}
     }
 
     if (fundingActive15m) {

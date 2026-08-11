@@ -788,7 +788,7 @@ const rewardTxs = rewardResult.transactions;
   const confirmationScore = Math.min(100,
     (w5.rewards?30:0) +
     (fundingActive15m?20:0) +
-    (w5.uniqueRecipients>=3?10:0) +
+    (w5.rewards>=3?10:0) +
     (rewardWalletActive15m?10:0) +
     (cycleAnalytics.cycleSignal==='DISTRIBUTION_CYCLE_DETECTED'?15:0) +
     (predictor.status==='IN_FUNDING_WINDOW'?15:0)
