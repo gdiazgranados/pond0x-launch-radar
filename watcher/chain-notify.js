@@ -131,7 +131,7 @@ async function main() {
     !!m.liveEvidence;
 
   const periodic =
-    Number(w.rewards || 0) > 0 &&
+    Number(w.rewards || 0) >= 3 &&
     mins >= 30;
 
   const shouldSend =
