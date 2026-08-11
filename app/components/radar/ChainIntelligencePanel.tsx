@@ -249,7 +249,10 @@ export function ChainIntelligencePanel({
             Cadence similarity {fmt(m.components?.cadenceSimilarityPct)}%
           </div>
           <div className="mt-2 text-xs text-slate-500">
-            Delay similarity {fmt(m.components?.claimDelaySimilarityPct)}% ·
+            Delay similarity {fmt(
+              m.components?.rewardTransferDelaySimilarityPct ??
+              m.components?.claimDelaySimilarityPct
+)            }% ·
             proximity {fmt(m.components?.predictorProximityPct)}%
           </div>
         </div>
