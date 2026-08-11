@@ -173,7 +173,7 @@ Next funding estimate: <b>${esc(p.nextFundingExpectedAt)}</b>`
   )
     ? `
 
-🧬 <b>Historical Pattern Match</b>
+🧬 <b>Pattern Match</b>
 Match: <b>${fmt(m.historicalPatternMatchPct)}%</b>
 Status: <b>${esc(m.status || "N/A")}</b>
 Model confidence: <b>${esc(m.confidence || "LOW")}</b>
