@@ -138,7 +138,9 @@ export function ChainIntelligencePanel({
             Funding Cadence
           </div>
           <div className="mt-1 text-2xl font-semibold text-cyan-300">
-            {a.cadenceConfidence || "LOW"}
+            {p.status === "SESSION_INACTIVE"
+              ? `${a.cadenceConfidence || "LOW"} HISTORICAL`
+              : a.cadenceConfidence || "LOW"}
           </div>
           <div className="mt-1 text-xs text-slate-500">
             median {fmt(a.medianFundingCadenceSeconds)}s
