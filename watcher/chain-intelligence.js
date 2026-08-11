@@ -647,7 +647,7 @@ const latestFunding = funding[0] || null;
     delayPct * 0.15 +
     correlationPct * 0.20 +
     automationPct * 0.20 +
-    predictorProximityPct * 0.15,
+    (liveEvidence ? predictorProximityPct : 50) * 0.15,
     1
   );
 
