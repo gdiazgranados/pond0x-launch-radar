@@ -176,7 +176,7 @@ Next funding estimate: <b>${esc(p.nextFundingExpectedAt)}</b>`
 🧬 <b>Pattern Match</b>
 Match: <b>${fmt(m.historicalPatternMatchPct)}%</b>
 Status: <b>${esc(String(m.status || "N/A").replaceAll("_", " "))}</b>
-Model confidence: <b>${esc(m.confidence || "LOW")}</b>
+Baseline confidence: <b>${esc(m.baselineConfidence ?? m.confidence ?? "LOW")}</b>
 Live trigger present: <b>${m.liveEvidence ? "YES" : "NO"}</b>`
     : "";
 
