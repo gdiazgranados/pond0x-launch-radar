@@ -219,6 +219,9 @@ function buildDistributionCycles(funding, rewardTransfers) {
       rewardTransferCount: cc.length,
       uniqueRecipients: uniq(cc.map(x=>x.to)).length,
       distributedAmount: round(distributed),
+      observedDistributionToFundingRatioPct: fe.amount
+        ? round((distributed / fe.amount) * 100, 2)
+        : null,
       distributionRatioPct: fe.amount
         ? round((distributed / fe.amount) * 100, 2)
         : null,
