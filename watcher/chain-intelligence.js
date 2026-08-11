@@ -717,6 +717,7 @@ const latestFunding = funding[0] || null;
   return {
     status,
     historicalPatternMatchPct: score,
+    baselineConfidence: confidence,
     confidence,
     sampleCycles: n(baseline.cyclesAnalyzed),
     liveEvidence,
