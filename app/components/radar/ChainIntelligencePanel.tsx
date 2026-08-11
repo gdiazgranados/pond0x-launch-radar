@@ -128,7 +128,8 @@ export function ChainIntelligencePanel({
             {fmt(m.historicalPatternMatchPct)}%
           </div>
           <div className="mt-1 text-xs text-slate-500">
-            {m.status || "NO_BASELINE"} · {m.confidence || "LOW"} confidence
+            {String(m.status || "NO_BASELINE").replaceAll("_", " ")} ·{" "}
+            {m.confidence || "LOW"} confidence
           </div>
         </div>
 
