@@ -161,7 +161,12 @@ async function main(){
     fundingEventsFound:funding.length,
     cyclesAnalyzed:cycles.length,
     correlatedCycles:correlated.length,
-    correlationRatePct:cycles.length?round(correlated.length/cycles.length*100,1):0,
+    rewardTransferCorrelationRatePct: cycles.length
+      ? round(correlated.length / cycles.length * 100, 1)
+      : 0,
+    correlationRatePct: cycles.length
+      ? round(correlated.length / cycles.length * 100, 1)
+      : 0,
     firstClaimDelaySeconds:delays,
     firstRewardTransferDelaySeconds: delays,
     fundingCadenceSeconds: cadence,
