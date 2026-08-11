@@ -1102,7 +1102,6 @@ async function main() {
 
     if (rewardTransfers5m > 0) {
       evidence.push(`reward_transfers_5m:${rewardTransfers5m}`);
-}
     }
 
     if (fundingActive15m) {
