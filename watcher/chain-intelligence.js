@@ -837,6 +837,15 @@ const rewardTxs = rewardResult.transactions;
     latestCorrelatedCycle:cycles.find(x=>x.correlated)||null,
     distributionCycles:cycles.slice(0,MAX_CYCLES_OUTPUT),
     recentRewardWalletTransfers: rewardWalletTransfers.slice(0,20),
+    
+    recentIndependentRewardWalletFlow: rewardFlow
+      .filter(
+        x =>
+          (x.from === REWARD_WALLET || x.to === REWARD_WALLET) &&
+          !(x.from === DISTRIBUTOR && x.to === REWARD_WALLET)
+      )
+      .slice(0,20),
+
     recentExternalClaims: externalClaims.slice(0,20),
     recentFundingEvents:funding.slice(0,20),
     methodology:'Direct wPOND transfers from the Distributor are classified into reward-wallet transfers and external claims. DISTRIBUTOR -> REWARD_WALLET flows are treated as reward-distribution activity, while DISTRIBUTOR -> other recipients are tracked separately as external claim candidates. UPSTREAM -> DISTRIBUTOR Jupiter/swap flows are treated as funding events. Cycle timing and prediction currently analyze reward-wallet distribution cycles. Historical pattern similarity is contextual and is not a probability of a claim or launch.',
