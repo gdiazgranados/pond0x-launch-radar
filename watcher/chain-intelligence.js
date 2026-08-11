@@ -779,17 +779,18 @@ const rewardTxs = rewardResult.transactions;
   const predictor = buildPredictor(funding, cycleAnalytics, nowSec);
   const patternMatch = buildPatternMatch({ funding, cycles, analytics: cycleAnalytics, predictor, baseline, nowSec });
 
-  const rewardWalletActive15m =
-    rewardFlow.some(x => within(x.timestamp, 15, nowSec)) ||
-    rewardWalletTransfers.some(
-      x => within(x.timestamp, 15, nowSec)
+  const rewardWalletIndependentActive15m =
+    rewardFlow.some(
+      x =>
+        within(x.timestamp, 15, nowSec) &&
+        !(x.from === DISTRIBUTOR && x.to === REWARD_WALLET)
     );
 
   const confirmationScore = Math.min(100,
     (w5.rewards?30:0) +
     (fundingActive15m?20:0) +
     (w5.rewards>=3?10:0) +
-    (rewardWalletActive15m?10:0) +
+    (rewardWalletIndependentActive15m?10:0) +
     (cycleAnalytics.cycleSignal==='DISTRIBUTION_CYCLE_DETECTED'?15:0) +
     (predictor.status==='IN_FUNDING_WINDOW'?15:0)
   );
