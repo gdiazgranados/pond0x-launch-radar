@@ -378,7 +378,17 @@ const historicalMedCadence = median(baselineCadence);
   const rewardTransferAfterFundingPct =
     liveRewardTransferAfterFundingPct;
 
+  const latestFundingTimestamp = Math.max(
+    0,
+    ...funding.map(x => n(x.timestamp))
+  );
+
+  const activeFundingSession =
+    latestFundingTimestamp > 0 &&
+    nowSec - latestFundingTimestamp <= MAX_CADENCE_GAP_SECONDS;
+
   const stableCycle =
+    activeFundingSession &&
     correlated.length >= 5 &&
     rewardTransferAfterFundingPct >= 50 &&
     liveMedDelay !== null &&
