@@ -694,7 +694,7 @@ const latestFunding = funding[0] || null;
   const status =
     score >= 80 && liveEvidence ? 'STRONG_MATCH' :
     score >= 65 && liveEvidence ? 'MATCH' :
-    score >= 65 ? 'HISTORICAL_MATCH' :
+    score >= 65 ? 'HISTORICAL_CONTEXT' :
     score >= 45 ? 'PARTIAL_MATCH' :
     'WEAK_MATCH';
 
