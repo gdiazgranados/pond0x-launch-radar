@@ -39,13 +39,17 @@ type RadarPattern =
 function formatSnapshotId(snapshotId?: string | null) {
   if (!snapshotId) return "..."
 
-  const compactMatch = snapshotId.match(/^(\d{4}-\d{2}-\d{2})_(\d{2})(\d{2})(\d{2})$/)
+  const compactMatch = snapshotId.match(
+    /^(\d{4}-\d{2}-\d{2})_(\d{2})(\d{2})(\d{2})$/
+  )
+
   if (compactMatch) {
     const [, datePart, hh, mm, ss] = compactMatch
+    const utcIso = `${datePart}T${hh}:${mm}:${ss}Z`
+
     return (
       <div className="space-y-1">
-        <div className="break-words">{datePart}</div>
-        <div className="text-sm opacity-80">{`${hh}:${mm}:${ss}`}</div>
+        <div className="break-words">{formatDate(utcIso)}</div>
       </div>
     )
   }
@@ -55,15 +59,11 @@ function formatSnapshotId(snapshotId?: string | null) {
   )
 
   if (fullMatch) {
-    const [, datePart, hhmmss, iso] = fullMatch
-    const hh = hhmmss.slice(0, 2)
-    const mm = hhmmss.slice(2, 4)
-    const ss = hhmmss.slice(4, 6)
+    const [, , , iso] = fullMatch
 
     return (
       <div className="space-y-1">
-        <div className="break-words">{`${datePart} ${hh}:${mm}:${ss}`}</div>
-        <div className="break-all text-sm opacity-80">{iso}</div>
+        <div className="break-words">{formatDate(iso)}</div>
       </div>
     )
   }
