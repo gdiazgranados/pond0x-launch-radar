@@ -164,7 +164,7 @@ async function main() {
 Cadence confidence: <b>${esc(a.cadenceConfidence || "LOW")}</b>
 Reward-transfer-after-funding: <b>${fmt(a.rewardTransferAfterFundingPct ?? a.claimAfterFundingProbabilityPct)}%</b>
 Automation confidence: <b>${fmt(a.automationConfidence)}/100</b>
-Predictor: <b>${esc(p.status || "N/A")}</b>
+Predictor: <b>${esc(String(p.status || "N/A").replaceAll("_", " "))}</b>
 Next funding estimate: <b>${esc(p.nextFundingExpectedAt)}</b>`
     : "";
 
@@ -175,7 +175,7 @@ Next funding estimate: <b>${esc(p.nextFundingExpectedAt)}</b>`
 
 🧬 <b>Pattern Match</b>
 Match: <b>${fmt(m.historicalPatternMatchPct)}%</b>
-Status: <b>${esc(m.status || "N/A")}</b>
+Status: <b>${esc(String(m.status || "N/A").replaceAll("_", " "))}</b>
 Model confidence: <b>${esc(m.confidence || "LOW")}</b>
 Live trigger present: <b>${m.liveEvidence ? "YES" : "NO"}</b>`
     : "";
