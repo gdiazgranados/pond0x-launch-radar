@@ -360,7 +360,17 @@ const historicalMedCadence = median(baselineCadence);
     combinedAutomationConfidence
   );
 
-  const automationConfidence = liveAutomationConfidence;
+  const latestFundingTimestamp = Math.max(
+    0,
+    ...funding.map(x => n(x.timestamp))
+  );
+
+  const activeFundingSession =
+    latestFundingTimestamp > 0 &&
+    nowSec - latestFundingTimestamp <= MAX_CADENCE_GAP_SECONDS;
+
+  const automationConfidence =
+  activeFundingSession ? liveAutomationConfidence : 0;
 
   const cadenceConfidence =
     liveCadence.length >= 12 &&
@@ -377,15 +387,6 @@ const historicalMedCadence = median(baselineCadence);
 
   const rewardTransferAfterFundingPct =
     liveRewardTransferAfterFundingPct;
-
-  const latestFundingTimestamp = Math.max(
-    0,
-    ...funding.map(x => n(x.timestamp))
-  );
-
-  const activeFundingSession =
-    latestFundingTimestamp > 0 &&
-    nowSec - latestFundingTimestamp <= MAX_CADENCE_GAP_SECONDS;
 
   const stableCycle =
     activeFundingSession &&
