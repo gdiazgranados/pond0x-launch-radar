@@ -1085,7 +1085,9 @@ async function main() {
     const w5 = chain.windows?.["5m"] || {};
     const w15 = chain.windows?.["15m"] || {};
 
-    const rewardTransfers5m = Number(w5.rewards || 0);
+    const rewardTransfers5m = Number(
+      w5.rewardTransfers ?? w5.rewards ?? 0
+    );
 
     const fundingActive15m =
       chain.fundingStatus?.active15m === true ||
