@@ -295,7 +295,10 @@ const historicalMedCadence = median(baselineCadence);
   const cadenceCV = medCadence && combinedCadence.length >= 2 ? cadenceStdDev / medCadence : null;
 
   const correlationRate = cycles.length ? correlated.length / cycles.length : 0;
-  const baselineCorrelationRate = n(baseline?.correlationRatePct) / 100;
+  const baselineCorrelationRate = n(
+    baseline?.rewardTransferCorrelationRatePct ??
+    baseline?.correlationRatePct
+  ) / 100;
   const weightedCorrelationRate = baseline?.cyclesAnalyzed
     ? ((baselineCorrelationRate * n(baseline.cyclesAnalyzed)) + correlated.length) / (n(baseline.cyclesAnalyzed) + cycles.length)
     : correlationRate;
@@ -734,7 +737,14 @@ const latestFunding = funding[0] || null;
       medianFundingCadenceSeconds: historicalMedianCadence || null,
       medianFirstRewardTransferDelaySeconds: historicalMedianDelay || null,
       medianFirstClaimDelaySeconds: historicalMedianDelay || null,
-      correlationRatePct: n(baseline.correlationRatePct),
+      rewardTransferCorrelationRatePct: n(
+        baseline.rewardTransferCorrelationRatePct ??
+        baseline.correlationRatePct
+      ),
+      correlationRatePct: n(
+        baseline.rewardTransferCorrelationRatePct ??
+        baseline.correlationRatePct
+      ),
     },
     interpretation: liveEvidence
       ? 'Current on-chain timing is compared with the historical reward-cycle baseline. This is a similarity score, not a probability of a claim or launch.'
