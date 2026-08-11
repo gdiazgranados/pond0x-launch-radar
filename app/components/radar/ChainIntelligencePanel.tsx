@@ -161,13 +161,15 @@ export function ChainIntelligencePanel({
 
         <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
           <div className="text-xs uppercase tracking-wider text-slate-500">
-            Automation Confidence
+            Operational Automation Confidence
           </div>
           <div className="mt-1 text-2xl font-semibold text-emerald-300">
             {fmt(a.automationConfidence, 0)}/100
           </div>
           <div className="mt-1 text-xs text-slate-500">
-            {String(a.cycleSignal || "NO_STABLE_CYCLE").replaceAll("_", " ")}
+            {p.status === "SESSION_INACTIVE"
+              ? "Session inactive · structural confidence preserved separately"
+              : String(a.cycleSignal || "NO_STABLE_CYCLE").replaceAll("_", " ")}
           </div>
         </div>
 
