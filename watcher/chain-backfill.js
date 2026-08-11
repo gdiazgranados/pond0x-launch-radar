@@ -184,7 +184,9 @@ async function main(){
   };
 
   await fs.writeJson(baselineFile,baseline,{spaces:2});
-  console.log(`Baseline: ${cycles.length} cycles | ${correlated.length} correlated | rate=${baseline.correlationRatePct}% | median cadence=${baseline.summary.medianFundingCadenceSeconds}s`);
+  console.log(
+  `Baseline: ${cycles.length} cycles | ${correlated.length} correlated | reward-transfer-rate=${baseline.rewardTransferCorrelationRatePct ?? baseline.correlationRatePct}% | median cadence=${baseline.summary.medianFundingCadenceSeconds}s`
+);
 }
 
 main().catch(e=>{console.error('chain-backfill failed:',e);process.exit(1);});
