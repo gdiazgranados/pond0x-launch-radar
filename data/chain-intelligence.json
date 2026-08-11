@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-11T05:21:14.956Z",
+  "generatedAt": "2026-08-11T06:12:10.851Z",
   "version": "1.3.0",
   "status": "LIVE",
   "confidence": "VERY HIGH",
@@ -9,7 +9,7 @@
       "horizonMinutes": 1440,
       "pagesFetched": 3,
       "transactionsFetched": 271,
-      "cutoffTime": "2026-08-10T05:21:13.000Z",
+      "cutoffTime": "2026-08-10T06:12:09.000Z",
       "coverageComplete": true,
       "maxPagesReached": false
     },
@@ -18,7 +18,7 @@
       "horizonMinutes": 1440,
       "pagesFetched": 1,
       "transactionsFetched": 22,
-      "cutoffTime": "2026-08-10T05:21:13.000Z",
+      "cutoffTime": "2026-08-10T06:12:09.000Z",
       "coverageComplete": true,
       "maxPagesReached": false
     },
@@ -26,8 +26,8 @@
       "address": "1orFCnFfgwPzSgUaoK6Wr3MjgXZ7mtk8NGz9Hh4iWWL",
       "horizonMinutes": 60,
       "pagesFetched": 1,
-      "transactionsFetched": 2,
-      "cutoffTime": "2026-08-11T04:21:13.000Z",
+      "transactionsFetched": 4,
+      "cutoffTime": "2026-08-11T05:12:09.000Z",
       "coverageComplete": true,
       "maxPagesReached": false
     }
@@ -44,16 +44,16 @@
     "externalClaims": 7
   },
   "activityState": "QUIET",
-  "chainConfirmationScore": 0,
+  "chainConfirmationScore": 25,
   "claimVelocityPct": 0,
   "rewardTransferVelocityPct": 0,
   "volumeVelocityPct": 0,
-  "silenceMinutes": 95.6,
+  "silenceMinutes": 146.6,
   "fundingDetected": false,
   "fundingStatus": {
     "observedInFetchedSample": true,
     "active15m": false,
-    "lastSeenMinutesAgo": 753.3,
+    "lastSeenMinutesAgo": 804.2,
     "lastFunding": {
       "signature": "tXt3mS97Fq49JMCsGemDpy1DGys7YHpPEwunKvmLNrz8qSYHcQMk1AWNEaQwsdaC5D5zDAYP37Z62k53VF2eREe",
       "timestamp": 1786380477,
@@ -66,13 +66,13 @@
     }
   },
   "predictor": {
-    "status": "WATCHING",
-    "nextFundingExpectedAt": "2026-08-11T05:29:57.000Z",
-    "nextFundingExpectedTimestamp": 1786426197,
-    "nextFundingWindowStart": "2026-08-11T05:29:27.250Z",
-    "nextFundingWindowEnd": "2026-08-11T05:30:26.750Z",
+    "status": "IN_FUNDING_WINDOW",
+    "nextFundingExpectedAt": "2026-08-11T06:12:17.000Z",
+    "nextFundingExpectedTimestamp": 1786428737,
+    "nextFundingWindowStart": "2026-08-11T06:11:47.250Z",
+    "nextFundingWindowEnd": "2026-08-11T06:12:46.750Z",
     "fundingWindowHalfWidthSeconds": 30,
-    "secondsToExpectedFunding": 523,
+    "secondsToExpectedFunding": 7,
     "fundingCadenceConfidence": "VERY HIGH",
     "claimAfterFundingProbabilityPct": 35,
     "expectedClaimWindowSeconds": {
@@ -89,18 +89,18 @@
     }
   },
   "patternMatch": {
-    "status": "PARTIAL_MATCH",
-    "historicalPatternMatchPct": 63.8,
+    "status": "MATCH",
+    "historicalPatternMatchPct": 71.3,
     "confidence": "HIGH",
     "sampleCycles": 36,
-    "liveEvidence": false,
+    "liveEvidence": true,
     "components": {
       "cadenceSimilarityPct": 94.4,
       "rewardTransferDelaySimilarityPct": 46.4,
       "rewardTransferAfterFundingPct": 35,
       "claimAfterFundingProbabilityPct": 35,
       "automationConfidencePct": 70,
-      "predictorProximityPct": 22.4
+      "predictorProximityPct": 100
     },
     "live": {
       "medianRecentFundingCadenceSeconds": 637.5,
@@ -112,7 +112,7 @@
       "medianFirstClaimDelaySeconds": 84,
       "correlationRatePct": 19.4
     },
-    "interpretation": "Historical timing similarity is present, but no fresh on-chain trigger is active. This is not a claim or launch probability."
+    "interpretation": "Current on-chain timing is compared with the historical reward-cycle baseline. This is a similarity score, not a probability of a claim or launch."
   },
   "cycleAnalytics": {
     "cycleSignal": "NO_STABLE_CYCLE",
@@ -721,22 +721,42 @@
   ],
   "recentIndependentRewardWalletFlow": [
     {
-      "signature": "4sNnyPm1Lkh82CPH5sCVrYRTb9pFkKpHJkdxUV1j5ZdJtFp8VDH5Wuj1YaxQphw3x43AWFWzT9bLMh4Mh9qsqnPN",
-      "timestamp": 1786424362,
-      "time": "2026-08-11T04:59:22.000Z",
+      "signature": "Zdi1fhr3PB8K3MDuuhNbcBX7GXJcAMpCRDPjkTwWtxg66toJXpmr7L1BNizJi3f6Vdkx4YzrosVm1m5XDZmuLoJ",
+      "timestamp": 1786428230,
+      "time": "2026-08-11T06:03:50.000Z",
+      "from": "1orFCnFfgwPzSgUaoK6Wr3MjgXZ7mtk8NGz9Hh4iWWL",
+      "to": "CSgWkLUnupL5KZxaUJkXJQkgypXrrRKcuU1jeEnCdcQy",
+      "amount": 759142227,
+      "type": "TRANSFER",
+      "source": "SOLANA_PROGRAM_LIBRARY"
+    },
+    {
+      "signature": "2CYMzb8nvZM64Kce8DH3a4BmZez1cVYPUv7kVB9jojN7CcKugYLBT7AuHoriJ8CJ2Aj17BGZ1LKVVy7i8CZvDLgQ",
+      "timestamp": 1786428177,
+      "time": "2026-08-11T06:02:57.000Z",
       "from": "HN8V3bWxo6WnjvePufGz5WvWHYVNrCMciAFt3x3WqqjZ",
       "to": "1orFCnFfgwPzSgUaoK6Wr3MjgXZ7mtk8NGz9Hh4iWWL",
-      "amount": 191136514.864,
+      "amount": 191113096.833,
       "type": "SWAP",
       "source": "JUPITER"
     },
     {
-      "signature": "5jamJqeKSeMxAXXbcxzh8u7FDfArk8gbwt9ppPZEitFWpiM47gSdG4LEP67p8p8rRFV3XMdnu32o3unXU6V3aMWR",
-      "timestamp": 1786422512,
-      "time": "2026-08-11T04:28:32.000Z",
+      "signature": "3T8uWvXRnAUZUFUTbWpGzL5GNEg2KdWoddWWhMdNBNaagp6bqSAG7SER5vtZDLRHasisSW43mW9DZXR3h6TM4aPw",
+      "timestamp": 1786427458,
+      "time": "2026-08-11T05:50:58.000Z",
+      "from": "1orFCnFfgwPzSgUaoK6Wr3MjgXZ7mtk8NGz9Hh4iWWL",
+      "to": "7Eos87Nvx3r4nzUDZQp729AZMR6xry9x5bKHT67F1KdM",
+      "amount": 46878413,
+      "type": "TRANSFER",
+      "source": "SOLANA_PROGRAM_LIBRARY"
+    },
+    {
+      "signature": "2rwJ7k33mtpvK4qk9tpydJhPy55gAgLqpvhNisEa6gZzevD8v6fmHDyXgwFf2Kee2HcZhatrFzrkkksZAWX2Q5wM",
+      "timestamp": 1786426272,
+      "time": "2026-08-11T05:31:12.000Z",
       "from": "HN8V3bWxo6WnjvePufGz5WvWHYVNrCMciAFt3x3WqqjZ",
       "to": "1orFCnFfgwPzSgUaoK6Wr3MjgXZ7mtk8NGz9Hh4iWWL",
-      "amount": 191136410.697,
+      "amount": 191124507.86,
       "type": "SWAP",
       "source": "JUPITER"
     }
