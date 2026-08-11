@@ -851,8 +851,11 @@ const rewardTxs = rewardResult.transactions;
     cycleSignal:cycleAnalytics.cycleSignal,
     automationConfidence:cycleAnalytics.automationConfidence,
     cadenceConfidence:cycleAnalytics.cadenceConfidence,
-    claimAfterFundingProbabilityPct:cycleAnalytics.claimAfterFundingProbabilityPct,
     rewardTransferAfterFundingPct:
+      cycleAnalytics.rewardTransferAfterFundingPct ??
+      cycleAnalytics.claimAfterFundingProbabilityPct,
+
+    claimAfterFundingProbabilityPct:
       cycleAnalytics.rewardTransferAfterFundingPct ??
       cycleAnalytics.claimAfterFundingProbabilityPct,
     medianFirstRewardTransferDelaySeconds:
