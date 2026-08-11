@@ -800,17 +800,21 @@ const rewardTxs = rewardResult.transactions;
   const prev5Total = sum(prev5Rows,x=>x.amount);
   const rewardTransferVelocityPct = prev5Rows.length
     ? round(
-        ((w5.rewards - prev5Rows.length) / prev5Rows.length) * 100,
+        ((w5.rewardTransfers - prev5Rows.length) / prev5Rows.length) * 100,
         1
       )
-    : (w5.rewards ? 100 : 0);
+    : (w5.rewardTransfers ? 100 : 0);
   const volumeVelocityPct = prev5Total ? round(((w5.wpondDistributed-prev5Total)/prev5Total)*100,1) : (w5.wpondDistributed?100:0);
 
   const lastRewardTransfer = rewardWalletTransfers[0] || null;
   const silenceMinutes = lastRewardTransfer
     ? round((nowSec - lastRewardTransfer.timestamp) / 60, 1)
     : null;
-  const activityState = w5.rewards>=10?'SURGING':w5.rewards>=4?'HIGH':w5.rewards>=1?'ACTIVE':(w15.rewards?'COOLING':'QUIET');
+  const activityState =
+    w5.rewardTransfers >= 10 ? 'SURGING' :
+    w5.rewardTransfers >= 4 ? 'HIGH' :
+    w5.rewardTransfers >= 1 ? 'ACTIVE' :
+    (w15.rewardTransfers ? 'COOLING' : 'QUIET');
 
   const lastFunding = funding[0] || null;
   const fundingActive15m = Boolean(funding.find(x=>within(x.timestamp,ACTIVE_FUNDING_WINDOW_MINUTES,nowSec)));
@@ -833,9 +837,9 @@ const rewardTxs = rewardResult.transactions;
     );
 
   const confirmationScore = Math.min(100,
-    (w5.rewards?30:0) +
+    (w5.rewardTransfers?30:0) +
     (fundingActive15m?20:0) +
-    (w5.rewards>=3?10:0) +
+    (w5.rewardTransfers>=3?10:0) +
     (rewardWalletIndependentActive15m?10:0) +
     (cycleAnalytics.cycleSignal==='DISTRIBUTION_CYCLE_DETECTED'?15:0) +
     (predictor.status==='IN_FUNDING_WINDOW'?15:0)
