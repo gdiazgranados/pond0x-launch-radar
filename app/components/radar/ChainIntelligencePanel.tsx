@@ -165,7 +165,7 @@ export function ChainIntelligencePanel({
             {fmt(a.automationConfidence, 0)}/100
           </div>
           <div className="mt-1 text-xs text-slate-500">
-            {a.cycleSignal || "NO_STABLE_CYCLE"}
+            {String(a.cycleSignal || "NO_STABLE_CYCLE").replaceAll("_", " ")}
           </div>
         </div>
 
@@ -174,7 +174,7 @@ export function ChainIntelligencePanel({
             Predictor
           </div>
           <div className="mt-1 text-2xl font-semibold text-orange-300">
-            {p.status || "—"}
+            {String(p.status || "—").replaceAll("_", " ")}
           </div>
           <div className="mt-1 text-xs text-slate-500">
             ±{fmt(p.fundingWindowHalfWidthSeconds, 0)}s window
