@@ -183,11 +183,10 @@ Live trigger present: <b>${m.liveEvidence ? "YES" : "NO"}</b>`
   const msg = `⛓️ <b>POND0X RADAR — ${reason}</b>
 
 ⛏️ <b>Last 5 minutes</b>
-Rewards: <b>${fmt(w.rewards)}</b>
+Reward transfers: <b>${fmt(w.rewards)}</b>
 wPOND distributed: <b>${fmt(w.wpondDistributed)}</b>
-Unique recipients: <b>${fmt(w.uniqueRecipients)}</b>
-Avg reward: <b>${fmt(w.avgReward)}</b>
-Largest: <b>${fmt(w.largestReward)}</b>
+Avg transfer: <b>${fmt(w.avgReward)}</b>
+Largest transfer: <b>${fmt(w.largestReward)}</b>
 
 📈 Reward transfer velocity: <b>${Number(c.rewardTransferVelocityPct ?? c.claimVelocityPct ?? 0) >= 0 ? "+" : ""}${fmt(c.rewardTransferVelocityPct ?? c.claimVelocityPct)}%</b>
 💧 Volume velocity: <b>${Number(c.volumeVelocityPct || 0) >= 0 ? "+" : ""}${fmt(c.volumeVelocityPct)}%</b>
