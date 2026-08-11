@@ -624,16 +624,7 @@ function buildPatternMatch({ funding, cycles, analytics, predictor, baseline, no
       ? 50
       : rewardTransferDelaySimilarityPct;
 
-  const score = round(
-    cadencePct * 0.30 +
-    delayPct * 0.15 +
-    correlationPct * 0.20 +
-    automationPct * 0.20 +
-    predictorProximityPct * 0.15,
-    1
-  );
-
-  const latestFunding = funding[0] || null;
+const latestFunding = funding[0] || null;
   const fundingRecent = latestFunding ? within(latestFunding.timestamp, ACTIVE_FUNDING_WINDOW_MINUTES, nowSec) : false;
   const latestRewardTransferTs = Math.max(
     0,
@@ -650,6 +641,15 @@ function buildPatternMatch({ funding, cycles, analytics, predictor, baseline, no
     fundingRecent ||
     rewardTransferRecent ||
     predictor.status === 'IN_FUNDING_WINDOW';
+
+  const score = round(
+    cadencePct * 0.30 +
+    delayPct * 0.15 +
+    correlationPct * 0.20 +
+    automationPct * 0.20 +
+    predictorProximityPct * 0.15,
+    1
+  );
 
   const confidence =
     n(baseline.cyclesAnalyzed) >= 100 ? 'VERY HIGH' :
