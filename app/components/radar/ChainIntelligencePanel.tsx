@@ -89,9 +89,9 @@ export function ChainIntelligencePanel({
   const match = Number(m.historicalPatternMatchPct || 0)
 
   const freshTrigger =
-    m.liveEvidence === true ||
     chain.fundingDetected === true ||
-    Number(w.rewards || 0) > 0
+    Number(w.rewards || 0) > 0 ||
+    p.status === "IN_FUNDING_WINDOW"
 
   const windowState = getWindowState(p)
 
