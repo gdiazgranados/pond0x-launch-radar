@@ -154,7 +154,7 @@ async function main() {
           : fundingWindow
             ? "EXPECTED FUNDING WINDOW"
             : patternCross
-              ? "HIGH HISTORICAL PATTERN MATCH"
+              ? "HIGH PATTERN MATCH + LIVE EVIDENCE"
               : "30-MIN ACTIVITY SUMMARY";
 
   const prediction = p.nextFundingExpectedAt
