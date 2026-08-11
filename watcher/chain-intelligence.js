@@ -178,13 +178,22 @@ function extractTransfers(txs) {
 function stats(transfers, minutes, nowSec) {
   const rows = transfers.filter(x => within(x.timestamp, minutes, nowSec));
   const total = sum(rows, x => x.amount);
+  
   return {
     minutes,
+
+    rewardTransfers: rows.length,
     rewards: rows.length,
+
     wpondDistributed: round(total),
-    uniqueRecipients: uniq(rows.map(x=>x.to)).length,
+
+    uniqueRecipients: uniq(rows.map(x => x.to)).length,
+
+    avgTransfer: rows.length ? round(total / rows.length) : 0,
     avgReward: rows.length ? round(total / rows.length) : 0,
-    largestReward: round(Math.max(0, ...rows.map(x=>x.amount))),
+
+    largestTransfer: round(Math.max(0, ...rows.map(x => x.amount))),
+    largestReward: round(Math.max(0, ...rows.map(x => x.amount))),
   };
 }
 
