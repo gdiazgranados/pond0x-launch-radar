@@ -783,6 +783,7 @@ const rewardTxs = rewardResult.transactions;
     rewardFlow.some(
       x =>
         within(x.timestamp, 15, nowSec) &&
+        (x.from === REWARD_WALLET || x.to === REWARD_WALLET) &&
         !(x.from === DISTRIBUTOR && x.to === REWARD_WALLET)
     );
 
