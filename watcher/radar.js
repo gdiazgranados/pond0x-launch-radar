@@ -1085,7 +1085,6 @@ async function main() {
     const w5 = chain.windows?.["5m"] || {};
     const w15 = chain.windows?.["15m"] || {};
 
-    const rewards5m = Number(w5.rewards || 0);
     const rewardTransfers5m = Number(w5.rewards || 0);
 
     const fundingActive15m =
@@ -1100,10 +1099,6 @@ async function main() {
       rewardActivity5m;
 
     const evidence = [];
-  
-    if (rewards5m > 0) {
-      evidence.push(`rewards_5m:${rewards5m}`);
-    }
 
     if (rewardTransfers5m > 0) {
       evidence.push(`reward_transfers_5m:${rewardTransfers5m}`);
