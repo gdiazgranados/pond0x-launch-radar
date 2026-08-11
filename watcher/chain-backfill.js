@@ -73,9 +73,9 @@ function extract(txs){
   return out;
 }
 
-function buildCycles(funding,claims){
+function buildCycles(funding,rewardTransfers){
   const f=[...funding].sort((a,b)=>a.timestamp-b.timestamp);
-  const c=[...claims].sort((a,b)=>a.timestamp-b.timestamp);
+  const c=[...rewardTransfers].sort((a,b)=>a.timestamp-b.timestamp);
   const cycles=[];
   for(let i=0;i<f.length;i++){
     const fe=f[i], end=Math.min(f[i+1]?.timestamp||Infinity,fe.timestamp+CORRELATION_WINDOW_SECONDS);
