@@ -684,6 +684,7 @@ function buildPatternMatch({ funding, cycles, analytics, predictor, baseline, no
     },
     baseline: {
       medianFundingCadenceSeconds: historicalMedianCadence || null,
+      medianFirstRewardTransferDelaySeconds: historicalMedianDelay || null,
       medianFirstClaimDelaySeconds: historicalMedianDelay || null,
       correlationRatePct: n(baseline.correlationRatePct),
     },
