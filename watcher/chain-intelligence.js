@@ -248,7 +248,7 @@ function cadenceFromFunding(funding) {
   return gaps;
 }
 
-function buildCycleAnalytics(cycles, funding, baseline) {
+function buildCycleAnalytics(cycles, funding, baseline, nowSec) {
   const correlated = cycles.filter(x=>x.correlated);
   const delays = correlated
     .map(x => x.firstRewardTransferDelaySeconds)
@@ -800,7 +800,7 @@ const rewardTxs = rewardResult.transactions;
     funding,
     rewardWalletTransfers
   );
-  const cycleAnalytics = buildCycleAnalytics(cycles, funding, baseline);
+  const cycleAnalytics = buildCycleAnalytics(cycles, funding, baseline, nowSec);
   const predictor = buildPredictor(funding, cycleAnalytics, nowSec);
   const patternMatch = buildPatternMatch({ funding, cycles, analytics: cycleAnalytics, predictor, baseline, nowSec });
 
