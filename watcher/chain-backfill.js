@@ -88,7 +88,8 @@ function buildCycles(funding,rewardTransfers){
         cc.length
           ? Math.min(...cc.map(x=>x.timestamp-fe.timestamp))
           : null,
-      claimCount:cc.length
+      rewardTransferCount: cc.length,
+      claimCount: cc.length
     });
   }
   return cycles;
