@@ -1,4 +1,4 @@
-const MEXICO_CITY_TIMEZONE = "America/Mexico_City"
+
 
 function parseValidDate(value?: string | null) {
   if (!value) return null
@@ -13,18 +13,14 @@ export function formatDate(date?: string | null) {
   const dt = parseValidDate(date)
   if (!dt) return "—"
 
-  return dt.toLocaleString("es-MX", {
-    timeZone: MEXICO_CITY_TIMEZONE,
-  })
+  return dt.toLocaleString("es-MX")
 }
 
 export function shortTime(date?: string | null) {
   const dt = parseValidDate(date)
   if (!dt) return "—"
 
-  return dt.toLocaleTimeString("es-MX", {
-    timeZone: MEXICO_CITY_TIMEZONE,
-  })
+  return dt.toLocaleTimeString("es-MX")
 }
 
 export function minutesSince(dateString?: string | null) {
