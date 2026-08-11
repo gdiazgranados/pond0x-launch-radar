@@ -103,10 +103,10 @@ async function main() {
   const resumed =
     (prev.activityState === "QUIET" ||
       prev.activityState === "COOLING") &&
-    Number(w.rewards || 0) >= 3;
+    Number(w.rewardTransfers ?? w.rewards ?? 0) >= 3;
 
   const spike =
-    Number(w.rewards || 0) >= 5 &&
+    Number(w.rewardTransfers ?? w.rewards ?? 0) >= 5 &&
     (
       Number(c.rewardTransferVelocityPct ?? c.claimVelocityPct ?? 0) >= 100 ||
       Number(c.volumeVelocityPct || 0) >= 100
@@ -131,7 +131,7 @@ async function main() {
     !!m.liveEvidence;
 
   const periodic =
-    Number(w.rewards || 0) >= 3 &&
+    Number(w.rewardTransfers ?? w.rewards ?? 0) >= 3 &&
     mins >= 30;
 
   const shouldSend =
@@ -183,10 +183,10 @@ Live trigger present: <b>${m.liveEvidence ? "YES" : "NO"}</b>`
   const msg = `⛓️ <b>POND0X RADAR — ${reason}</b>
 
 ⛏️ <b>Last 5 minutes</b>
-Reward transfers: <b>${fmt(w.rewards)}</b>
+Reward transfers: <b>${fmt(w.rewardTransfers ?? w.rewards)}</b>
 wPOND distributed: <b>${fmt(w.wpondDistributed)}</b>
-Avg transfer: <b>${fmt(w.avgReward)}</b>
-Largest transfer: <b>${fmt(w.largestReward)}</b>
+Avg transfer: <b>${fmt(w.avgTransfer ?? w.avgReward)}</b>
+Largest transfer: <b>${fmt(w.largestTransfer ?? w.largestReward)}</b>
 
 📈 Reward transfer velocity: <b>${Number(c.rewardTransferVelocityPct ?? c.claimVelocityPct ?? 0) >= 0 ? "+" : ""}${fmt(c.rewardTransferVelocityPct ?? c.claimVelocityPct)}%</b>
 💧 Volume velocity: <b>${Number(c.volumeVelocityPct || 0) >= 0 ? "+" : ""}${fmt(c.volumeVelocityPct)}%</b>
@@ -218,7 +218,8 @@ Largest transfer: <b>${fmt(w.largestReward)}</b>
       lastSentAt,
       activityState: c.activityState,
       fundingDetected: !!c.fundingDetected,
-      rewards5m: Number(w.rewards || 0),
+      rewardTransfers5m: Number(w.rewardTransfers ?? w.rewards ?? 0),
+      rewards5m: Number(w.rewardTransfers ?? w.rewards ?? 0),
       volume5m: Number(w.wpondDistributed || 0),
       cycleSignal: a.cycleSignal || null,
       predictorStatus: p.status || null,
