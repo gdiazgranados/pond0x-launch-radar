@@ -733,7 +733,6 @@ const latestFunding = funding[0] || null;
     baseline: {
       medianFundingCadenceSeconds: historicalMedianCadence || null,
       medianFirstRewardTransferDelaySeconds: historicalMedianDelay || null,
-      medianFirstRewardTransferDelaySeconds: historicalMedianDelay || null,
       medianFirstClaimDelaySeconds: historicalMedianDelay || null,
       correlationRatePct: n(baseline.correlationRatePct),
     },
