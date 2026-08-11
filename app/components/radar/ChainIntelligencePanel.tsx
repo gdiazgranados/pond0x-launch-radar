@@ -168,7 +168,10 @@ export function ChainIntelligencePanel({
           </div>
           <div className="mt-1 text-xs text-slate-500">
             {p.status === "SESSION_INACTIVE"
-              ? "Session inactive · structural confidence preserved separately"
+              ? `Session inactive · structural confidence ${fmt(
+                  a.liveAutomationConfidence,
+                  0
+                )}/100`
               : String(a.cycleSignal || "NO_STABLE_CYCLE").replaceAll("_", " ")}
           </div>
         </div>
