@@ -508,6 +508,31 @@ function buildPredictor(funding, analytics, nowSec) {
     };
   }
 
+const secondsSinceLastFunding = nowSec - latest.timestamp;
+
+if (secondsSinceLastFunding > MAX_CADENCE_GAP_SECONDS) {
+  return {
+    status: 'SESSION_INACTIVE',
+    nextFundingExpectedAt: null,
+    nextFundingExpectedTimestamp: null,
+    nextFundingWindowStart: null,
+    nextFundingWindowEnd: null,
+    fundingWindowHalfWidthSeconds: null,
+    secondsToExpectedFunding: null,
+    fundingCadenceConfidence: analytics.cadenceConfidence,
+    claimAfterFundingProbabilityPct:
+      analytics.rewardTransferAfterFundingPct ??
+      analytics.claimAfterFundingProbabilityPct,
+    expectedClaimWindowSeconds: null,
+    rewardTransferAfterFundingPct:
+      analytics.rewardTransferAfterFundingPct ??
+      analytics.claimAfterFundingProbabilityPct,
+    expectedRewardTransferWindowSeconds: null,
+    warning:
+      'Funding session appears inactive because the last observed funding exceeds the maximum cadence gap.',
+  };
+}
+
   let expectedTs = latest.timestamp + cadence;
   while (expectedTs < nowSec - Math.max(60, sigma * 3)) expectedTs += cadence;
 
