@@ -103,7 +103,7 @@ async function main() {
   const resumed =
     (prev.activityState === "QUIET" ||
       prev.activityState === "COOLING") &&
-    Number(w.rewards || 0) > 0;
+    Number(w.rewards || 0) >= 3;
 
   const spike =
     Number(w.rewards || 0) >= 5 &&
