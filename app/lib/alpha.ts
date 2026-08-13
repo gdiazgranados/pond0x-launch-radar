@@ -2,12 +2,9 @@ type AlphaInput = {
   score?: number
   movementPct?: number
   trend?: number
-  level?: string
   tags?: string[]
   signals?: string[]
   activationProbability?: number
-  patternBoost?: number
-  burstCount?: number
 }
 
 export type AlphaClass = "NOISE" | "WATCH" | "SETUP" | "ACTIONABLE" | "CRITICAL"
@@ -30,10 +27,7 @@ export function evaluateAlpha(input?: AlphaInput | null): AlphaAssessment {
   const movementPct = Number(input?.movementPct ?? 0)
   const trend = Number(input?.trend ?? 0)
   const activationProbability = Number(input?.activationProbability ?? 0)
-  const patternBoost = Number(input?.patternBoost ?? 0)
-  const burstCount = Number(input?.burstCount ?? 0)
 
-  const level = input?.level || "LOW"
   const tags = input?.tags || []
   const signals = input?.signals || []
 
@@ -55,46 +49,35 @@ export function evaluateAlpha(input?: AlphaInput | null): AlphaAssessment {
     signals.includes("account") ||
     signals.includes("auth")
 
-  const hasSystem =
-    tags.includes("SYSTEM") || signals.includes("portal")
+  const hasActivation =
+    signals.includes("enabled") ||
+    signals.includes("isenabled") ||
+    signals.includes("active")
+
+  const positiveTrend = Math.max(0, trend)
 
   let alphaRaw =
-    score * 0.35 +
-    movementPct * 0.15 +
-    trend * 1.5 +
-    activationProbability * 0.25 +
-    patternBoost * 0.6 +
-    burstCount * 4
+    score * 0.25 +
+    movementPct * 0.25 +
+    positiveTrend * 1.25 +
+    activationProbability * 0.15
 
-  if (hasRewards) {
+  const structuralSignals = [
+    hasRewards,
+    hasWalletStack,
+    hasAuth,
+    hasActivation,
+  ].filter(Boolean).length
+
+  if (structuralSignals >= 3) {
     alphaRaw += 12
-    reasons.push("reward-adjacent signals detected")
-  }
-
-  if (hasWalletStack) {
-    alphaRaw += 10
-    reasons.push("wallet/connect stack detected")
-  }
-
-  if (hasAuth) {
-    alphaRaw += 6
-    reasons.push("auth/account changes detected")
-  }
-
-  if (hasSystem) {
-    alphaRaw += 4
-    reasons.push("system/portal surface involved")
-  }
-
-  if (level === "VERY HIGH") {
-    alphaRaw += 15
-    reasons.push("very high radar level")
-  } else if (level === "HIGH") {
-    alphaRaw += 10
-    reasons.push("high radar level")
-  } else if (level === "MEDIUM") {
-    alphaRaw += 5
-    reasons.push("medium radar level")
+    reasons.push(`${structuralSignals}/4 structural signal groups aligned`)
+  } else if (structuralSignals === 2) {
+    alphaRaw += 7
+    reasons.push("2/4 structural signal groups aligned")
+  } else if (structuralSignals === 1) {
+    alphaRaw += 3
+    reasons.push("1/4 structural signal groups detected")
   }
 
   const alphaScore = clampScore(alphaRaw)

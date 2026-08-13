@@ -571,10 +571,13 @@ function buildInsight(movementPct, signals, detectedGroups, discovery = {}, back
 }
 
 function evaluateAlpha(latest) {
-  const score = Number(latest.score || 0);
+  const score = Number(
+    latest.scorePercent ?? latest.score ?? 0
+  );
   const movementPct = Number(latest.movementPct || 0);
   const trend = Number(latest.trend || 0);
-  const patternBoost = Number(latest?.breakdown?.patternBoost || 0);
+  const activationProbability = Number(latest.activationProbability || 0);
+  const positiveTrend = Math.max(0, trend);
 
   const tags = latest.tags || [];
   const signals = latest.signals || [];
@@ -582,10 +585,10 @@ function evaluateAlpha(latest) {
   const backendSignals = latest.backendSignals || [];
 
   let alphaRaw =
-    score * 0.35 +
-    movementPct * 0.15 +
-    trend * 1.5 +
-    patternBoost * 0.6;
+    score * 0.25 +
+    movementPct * 0.25 +
+    positiveTrend * 1.25 +
+    activationProbability * 0.15;
 
   const hasRewards =
     tags.includes("REWARDS") ||
@@ -614,22 +617,48 @@ function evaluateAlpha(latest) {
     signals.includes("isenabled") ||
     signals.includes("active");
 
-  if (hasRewards) alphaRaw += 12;
-  if (hasWalletStack) alphaRaw += 10;
-  if (hasAuth) alphaRaw += 6;
-  if (hasActivation) alphaRaw += 8;
-  if (signals.includes("claim")) alphaRaw += 10;
-  if (signals.includes("eligible")) alphaRaw += 8;
-  if (signals.includes("canclaim")) alphaRaw += 8;
-  if (ensureArray(discovery.newApiRoutes).length > 0) alphaRaw += 8;
-  if (ensureArray(discovery.criticalKeywords).length >= 2) alphaRaw += 6;
-  if (String(discovery.keyFunctionCandidate || "").startsWith("api:")) alphaRaw += 6;
-  if (String(discovery.keyFunctionCandidate || "").startsWith("critical:")) alphaRaw += 8;
-  if (backendSignals.includes("eligible_true")) alphaRaw += 15;
-  if (backendSignals.includes("canclaim_true")) alphaRaw += 20;
-  if (backendSignals.includes("enabled_true")) alphaRaw += 10;
-  if (backendSignals.includes("active_true")) alphaRaw += 8;
-  if (backendSignals.includes("rewards_array")) alphaRaw += 8;
+  const structuralSignals = [
+    hasRewards,
+    hasWalletStack,
+    hasAuth,
+    hasActivation,
+  ].filter(Boolean).length;
+
+  if (structuralSignals >= 3) {
+    alphaRaw += 12;
+  } else if (structuralSignals === 2) {
+    alphaRaw += 7;
+  } else if (structuralSignals === 1) {
+    alphaRaw += 3;
+  }
+  const discoverySignals = [
+    ensureArray(discovery.newApiRoutes).length > 0,
+    ensureArray(discovery.criticalKeywords).length >= 2,
+    String(discovery.keyFunctionCandidate || "").startsWith("api:"),
+    String(discovery.keyFunctionCandidate || "").startsWith("critical:"),
+  ].filter(Boolean).length;
+
+  if (discoverySignals >= 2) {
+    alphaRaw += 8;
+  } else if (discoverySignals === 1) {
+    alphaRaw += 4;
+  }
+
+  const backendEvidenceCount = [
+    backendSignals.includes("eligible_true"),
+    backendSignals.includes("canclaim_true"),
+    backendSignals.includes("enabled_true"),
+    backendSignals.includes("active_true"),
+    backendSignals.includes("rewards_array"),
+  ].filter(Boolean).length;
+
+  if (backendEvidenceCount >= 3) {
+    alphaRaw += 18;
+  } else if (backendEvidenceCount === 2) {
+    alphaRaw += 12;
+  } else if (backendEvidenceCount === 1) {
+    alphaRaw += 6;
+  }
 
   const alphaScore = Math.max(0, Math.min(100, Math.round(alphaRaw)));
 
