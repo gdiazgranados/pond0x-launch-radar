@@ -431,26 +431,122 @@ function detectPatterns(current, history) {
 }
 
 function computeActivationProbability(current, history) {
-  const finalScore = computeFinalScore(current, history);
-  const rarityScore = computeRarityScore(current, history);
-  const patternScore = computePatternScore(current, history);
+  const signals = Array.isArray(current.signals) ? current.signals : [];
+  const backendSignals = Array.isArray(current.backendSignals)
+    ? current.backendSignals
+    : [];
+
+  const focus = detectFocusAreas(current);
+  const patterns = detectPatterns(current, history);
+
+  const movementCount = Number(current.movementCount ?? 0);
+  const movementPct = Number(current.movementPct ?? 0);
 
   const hasCurrentEvidence =
-    Number(current.movementCount ?? 0) > 0 ||
-    Number(current.movementPct ?? 0) > 0 ||
-    (current.signals || []).length > 0 ||
-    detectFocusAreas(current).length > 0;
+    movementCount > 0 ||
+    movementPct > 0 ||
+    signals.length > 0 ||
+    focus.length > 0 ||
+    backendSignals.length > 0;
 
   if (!hasCurrentEvidence) {
     return 0;
   }
 
-  const value =
-    finalScore * 0.45 +
-    rarityScore * 0.2 +
-    patternScore * 0.35;
+  const sortedHistory = Array.isArray(history)
+    ? [...history].sort(
+        (a, b) =>
+          new Date(b.generatedAt).getTime() -
+          new Date(a.generatedAt).getTime()
+      )
+    : [];
 
-  return clampScore(value);
+  const prev = sortedHistory[0] || null;
+  const prevSignals = Array.isArray(prev?.signals) ? prev.signals : [];
+  const prevFocus = Array.isArray(prev?.focusAreas) ? prev.focusAreas : [];
+
+  const hasClaim =
+    signals.includes("claim") ||
+    signals.includes("eligible") ||
+    signals.includes("canclaim");
+
+  const hasRewards =
+    signals.includes("reward") ||
+    signals.includes("rewards") ||
+    focus.includes("REWARDS") ||
+    focus.includes("CLAIM");
+
+  const hasAuth =
+    signals.includes("signin") ||
+    signals.includes("verify") ||
+    signals.includes("verifysignature") ||
+    signals.includes("nonce");
+
+  const hasWallet =
+    signals.includes("wallet") ||
+    signals.includes("connect");
+
+  const strongBackendConfirmation =
+    backendSignals.includes("canclaim_true") ||
+    backendSignals.includes("eligible_true");
+
+  const supportingBackendEvidence =
+    backendSignals.includes("enabled_true") ||
+    backendSignals.includes("active_true") ||
+    backendSignals.includes("rewards_array");
+
+  const claimReadiness =
+    hasClaim &&
+    hasRewards;
+
+  const authWalletConvergence =
+    hasAuth &&
+    hasWallet;
+
+  const activationPattern =
+    patterns.includes("CLAIM_FLOW_ACTIVATION") ||
+    patterns.includes("AUTH_WALLET_COUPLING") ||
+    patterns.includes("SENSITIVE_CLUSTER");
+
+  const newSignals =
+    signals.some((signal) => !prevSignals.includes(signal));
+
+  const focusExpansion =
+    focus.some((area) => !prevFocus.includes(area));
+
+  const freshTransition =
+    movementCount > 0 ||
+    movementPct > 0 ||
+    newSignals ||
+    focusExpansion;
+
+  let probability = 0;
+
+  if (strongBackendConfirmation) {
+    probability += 35;
+  }
+
+  if (supportingBackendEvidence) {
+    probability += 15;
+  }
+
+  if (claimReadiness) {
+    probability += 20;
+  }
+
+  if (authWalletConvergence) {
+    probability += 15;
+  }
+
+  if (activationPattern) {
+    probability += 10;
+  }
+
+  if (freshTransition) {
+    probability += 5;
+  }
+
+  return clampScore(probability);
 }
 
 function detectLaunchImminent(current, history) {
