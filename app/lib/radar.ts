@@ -299,7 +299,7 @@ export function prioritizeLaunchSignals<
   const hasPortalArmedTag = tags.includes("PORTAL_ARMED") || Boolean(data.portalArmed)
 
   let derivedScorePercent = baseScorePercent
-  let derivedMovement = baseMovement
+  const derivedMovement = baseMovement
   let derivedTrend = baseTrend
 
   derivedScorePercent += matchedSignals.length * 8
@@ -307,8 +307,6 @@ export function prioritizeLaunchSignals<
   if (hasPortalArmedTag) derivedScorePercent += 16
   if (hasLaunchTag) derivedScorePercent += 20
 
-  if (signals.includes("connect")) derivedMovement += 10
-  if (signals.includes("ethereum") || signals.includes("solana")) derivedMovement += 8
   if (signals.includes("reward") || signals.includes("claim")) derivedTrend += 4
 
   derivedScorePercent = clampPercent(derivedScorePercent)
