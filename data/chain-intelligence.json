@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-13T11:28:17.015Z",
+  "generatedAt": "2026-08-13T12:25:59.022Z",
   "version": "1.3.0",
   "status": "LIVE",
   "confidence": "VERY HIGH",
@@ -9,7 +9,7 @@
       "horizonMinutes": 1440,
       "pagesFetched": 1,
       "transactionsFetched": 0,
-      "cutoffTime": "2026-08-12T11:28:16.000Z",
+      "cutoffTime": "2026-08-12T12:25:58.000Z",
       "coverageComplete": true,
       "maxPagesReached": false
     },
@@ -18,7 +18,7 @@
       "horizonMinutes": 1440,
       "pagesFetched": 1,
       "transactionsFetched": 0,
-      "cutoffTime": "2026-08-12T11:28:16.000Z",
+      "cutoffTime": "2026-08-12T12:25:58.000Z",
       "coverageComplete": true,
       "maxPagesReached": false
     },
@@ -26,8 +26,8 @@
       "address": "1orFCnFfgwPzSgUaoK6Wr3MjgXZ7mtk8NGz9Hh4iWWL",
       "horizonMinutes": 60,
       "pagesFetched": 1,
-      "transactionsFetched": 0,
-      "cutoffTime": "2026-08-13T10:28:16.000Z",
+      "transactionsFetched": 8,
+      "cutoffTime": "2026-08-13T11:25:58.000Z",
       "coverageComplete": true,
       "maxPagesReached": false
     }
@@ -44,7 +44,7 @@
     "externalClaims": 0
   },
   "activityState": "QUIET",
-  "chainConfirmationScore": 0,
+  "chainConfirmationScore": 10,
   "claimVelocityPct": 0,
   "rewardTransferVelocityPct": 0,
   "volumeVelocityPct": 0,
@@ -187,7 +187,28 @@
   "latestCorrelatedCycle": null,
   "distributionCycles": [],
   "recentRewardWalletTransfers": [],
-  "recentIndependentRewardWalletFlow": [],
+  "recentIndependentRewardWalletFlow": [
+    {
+      "signature": "4hLmqcdNRUo78ePrw8yy6cJc4v4KEf9QsMZzVbeFjk9o2BojxvaFfQyFUxcgFeoBzk6cXQvELtdcCsqGA4xui1ff",
+      "timestamp": 1786623878,
+      "time": "2026-08-13T12:24:38.000Z",
+      "from": "9VjBWxGnJMzDaRxFHLWjDwRZcCpcH5cq8G5V4o1ymecj",
+      "to": "1orFCnFfgwPzSgUaoK6Wr3MjgXZ7mtk8NGz9Hh4iWWL",
+      "amount": 169125614.958,
+      "type": "INITIALIZE_ACCOUNT",
+      "source": "ASSOCIATED_TOKEN_PROGRAM"
+    },
+    {
+      "signature": "66L2UjpDCBtJ83KWRbtzSyJjAHdF5pTavPu9dtWGHmCuci1TKiz12g3AcQaYo6L7Bgkj2DkzWSrGoicDafthZ6m2",
+      "timestamp": 1786623865,
+      "time": "2026-08-13T12:24:25.000Z",
+      "from": "45ruCyfdRkWpRNGEqWzjCiXRHkZs8WXCLQ67Pnpye7Hp",
+      "to": "1orFCnFfgwPzSgUaoK6Wr3MjgXZ7mtk8NGz9Hh4iWWL",
+      "amount": 118453.401,
+      "type": "INITIALIZE_ACCOUNT",
+      "source": "ASSOCIATED_TOKEN_PROGRAM"
+    }
+  ],
   "recentExternalClaims": [],
   "recentFundingEvents": [],
   "methodology": "Direct wPOND transfers from the Distributor are classified into reward-wallet transfers and external claims. DISTRIBUTOR -> REWARD_WALLET flows are treated as reward-distribution activity, while DISTRIBUTOR -> other recipients are tracked separately as external claim candidates. UPSTREAM -> DISTRIBUTOR Jupiter/swap flows are treated as funding events. Cycle timing and prediction currently analyze reward-wallet distribution cycles. Historical pattern similarity is contextual and is not a probability of a claim or launch."
