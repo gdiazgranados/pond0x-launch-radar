@@ -370,12 +370,9 @@ export default function Home() {
       score: uiScorePercent,
       movementPct: uiMovement,
       trend: Number(current?.trend ?? 0),
-      level: current?.level ?? "LOW",
       tags: current?.tags ?? [],
       signals: current?.signals ?? [],
       activationProbability: Number(current?.activationProbability ?? 0),
-      patternBoost: Number(current?.breakdown?.patternBoost ?? 0),
-      burstCount,
     })
   }, [uiScorePercent, uiMovement, current, burstCount])
 
