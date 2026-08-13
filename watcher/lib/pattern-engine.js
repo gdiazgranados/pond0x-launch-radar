@@ -73,14 +73,31 @@ function detectPatterns(signals) {
     signals.recentChangesCount >= 5 ||
     signals.movementPct >= 25
   ) {
+    const reasons = []
+
+    if (signals.behaviorScore >= 65) {
+      reasons.push(
+        `Behavioral signal convergence elevated (${signals.behaviorScore}/100)`
+      )
+    }
+
+    if (signals.recentChangesCount >= 5) {
+      reasons.push(
+        `${signals.recentChangesCount} fresh surface changes detected`
+      )
+    }
+
+    if (signals.movementPct >= 25) {
+      reasons.push(
+        `Observed movement threshold exceeded (${signals.movementPct}%)`
+      )
+    }
+
     patterns.push({
       tag: "BEHAVIOR_SPIKE",
       boost: 10,
       confidence: "MEDIUM",
-      reasons: [
-        "Recent change frequency increased",
-        "Movement threshold exceeded",
-      ],
+      reasons,
     })
   }
 
@@ -101,24 +118,43 @@ function detectPatterns(signals) {
     })
   }
 
+  const hasFreshActivationEvidence =
+  signals.recentChangesCount >= 3 ||
+  (
+    signals.onchainFresh === true &&
+    signals.hasOnchainMovement === true
+  )
+
   if (
-    signals.frontendScore >= 70 &&
-    signals.rewardsScore >= 60 &&
-    signals.behaviorScore >= 55 &&
-    signals.recentChangesCount >= 3
-  ) {
-    patterns.push({
-      tag: "LAUNCH_IMMINENT",
-      boost: 30,
-      confidence: "CRITICAL",
-      reasons: [
-        "Frontend strongly active",
-        "Reward preparation strong",
-        "Behavioral cadence accelerated",
-        "Multiple recent changes detected",
-      ],
-    })
+  signals.frontendScore >= 70 &&
+  signals.rewardsScore >= 60 &&
+  signals.behaviorScore >= 55 &&
+  hasFreshActivationEvidence
+) {
+  const reasons = [
+    "Frontend strongly active",
+    "Reward preparation strong",
+    "Behavioral cadence accelerated",
+  ]
+
+  if (signals.recentChangesCount >= 3) {
+    reasons.push("Multiple fresh surface changes detected")
   }
+
+  if (
+    signals.onchainFresh === true &&
+    signals.hasOnchainMovement === true
+  ) {
+    reasons.push("Fresh on-chain movement confirms activation activity")
+  }
+
+  patterns.push({
+    tag: "LAUNCH_IMMINENT",
+    boost: 30,
+    confidence: "CRITICAL",
+    reasons,
+  })
+}
 
   return patterns
 }
