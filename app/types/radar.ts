@@ -158,6 +158,12 @@ export type RadarData = {
 
   alphaClass?: string
   alphaScore?: number
+  triggerState?: string
+  suggestedAction?: string
+
+  activationState?: string
+  activationAction?: string
+
   alertSignature?: string
   eta?: string
   eventType?: string
@@ -166,8 +172,6 @@ export type RadarData = {
   signalFusion?: string
   signalRegime?: string
   signature?: string
-  suggestedAction?: string
-  triggerState?: string
 }
 
 export type AlertItem = {

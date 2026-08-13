@@ -1518,20 +1518,23 @@ const oldApiData = oldApiFile
       ],
     };
 
-  let alphaClass = alpha.alphaClass;
-  let triggerState = alpha.triggerState;
-  let suggestedAction = alpha.suggestedAction;
+  const alphaClass = alpha.alphaClass;
+  const triggerState = alpha.triggerState;
+  const suggestedAction = alpha.suggestedAction;
+
+  let activationState = "IDLE";
+  let activationAction = "No fresh activation event confirmed.";
+
+  if (portalArmed) {
+    activationState = "ARMED";
+    activationAction =
+      "Portal activation conditions detected. Maintain high-frequency monitoring.";
+  }
 
   if (launchImminent) {
-    alphaClass = "ACTIONABLE";
-    triggerState = "TRIGGERED";
-    suggestedAction =
-      "Launch imminent. Escalate immediately and monitor backend/UI flips aggressively.";
-  } else if (portalArmed && alphaClass === "SETUP") {
-    alphaClass = "ACTIONABLE";
-    triggerState = "ARMED";
-    suggestedAction =
-      "Portal armed. Maintain high-frequency monitoring and prepare escalation.";
+    activationState = "TRIGGERED";
+    activationAction =
+      "Launch-imminent activation conditions detected. Escalate immediately and monitor backend/UI flips aggressively.";
   }
 
   const priority = getPriority(enrichedBaseResult);
@@ -1543,6 +1546,8 @@ const oldApiData = oldApiFile
     alphaClass,
     triggerState,
     suggestedAction,
+    activationState,
+    activationAction,
     eventType,
     signalRegime,
     signalFusion,
@@ -1575,6 +1580,7 @@ const oldApiData = oldApiFile
         alphaScore: result.alphaScore,
         alphaClass: result.alphaClass,
         triggerState: result.triggerState,
+        activationState: result.activationState,
         eventType: result.eventType,
         signalFusion: result.signalFusion,
         signalRegime: result.signalRegime,
