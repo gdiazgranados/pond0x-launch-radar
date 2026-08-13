@@ -128,7 +128,12 @@ function getCriticalChanges(latest, lastAlert) {
   compareScalar("Priority", lastAlert.priority, latest.priority);
   compareScalar("Level", lastAlert.level, latest.level);
   compareScalar("Alpha Class", lastAlert.alphaClass, latest.alphaClass);
-  compareScalar("Trigger", lastAlert.triggerState, latest.triggerState);
+  compareScalar("Alpha Trigger", lastAlert.triggerState, latest.triggerState);
+  compareScalar(
+    "Activation State",
+    lastAlert.activationState,
+    latest.activationState
+  );
   compareScalar("Event Type", lastAlert.eventType, latest.eventType);
   compareScalar("Signal Fusion", lastAlert.signalFusion, latest.signalFusion);
   compareScalar("Signal Regime", lastAlert.signalRegime, latest.signalRegime);
@@ -218,6 +223,12 @@ function classifyChangeSeverity(latest, lastAlert) {
   const prevTrigger = lastAlert.triggerState || "IDLE";
   const nextTrigger = latest.triggerState || "IDLE";
 
+  const prevActivationState =
+    lastAlert.activationState || "IDLE";
+
+  const nextActivationState =
+    latest.activationState || "IDLE";
+
   const prevAlpha = lastAlert.alphaClass || "NOISE";
   const nextAlpha = latest.alphaClass || "NOISE";
 
@@ -277,6 +288,16 @@ function classifyChangeSeverity(latest, lastAlert) {
     prevTrigger !== "TRIGGERED" &&
     nextTrigger === "TRIGGERED";
 
+  const activationRank = {
+    IDLE: 0,
+    ARMED: 1,
+    TRIGGERED: 2,
+  };
+
+  const activationEscalated =
+    (activationRank[nextActivationState] ?? 0) >
+    (activationRank[prevActivationState] ?? 0);
+
   const priorityRank = {
     LOW: 0,
     MEDIUM: 1,
@@ -329,6 +350,7 @@ function classifyChangeSeverity(latest, lastAlert) {
     imminentAppeared ||
     portalArmedAppeared ||
     triggerEscalated ||
+    activationEscalated ||
     priorityEscalated ||
     alphaEscalated ||
     eventEscalated ||
@@ -358,6 +380,10 @@ function classifyChangeSeverity(latest, lastAlert) {
     prevTrigger === "TRIGGERED" &&
     nextTrigger !== "TRIGGERED";
 
+  const activationCleared =
+    (activationRank[nextActivationState] ?? 0) <
+    (activationRank[prevActivationState] ?? 0);
+
   const priorityDeescalated =
     (priorityRank[nextPriority] ?? 0) <
     (priorityRank[prevPriority] ?? 0);
@@ -370,6 +396,7 @@ function classifyChangeSeverity(latest, lastAlert) {
     imminentCleared ||
     portalCleared ||
     triggerCleared ||
+    activationCleared ||
     priorityDeescalated ||
     returnedToNoise
   ) {
@@ -402,6 +429,7 @@ function buildDecision(latest, lastAlert) {
   const signature = getStableSignature(latest);
   const priority = latest.priority || "LOW";
   const triggerState = latest.triggerState || "IDLE";
+  const activationState = latest.activationState || "IDLE";
   const score = Number(latest.score || 0);
   const movementPct = Number(latest.movementPct || 0);
   const launchImminent = !!latest.launchImminent;
@@ -450,7 +478,7 @@ const hasFreshEvidence =
   if (
     launchImminent &&
     hasFreshEvidence &&
-    triggerState === "TRIGGERED" &&
+    activationState === "TRIGGERED" &&
     (priority === "CRITICAL" || priority === "VERY HIGH")
   ) {
     return {
@@ -467,7 +495,10 @@ const hasFreshEvidence =
   if (
     portalArmed &&
     hasFreshEvidence &&
-    triggerState === "TRIGGERED" &&
+    (
+      activationState === "ARMED" ||
+      activationState === "TRIGGERED"
+    ) &&
     (
       priority === "CRITICAL" ||
       priority === "VERY HIGH" ||
@@ -708,8 +739,11 @@ function buildTelegramMessage(latest, decision) {
     ``,
     `<b>Alpha Score:</b> ${escapeHtml(latest.alphaScore)}`,
     `<b>Alpha Class:</b> ${escapeHtml(latest.alphaClass)}`,
-    `<b>Trigger:</b> ${escapeHtml(latest.triggerState)}`,
-    `<b>Action:</b> ${escapeHtml(latest.suggestedAction)}`,
+    `<b>Alpha Trigger:</b> ${escapeHtml(latest.triggerState)}`,
+    `<b>Alpha Action:</b> ${escapeHtml(latest.suggestedAction)}`,
+    ``,
+    `<b>Activation State:</b> ${escapeHtml(latest.activationState || "IDLE")}`,
+    `<b>Activation Action:</b> ${escapeHtml(latest.activationAction || "No fresh activation event confirmed.")}`,
     `<b>Event Type:</b> ${escapeHtml(latest.eventType)}`,
     `<b>Signal Fusion:</b> ${escapeHtml(getFusionEmoji(latest.signalFusion))} ${escapeHtml(latest.signalFusion)}`,
     `<b>Signal Regime:</b> ${escapeHtml(getRegimeEmoji(latest.signalRegime))} ${escapeHtml(latest.signalRegime)}`,
@@ -809,6 +843,8 @@ function buildAlertRecord(latest, decision) {
     alphaClass: latest.alphaClass,
     triggerState: latest.triggerState,
     suggestedAction: latest.suggestedAction,
+    activationState: latest.activationState,
+    activationAction: latest.activationAction,
     eventType: latest.eventType,
     signalRegime: latest.signalRegime,
     signalFusion: latest.signalFusion,
