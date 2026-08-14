@@ -37,6 +37,8 @@ export function HeartbeatPanel({
   freshnessDate,
 }: HeartbeatPanelProps) {
   const isOverdue = nextSweepCountdown === "overdue"
+  const isAwaitingRunner =
+    isOverdue && heartbeat.label === "FRESH"
 
   return (
     <div className="rounded-2xl border border-white/10 bg-[#05070a] p-5">
@@ -68,9 +70,17 @@ export function HeartbeatPanel({
           </div>
           <div className="mt-2 text-sm font-medium text-white">{formatMexicoCityDate(nextPollAt)}</div>
           <div
-            className={`mt-2 text-xs ${isOverdue ? "animate-pulse text-yellow-400" : "text-slate-500"}`}
+            className={`mt-2 text-xs ${
+              isOverdue && !isAwaitingRunner
+                ? "animate-pulse text-yellow-400"
+                : "text-slate-500"
+            }`}
           >
-            {isOverdue ? "Next sweep overdue" : `Next sweep in: ${nextSweepCountdown ?? "—"}`}
+            {isAwaitingRunner
+              ? "Awaiting scheduled runner"
+              : isOverdue
+                ? "Next sweep overdue"
+                : `Next sweep in: ${nextSweepCountdown ?? "—"}`}
           </div>
         </div>
 

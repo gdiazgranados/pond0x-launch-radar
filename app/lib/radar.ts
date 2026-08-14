@@ -20,8 +20,14 @@ export function getHeartbeatStatus(dateString?: string, scheduleMinutes = 60) {
   }
 
   const schedule = Number(scheduleMinutes || 60)
+  const graceMinutes = 15
 
-  if (mins <= schedule) {
+  // Allow normal GitHub Actions scheduling jitter before
+  // considering the heartbeat delayed.
+  const freshUntil = schedule + graceMinutes
+  const staleAfter = schedule * 2 + graceMinutes
+
+  if (mins <= freshUntil) {
     return {
       label: "FRESH",
       tone: "text-emerald-300",
@@ -30,7 +36,7 @@ export function getHeartbeatStatus(dateString?: string, scheduleMinutes = 60) {
     }
   }
 
-  if (mins <= schedule * 2) {
+  if (mins <= staleAfter) {
     return {
       label: "LAGGING",
       tone: "text-yellow-300",
