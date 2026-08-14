@@ -49,6 +49,7 @@ jobs:
           git worktree add /tmp/radar-data origin/radar-data
           mkdir -p /tmp/radar-data/data
           cp public/data/chain-intelligence.json /tmp/radar-data/data/
+          cp public/data/reward-recipients.json /tmp/radar-data/data/ 2>/dev/null || true
           cp public/data/chain-history.json /tmp/radar-data/data/ 2>/dev/null || true
           cp public/data/chain-notify-state.json /tmp/radar-data/data/ 2>/dev/null || true
           cd /tmp/radar-data
