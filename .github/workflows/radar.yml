@@ -87,6 +87,12 @@ jobs:
       - name: Run discovery
         run: node watcher/discovery.js
 
+      # Refresh on-chain intelligence before radar consumes it.
+      - name: Run chain intelligence
+        run: node watcher/chain-intelligence.js
+        env:
+          HELIUS_API_KEY: ${{ secrets.HELIUS_API_KEY }}
+
       - name: Run radar
         run: node watcher/radar.js
 
