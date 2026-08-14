@@ -13,6 +13,7 @@ const dataDir = path.join(__dirname, '..', 'public', 'data');
 const outputFile = path.join(dataDir, 'chain-intelligence.json');
 const historyFile = path.join(dataDir, 'chain-history.json');
 const baselineFile = path.join(dataDir, 'chain-baseline.json');
+const recipientLedgerFile = path.join(dataDir, 'reward-recipients.json');
 
 const CORRELATION_WINDOW_SECONDS = 5 * 60;
 const MAX_CADENCE_GAP_SECONDS = 30 * 60;
@@ -173,6 +174,124 @@ function extractTransfers(txs) {
     }
   }
   return out;
+}
+
+function buildRecipientLedger(existingLedger, externalClaims, generatedAt) {
+  const existingRecipients = Array.isArray(existingLedger?.recipients)
+    ? existingLedger.recipients
+    : [];
+
+  const recipientMap = new Map(
+    existingRecipients
+      .filter((row) => row?.wallet)
+      .map((row) => [row.wallet, { ...row }])
+  );
+
+  const seenTransferKeys = new Set(
+    Array.isArray(existingLedger?.seenTransferKeys)
+      ? existingLedger.seenTransferKeys
+      : []
+  );
+
+  let newTransfersThisSweep = 0;
+  let newRecipientsThisSweep = 0;
+
+  for (const claim of Array.isArray(externalClaims) ? externalClaims : []) {
+    if (!claim?.signature || !claim?.to) continue;
+
+    const amount = n(claim.amount);
+    const transferKey = `${claim.signature}:${claim.to}:${amount}`;
+
+    if (seenTransferKeys.has(transferKey)) continue;
+
+    seenTransferKeys.add(transferKey);
+    newTransfersThisSweep += 1;
+
+    const seenAt =
+      claim.time ||
+      (claim.timestamp ? iso(claim.timestamp) : generatedAt);
+
+    const existing = recipientMap.get(claim.to);
+
+    if (!existing) {
+      newRecipientsThisSweep += 1;
+
+      recipientMap.set(claim.to, {
+        wallet: claim.to,
+        totalWPOND: round(amount),
+        transferCount: 1,
+        firstSeenAt: seenAt,
+        lastSeenAt: seenAt,
+        lastSignature: claim.signature,
+      });
+
+      continue;
+    }
+
+    existing.totalWPOND = round(n(existing.totalWPOND) + amount);
+    existing.transferCount = n(existing.transferCount) + 1;
+
+    if (
+      !existing.firstSeenAt ||
+      new Date(seenAt).getTime() < new Date(existing.firstSeenAt).getTime()
+    ) {
+      existing.firstSeenAt = seenAt;
+    }
+
+    if (
+      !existing.lastSeenAt ||
+      new Date(seenAt).getTime() >= new Date(existing.lastSeenAt).getTime()
+    ) {
+      existing.lastSeenAt = seenAt;
+      existing.lastSignature = claim.signature;
+    }
+
+    recipientMap.set(claim.to, existing);
+  }
+
+  const recipients = [...recipientMap.values()].sort(
+    (a, b) =>
+      new Date(b.lastSeenAt || 0).getTime() -
+      new Date(a.lastSeenAt || 0).getTime()
+  );
+
+  const totalTransfers = recipients.reduce(
+    (total, row) => total + n(row.transferCount),
+    0
+  );
+
+  const totalWPOND = round(
+    recipients.reduce(
+      (total, row) => total + n(row.totalWPOND),
+      0
+    )
+  );
+
+  return {
+    version: '1.0.0',
+    updatedAt: generatedAt,
+
+    classification: 'EXTERNAL_CLAIM_CANDIDATES',
+
+    methodology:
+      'Observed direct wPOND transfers from DISTRIBUTOR to recipients other than REWARD_WALLET. These are tracked as external claim candidates and are not automatically asserted to be rewards.',
+
+    totalRecipients: recipients.length,
+    totalTransfers,
+    totalWPOND,
+
+    lastObservedAt:
+      recipients[0]?.lastSeenAt ||
+      existingLedger?.lastObservedAt ||
+      null,
+
+    newTransfersThisSweep,
+    newRecipientsThisSweep,
+
+    recipients,
+
+    seenTransferKeys: [...seenTransferKeys].slice(-5000),
+  };
 }
 
 function stats(transfers, minutes, nowSec) {
@@ -759,6 +878,11 @@ async function main() {
   let baseline = null;
   try { baseline = await fs.readJson(baselineFile); } catch {}
 
+  let existingRecipientLedger = null;
+  try {
+    existingRecipientLedger = await fs.readJson(recipientLedgerFile);
+  } catch {}
+
   const [distResult, upstreamResult, rewardResult] =
   await Promise.all([
     fetchAddressTransactions(DISTRIBUTOR, {
@@ -793,6 +917,14 @@ const rewardTxs = rewardResult.transactions;
   
   const externalClaims = distributorOutflows
     .filter(x => x.to !== REWARD_WALLET);
+
+  const generatedAt = new Date().toISOString();
+
+  const recipientLedger = buildRecipientLedger(
+    existingRecipientLedger,
+    externalClaims,
+    generatedAt
+  );
   
   const funding = extractTransfers(upstreamTxs)
     .filter(x=>x.from===UPSTREAM && x.to===DISTRIBUTOR)
@@ -859,7 +991,7 @@ const rewardTxs = rewardResult.transactions;
   );
 
   const output = {
-    generatedAt:new Date().toISOString(),
+    generatedAt,
     version:'1.3.0',
     status:'LIVE',
     confidence:'VERY HIGH',
@@ -909,9 +1041,26 @@ const rewardTxs = rewardResult.transactions;
       .slice(0,20),
 
     recentExternalClaims: externalClaims.slice(0,20),
+
+    recipientLedger: {
+      totalRecipients: recipientLedger.totalRecipients,
+      totalTransfers: recipientLedger.totalTransfers,
+      totalWPOND: recipientLedger.totalWPOND,
+      lastObservedAt: recipientLedger.lastObservedAt,
+      newTransfersThisSweep: recipientLedger.newTransfersThisSweep,
+      newRecipientsThisSweep: recipientLedger.newRecipientsThisSweep,
+      recipients: recipientLedger.recipients.slice(0,20),
+    },
+
     recentFundingEvents:funding.slice(0,20),
     methodology:'Direct wPOND transfers from the Distributor are classified into reward-wallet transfers and external claims. DISTRIBUTOR -> REWARD_WALLET flows are treated as reward-distribution activity, while DISTRIBUTOR -> other recipients are tracked separately as external claim candidates. UPSTREAM -> DISTRIBUTOR Jupiter/swap flows are treated as funding events. Cycle timing and prediction currently analyze reward-wallet distribution cycles. Historical pattern similarity is contextual and is not a probability of a claim or launch.',
   };
+
+  await fs.writeJson(
+    recipientLedgerFile,
+    recipientLedger,
+    { spaces: 2 }
+  );
 
   await fs.writeJson(outputFile,output,{spaces:2});
 
