@@ -163,10 +163,14 @@ export function useRadarData() {
   const [chainBaseline, setChainBaseline] = useState<any>(null)
 
   const loadRemoteRadar = useCallback(async (signal?: AbortSignal) => {
-    const cacheBust = Math.floor(Date.now() / 10000)
+    const cacheBust = Date.now()
 
     const res = await fetch(apiRadarUrl(cacheBust), {
       cache: "no-store",
+      headers: {
+        "Cache-Control": "no-cache",
+        Pragma: "no-cache",
+      },
       signal,
     })
 
@@ -223,7 +227,23 @@ export function useRadarData() {
 
     setData(normalizedData)
     setHistory(normalizedHistory)
-    setHeartbeatData(normalizedHeartbeat)
+    setHeartbeatData((currentHeartbeat) => {
+      if (!normalizedHeartbeat) return currentHeartbeat
+
+      const incomingTime = getSafeTime(
+        normalizedHeartbeat.lastSuccessAt ||
+          normalizedHeartbeat.lastRunAt
+      )
+
+      const currentTime = getSafeTime(
+        currentHeartbeat?.lastSuccessAt ||
+          currentHeartbeat?.lastRunAt
+      )
+
+      return incomingTime >= currentTime
+        ? normalizedHeartbeat
+        : currentHeartbeat
+    })
     setAlerts(normalizedAlerts)
     setMeta(json?.meta || null)
 
@@ -302,9 +322,20 @@ export function useRadarData() {
       }
     }
 
+    function handleWindowFocus() {
+      const controller = new AbortController()
+
+      fetchData(controller.signal)
+    }
+
     document.addEventListener(
       "visibilitychange",
       handleVisibilityChange
+    )
+
+    window.addEventListener(
+      "focus",
+      handleWindowFocus
     )
 
     return () => {
@@ -317,6 +348,11 @@ export function useRadarData() {
       document.removeEventListener(
         "visibilitychange",
         handleVisibilityChange
+      )
+
+      window.removeEventListener(
+        "focus",
+        handleWindowFocus
       )
     }
   }, [refresh])
