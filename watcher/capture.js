@@ -4,6 +4,26 @@ const path = require("path");
 const crypto = require("crypto");
 
 const TARGET_URL = "https://www.pond0x.com";
+const TARGET_HOST = new URL(TARGET_URL).hostname;
+
+function classifySource(responseUrl) {
+  try {
+    const parsed = new URL(responseUrl);
+
+    return {
+      sourceHost: parsed.hostname,
+      sourceClass:
+        parsed.hostname === TARGET_HOST
+          ? "FIRST_PARTY"
+          : "THIRD_PARTY",
+    };
+  } catch {
+    return {
+      sourceHost: "unknown",
+      sourceClass: "UNKNOWN",
+    };
+  }
+}
 
 const INTERESTING_API_HINTS = [
   "/api/",
@@ -212,8 +232,12 @@ async function main() {
       await fs.ensureDir(path.dirname(savePath));
       await fs.writeFile(savePath, body);
 
+      const source = classifySource(responseUrl);
+
       const entry = {
         url: responseUrl,
+        sourceHost: source.sourceHost,
+        sourceClass: source.sourceClass,
         method,
         status,
         contentType,
