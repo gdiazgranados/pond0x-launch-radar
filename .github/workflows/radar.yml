@@ -43,9 +43,11 @@ jobs:
       - name: Restore previous state from radar-data
         run: |
           git fetch origin radar-data || true
+
           if git ls-remote --exit-code --heads origin radar-data; then
             git worktree prune
             rm -rf /tmp/radar-restore
+
             git worktree add /tmp/radar-restore origin/radar-data
 
             cp -R /tmp/radar-restore/data/. public/data/ 2>/dev/null || true
@@ -61,8 +63,10 @@ jobs:
         run: |
           node -e '
           const fs = require("fs");
+
           const path = "public/data/heartbeat.json";
           const now = new Date().toISOString();
+
           const data = {
             source: "github-actions",
             lastRunAt: now,
@@ -70,8 +74,16 @@ jobs:
             status: "running",
             scheduleMinutes: 60
           };
+
           fs.mkdirSync("public/data", { recursive: true });
-          fs.writeFileSync(path, JSON.stringify(data, null, 2));
+          fs.writeFileSync(
+            path,
+            JSON.stringify(data, null, 2)
+          );
+
+          console.log(
+            `Heartbeat started: ${now}`
+          );
           '
 
       # Sentinel only detects/records surface changes.
@@ -83,7 +95,8 @@ jobs:
       - name: Run capture
         run: node watcher/capture.js
 
-      # Discovery MUST run before radar so radar never consumes the previous sweep's discovery.
+      # Discovery MUST run before radar so radar never consumes
+      # the previous sweep's discovery.
       - name: Run discovery
         run: node watcher/discovery.js
 
@@ -97,14 +110,24 @@ jobs:
         run: node watcher/radar.js
 
       - name: Prune old snapshots
-        run: node watcher/prune-snapshots.js  
+        run: node watcher/prune-snapshots.js
 
+      - name: Run notify
+        run: node watcher/notify.js
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+
+      # Heartbeat success is deliberately written after all radar/notify work
+      # and immediately before preparing the publish bundle.
       - name: Write heartbeat success
         run: |
           node -e '
           const fs = require("fs");
+
           const path = "public/data/heartbeat.json";
           const now = new Date().toISOString();
+
           const data = {
             source: "github-actions",
             lastRunAt: now,
@@ -112,24 +135,166 @@ jobs:
             status: "success",
             scheduleMinutes: 60
           };
-          fs.writeFileSync(path, JSON.stringify(data, null, 2));
+
+          fs.writeFileSync(
+            path,
+            JSON.stringify(data, null, 2)
+          );
+
+          console.log(
+            `Heartbeat success written: ${now}`
+          );
           '
-      - name: Run notify
-        run: node watcher/notify.js
-        env:
-          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          
+
+      - name: Verify heartbeat before publish
+        run: |
+          node -e '
+          const fs = require("fs");
+
+          const heartbeatPath =
+            "public/data/heartbeat.json";
+
+          const latestPath =
+            "public/data/latest.json";
+
+          if (!fs.existsSync(heartbeatPath)) {
+            throw new Error(
+              "heartbeat.json is missing before publish"
+            );
+          }
+
+          if (!fs.existsSync(latestPath)) {
+            throw new Error(
+              "latest.json is missing before publish"
+            );
+          }
+
+          const heartbeat = JSON.parse(
+            fs.readFileSync(
+              heartbeatPath,
+              "utf8"
+            )
+          );
+
+          const latest = JSON.parse(
+            fs.readFileSync(
+              latestPath,
+              "utf8"
+            )
+          );
+
+          if (heartbeat.status !== "success") {
+            throw new Error(
+              `Heartbeat status is not success: ${heartbeat.status}`
+            );
+          }
+
+          const heartbeatTime =
+            new Date(
+              heartbeat.lastSuccessAt
+            ).getTime();
+
+          const latestTime =
+            new Date(
+              latest.generatedAt
+            ).getTime();
+
+          if (
+            !Number.isFinite(heartbeatTime) ||
+            !Number.isFinite(latestTime)
+          ) {
+            throw new Error(
+              "Invalid heartbeat or latest timestamp"
+            );
+          }
+
+          if (heartbeatTime < latestTime) {
+            throw new Error(
+              `Heartbeat ${heartbeat.lastSuccessAt} is older than latest ${latest.generatedAt}`
+            );
+          }
+
+          console.log(
+            `Heartbeat verified: ${heartbeat.lastSuccessAt}`
+          );
+
+          console.log(
+            `Latest verified: ${latest.generatedAt}`
+          );
+          '
+
       - name: Prepare publish bundle
         run: |
+          rm -rf .publish
           mkdir -p .publish/data
           mkdir -p .publish/snapshots
 
-          cp public/data/*.json .publish/data/ 2>/dev/null || true
+          cp public/data/*.json .publish/data/
 
           if [ -d snapshots ]; then
-            rsync -a --delete snapshots/ .publish/snapshots/
+            rsync -a --delete \
+              snapshots/ \
+              .publish/snapshots/
           fi
+
+      # Verify that the heartbeat that passed validation is also
+      # present in the exact bundle that will be pushed to radar-data.
+      - name: Verify heartbeat publish bundle
+        run: |
+          node -e '
+          const fs = require("fs");
+
+          const sourcePath =
+            "public/data/heartbeat.json";
+
+          const bundlePath =
+            ".publish/data/heartbeat.json";
+
+          if (!fs.existsSync(sourcePath)) {
+            throw new Error(
+              "Source heartbeat.json is missing"
+            );
+          }
+
+          if (!fs.existsSync(bundlePath)) {
+            throw new Error(
+              "Bundled heartbeat.json is missing"
+            );
+          }
+
+          const source = JSON.parse(
+            fs.readFileSync(
+              sourcePath,
+              "utf8"
+            )
+          );
+
+          const bundled = JSON.parse(
+            fs.readFileSync(
+              bundlePath,
+              "utf8"
+            )
+          );
+
+          if (
+            source.lastSuccessAt !==
+            bundled.lastSuccessAt
+          ) {
+            throw new Error(
+              `Heartbeat bundle mismatch: source=${source.lastSuccessAt}, bundled=${bundled.lastSuccessAt}`
+            );
+          }
+
+          if (bundled.status !== "success") {
+            throw new Error(
+              `Bundled heartbeat status is not success: ${bundled.status}`
+            );
+          }
+
+          console.log(
+            `Publish heartbeat verified: ${bundled.lastSuccessAt}`
+          );
+          '
 
       - name: Publish to radar-data branch
         run: |
@@ -138,9 +303,13 @@ jobs:
           rm -rf /tmp/radar-data
 
           if git ls-remote --exit-code --heads origin radar-data; then
-            git worktree add /tmp/radar-data origin/radar-data
+            git worktree add \
+              /tmp/radar-data \
+              origin/radar-data
           else
-            git worktree add -b radar-data /tmp/radar-data
+            git worktree add \
+              -b radar-data \
+              /tmp/radar-data
           fi
 
           mkdir -p /tmp/radar-data/data
@@ -151,18 +320,30 @@ jobs:
             --exclude='chain-history.json' \
             --exclude='chain-notify-state.json' \
             --exclude='chain-baseline.json' \
-            .publish/data/ /tmp/radar-data/data/
-          rsync -a --delete .publish/snapshots/ /tmp/radar-data/snapshots/
+            .publish/data/ \
+            /tmp/radar-data/data/
+
+          rsync -a --delete \
+            .publish/snapshots/ \
+            /tmp/radar-data/snapshots/
 
           cd /tmp/radar-data
+
           git config user.name "radar-bot"
           git config user.email "bot@radar.ai"
 
           git add data snapshots
-          git commit -m "Auto radar data update" || echo "No changes"
+
+          git commit \
+            -m "Auto radar data update" \
+            || echo "No changes"
+
           git push origin HEAD:radar-data
 
           cd -
-          git worktree remove /tmp/radar-data --force || true
-          rm -rf /tmp/radar-data || true
 
+          git worktree remove \
+            /tmp/radar-data \
+            --force || true
+
+          rm -rf /tmp/radar-data || true
