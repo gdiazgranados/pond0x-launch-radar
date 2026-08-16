@@ -530,6 +530,47 @@ async function main() {
     }
   }
 
+  const currentLiveApiRouteSet = new Set(
+    liveApiRoutes.map((route) =>
+      String(route || "").toLowerCase().trim()
+    )
+  );
+
+  const hasPreviousLiveApiBaseline =
+    Array.isArray(previousDiscovery.liveApiRoutes);
+
+  const previousLiveApiRouteSet = new Set(
+    hasPreviousLiveApiBaseline
+      ? previousDiscovery.liveApiRoutes.map((route) =>
+          String(route || "").toLowerCase().trim()
+        )
+      : []
+  );
+
+  const declaredOnlyApiRoutes =
+    declaredApiRoutes.filter((route) => {
+      const normalized =
+        String(route || "").toLowerCase().trim();
+
+      return (
+        normalized &&
+        !currentLiveApiRouteSet.has(normalized)
+      );
+    });
+
+  const newLiveApiRoutes =
+    hasPreviousLiveApiBaseline
+      ? liveApiRoutes.filter((route) => {
+          const normalized =
+            String(route || "").toLowerCase().trim();
+
+          return (
+            normalized &&
+            !previousLiveApiRouteSet.has(normalized)
+          );
+        })
+      : [];
+
   const previousObservedLabels = new Set(
     uniqueClean(
       previousDiscovery.observedLabels ||
@@ -760,8 +801,14 @@ async function main() {
     liveApiRoutes:
       liveApiRoutes.slice(0, 100),
 
+    newLiveApiRoutes:
+      newLiveApiRoutes.slice(0, 100),
+
     declaredApiRoutes:
       declaredApiRoutes.slice(0, 250),
+
+    declaredOnlyApiRoutes:
+      declaredOnlyApiRoutes.slice(0, 250),
 
     observedApiRoutes:
       apiRoutes.slice(0, 250),
@@ -787,6 +834,7 @@ async function main() {
         labels: newLabels.length,
         routes: newRoutes.length,
         apiRoutes: newApiRoutes.length,
+        liveApiRoutes: newLiveApiRoutes.length,
         keywords: newKeywords.length,
         criticalKeywords:
           newCriticalKeywords.length,
