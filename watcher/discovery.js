@@ -449,11 +449,56 @@ async function main() {
     apiText,
   } = await readSnapshotTextFiles(snapshotDir);
 
-  const combinedText = [
+  const declaredText = [
     html,
     jsText,
+  ].join("\n\n");
+
+  const combinedText = [
+    declaredText,
     apiText,
   ].join("\n\n");
+
+  const declaredApiRoutes =
+    extractApiRoutesFromText(declaredText);
+
+  let liveApiRoutes = [];
+
+  try {
+    const apiFile = path.join(snapshotDir, "api.json");
+    const apiJson = await fs.readJson(apiFile);
+
+    liveApiRoutes = Array.isArray(apiJson)
+      ? uniqueClean(
+          apiJson
+            .filter((entry) => {
+              if (entry?.sourceClass === "FIRST_PARTY") {
+                return true;
+              }
+
+              if (!entry?.sourceClass && entry?.url) {
+                try {
+                  return new URL(entry.url).hostname === "www.pond0x.com";
+                } catch {
+                  return false;
+                }
+              }
+
+              return false;
+            })
+            .map((entry) => {
+              try {
+                return new URL(entry.url).pathname;
+              } catch {
+                return null;
+              }
+            })
+            .filter(Boolean)
+        )
+      : [];
+  } catch {
+    liveApiRoutes = [];
+  }
 
   const labelsFromHtml =
     extractVisibleLabelsFromHtml(html);
@@ -461,8 +506,10 @@ async function main() {
   const routesFromHtml =
     extractRoutesFromHtml(html);
 
-  const apiRoutes =
-    extractApiRoutesFromText(combinedText);
+  const apiRoutes = uniqueClean([
+    ...declaredApiRoutes,
+    ...liveApiRoutes,
+  ]);
 
   const keywordCandidates =
     extractKeywordCandidates(labelsFromHtml).filter(
@@ -709,6 +756,12 @@ async function main() {
 
     observedRoutes:
       routesFromHtml.slice(0, 250),
+
+    liveApiRoutes:
+      liveApiRoutes.slice(0, 100),
+
+    declaredApiRoutes:
+      declaredApiRoutes.slice(0, 250),
 
     observedApiRoutes:
       apiRoutes.slice(0, 250),
