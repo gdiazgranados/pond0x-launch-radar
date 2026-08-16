@@ -1004,6 +1004,9 @@ function buildAlertSignatureStable(latest) {
     backendSignals: normalizeList(latest.backendSignals || []),
     discoveryCriticalKeywords: normalizeList(latest.discovery?.criticalKeywords || []),
     discoveryApiRoutes: normalizeList(latest.discovery?.newApiRoutes || []),
+    discoveryLiveApiRoutes: normalizeList(
+      latest.discovery?.newLiveApiRoutes || []
+    ),
     discoveryCandidate: String(latest.discovery?.keyFunctionCandidate || ""),
   };
 
@@ -1165,6 +1168,7 @@ async function main() {
      newLabels: [],
      newRoutes: [],
      newApiRoutes: [],
+     newLiveApiRoutes: [],
      newKeywords: [],
      criticalKeywords: [],
    });
@@ -1194,6 +1198,7 @@ if (!discoveryMatchesCurrentSnapshot) {
     newLabels: [],
     newRoutes: [],
     newApiRoutes: [],
+    newLiveApiRoutes: [],
     newKeywords: [],
     criticalKeywords: [],
     staleIgnored: true,
@@ -1212,6 +1217,9 @@ const oldApiData = oldApiFile
 
   const discoveryCriticalKeywords = uniqueSortedStrings(discovery.criticalKeywords);
   const discoveryNewApiRoutes = uniqueSortedStrings(discovery.newApiRoutes);
+  const discoveryNewLiveApiRoutes = uniqueSortedStrings(
+    discovery.newLiveApiRoutes
+  );
   const discoveryNewLabels = uniqueSortedStrings(discovery.newLabels);
   const discoveryNewRoutes = uniqueSortedStrings(discovery.newRoutes);
   const discoveryNewKeywords = uniqueSortedStrings(discovery.newKeywords);
@@ -1418,7 +1426,7 @@ const oldApiData = oldApiFile
     discoveryMatchesCurrentSnapshot &&
     (
       !!discovery.newUnknownChange ||
-      discoveryNewApiRoutes.length > 0 ||
+      discoveryNewLiveApiRoutes.length > 0 ||
       discoveryCriticalKeywords.length > 0 ||
       discoveryNewLabels.length > 0 ||
       discoveryNewRoutes.length > 0 ||
@@ -1502,6 +1510,7 @@ const oldApiData = oldApiFile
       newLabels: discoveryNewLabels.slice(0, 15),
       newRoutes: discoveryNewRoutes.slice(0, 15),
       newApiRoutes: discoveryNewApiRoutes.slice(0, 20),
+      newLiveApiRoutes: discoveryNewLiveApiRoutes.slice(0, 20),
       newKeywords: discoveryNewKeywords.slice(0, 20),
       criticalKeywords: discoveryCriticalKeywords.slice(0, 20),
     },
