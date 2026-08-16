@@ -249,11 +249,27 @@ function buildRecipientLedger(existingLedger, externalClaims, generatedAt) {
     recipientMap.set(claim.to, existing);
   }
 
-  const recipients = [...recipientMap.values()].sort(
-    (a, b) =>
-      new Date(b.lastSeenAt || 0).getTime() -
-      new Date(a.lastSeenAt || 0).getTime()
-  );
+  const recipients = [...recipientMap.values()]
+    .map((recipient) => {
+      const transferCount = n(recipient.transferCount);
+
+      const frequencyClass =
+        transferCount >= 5
+          ? 'FREQUENT'
+          : transferCount >= 2
+            ? 'REPEAT'
+            : 'NEW';
+
+      return {
+        ...recipient,
+        frequencyClass,
+      };
+    })
+    .sort(
+      (a, b) =>
+        new Date(b.lastSeenAt || 0).getTime() -
+        new Date(a.lastSeenAt || 0).getTime()
+    );
 
   const totalTransfers = recipients.reduce(
     (total, row) => total + n(row.transferCount),

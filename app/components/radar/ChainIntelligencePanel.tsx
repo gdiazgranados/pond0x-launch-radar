@@ -357,6 +357,7 @@ export function ChainIntelligencePanel({
               <thead className="border-b border-white/10 text-slate-500">
                 <tr>
                   <th className="pb-2 pr-4 font-medium">Wallet</th>
+                  <th className="pb-2 pr-4 font-medium">Status</th>
                   <th className="pb-2 pr-4 font-medium">wPOND</th>
                   <th className="pb-2 pr-4 font-medium">Transfers</th>
                   <th className="pb-2 pr-4 font-medium">First Seen</th>
@@ -388,12 +389,26 @@ export function ChainIntelligencePanel({
                     </td>
 
                     <td className="py-3 pr-4">
-                      {fmt(recipient.totalWPOND)}
-                    </td>
+                      <span
+                        className={`rounded-full border px-2 py-1 text-[10px] font-semibold ${
+                          recipient.frequencyClass === "FREQUENT"
+                            ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
+                            : recipient.frequencyClass === "REPEAT"
+                              ? "border-yellow-500/30 bg-yellow-500/10 text-yellow-300"
+                              : "border-cyan-500/30 bg-cyan-500/10 text-cyan-300"
+                        }`}
+                      >
+                        {recipient.frequencyClass || "NEW"}
+                       </span>
+                     </td>
 
-                    <td className="py-3 pr-4">
-                      {fmt(recipient.transferCount, 0)}
-                    </td>
+                     <td className="py-3 pr-4">
+                       {fmt(recipient.totalWPOND)}
+                     </td>
+
+                     <td className="py-3 pr-4">
+                       {fmt(recipient.transferCount, 0)}
+                     </td>
 
                     <td className="py-3 pr-4 text-slate-400">
                       {when(recipient.firstSeenAt)}
