@@ -193,10 +193,96 @@ async function safeReadText(response) {
     return "";
   }
 }
+async function loadPreviousCoverage(
+  snapshotsRoot,
+  currentStamp
+) {
+  try {
+    if (!(await fs.pathExists(snapshotsRoot))) {
+      return null;
+    }
+
+    const entries = await fs.readdir(
+      snapshotsRoot,
+      { withFileTypes: true }
+    );
+
+    const previousSnapshotNames = entries
+      .filter(
+        (entry) =>
+          entry.isDirectory() &&
+          entry.name !== currentStamp
+      )
+      .map((entry) => entry.name)
+      .sort()
+      .reverse();
+
+    for (const snapshotName of previousSnapshotNames) {
+      const manifestPath = path.join(
+        snapshotsRoot,
+        snapshotName,
+        "manifest.json"
+      );
+
+      if (!(await fs.pathExists(manifestPath))) {
+        continue;
+      }
+
+      try {
+        const manifest =
+          await fs.readJson(manifestPath);
+
+        return {
+          snapshotId: snapshotName,
+
+          capturedResponseCount:
+            manifest.coverage?.capturedResponseCount ??
+            manifest.assetCount ??
+            null,
+
+          firstPartyResponseCount:
+            manifest.coverage?.firstPartyResponseCount ??
+            null,
+
+          apiResponseCount:
+            manifest.coverage?.apiResponseCount ??
+            manifest.apiCount ??
+            null,
+
+          firstPartyApiCount:
+            manifest.coverage?.firstPartyApiCount ??
+            null,
+        };
+      } catch {
+        // Ignore unreadable historical manifests.
+      }
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+}
 
 async function main() {
   const stamp = nowStamp();
-  const outDir = path.join(process.cwd(), "snapshots", stamp);
+
+  const snapshotsRoot = path.join(
+    process.cwd(),
+    "snapshots"
+  );
+
+  const previousCoverage =
+    await loadPreviousCoverage(
+      snapshotsRoot,
+      stamp
+    );
+
+  const outDir = path.join(
+    snapshotsRoot,
+    stamp
+  );
+
   const assetsDir = path.join(outDir, "assets");
   const apiDir = path.join(outDir, "api");
 
@@ -268,7 +354,13 @@ async function main() {
 
   console.log("Navigating to:", TARGET_URL);
 
-  await page.goto(TARGET_URL, { waitUntil: "domcontentloaded", timeout: 90000 });
+  const navigationResponse = await page.goto(
+    TARGET_URL,
+    {
+      waitUntil: "domcontentloaded",
+      timeout: 90000,
+    }
+  );
 
   console.log("Page loaded, waiting for network activity...");
 
@@ -291,6 +383,198 @@ async function main() {
 
   const pageSignals = extractEndpointHints(html);
 
+  const firstPartyCaptured = captured.filter(
+    (entry) => entry.sourceClass === "FIRST_PARTY"
+  );
+
+  const thirdPartyCaptured = captured.filter(
+    (entry) => entry.sourceClass === "THIRD_PARTY"
+  );
+
+  const unknownCaptured = captured.filter(
+    (entry) => entry.sourceClass === "UNKNOWN"
+  );
+
+  const firstPartyApiCaptured = apiCaptured.filter(
+    (entry) => entry.sourceClass === "FIRST_PARTY"
+  );
+
+  const thirdPartyApiCaptured = apiCaptured.filter(
+    (entry) => entry.sourceClass === "THIRD_PARTY"
+  );
+
+  const unknownApiCaptured = apiCaptured.filter(
+    (entry) => entry.sourceClass === "UNKNOWN"
+  );
+
+  const observedHosts = [
+    ...new Set(
+      captured
+        .map((entry) => entry.sourceHost)
+        .filter(Boolean)
+    ),
+  ].sort();
+
+  const coverage = {
+    targetUrl: TARGET_URL,
+    targetHost: TARGET_HOST,
+
+    navigation: {
+      status: navigationResponse
+        ? navigationResponse.status()
+        : null,
+      ok: navigationResponse
+        ? navigationResponse.ok()
+        : false,
+      finalUrl: page.url(),
+    },
+
+    documentCaptured:
+      typeof html === "string" &&
+      html.length > 0,
+
+    capturedResponseCount:
+      captured.length,
+
+    firstPartyResponseCount:
+      firstPartyCaptured.length,
+
+    thirdPartyResponseCount:
+      thirdPartyCaptured.length,
+
+    unknownResponseCount:
+      unknownCaptured.length,
+
+    apiResponseCount:
+      apiCaptured.length,
+
+    firstPartyApiCount:
+      firstPartyApiCaptured.length,
+
+    thirdPartyApiCount:
+      thirdPartyApiCaptured.length,
+
+    unknownApiCount:
+      unknownApiCaptured.length,
+
+    observedHosts,
+  };
+
+  const coverageReasons = [];
+
+  let coverageStatus = "HEALTHY";
+
+  if (!coverage.navigation.ok) {
+    coverageReasons.push(
+      "target_navigation_failed"
+    );
+
+    coverageStatus = "BLIND_SPOT";
+  }
+
+  if (!coverage.documentCaptured) {
+    coverageReasons.push(
+      "document_not_captured"
+    );
+
+    coverageStatus = "BLIND_SPOT";
+  }
+
+  if (
+    previousCoverage &&
+    Number.isFinite(
+      previousCoverage.firstPartyResponseCount
+    ) &&
+    previousCoverage.firstPartyResponseCount > 0 &&
+    coverage.firstPartyResponseCount === 0
+  ) {
+    coverageReasons.push(
+      "first_party_responses_dropped_to_zero"
+    );
+
+    coverageStatus = "BLIND_SPOT";
+  }
+
+  if (
+    previousCoverage &&
+    Number.isFinite(
+      previousCoverage.firstPartyApiCount
+    ) &&
+    previousCoverage.firstPartyApiCount > 0 &&
+    coverage.firstPartyApiCount === 0
+  ) {
+    coverageReasons.push(
+      "first_party_api_dropped_to_zero"
+    );
+
+    coverageStatus = "BLIND_SPOT";
+  }
+
+  if (
+    coverageStatus !== "BLIND_SPOT" &&
+    previousCoverage
+  ) {
+    const responseBaseline = Number(
+      previousCoverage.capturedResponseCount
+    );
+
+    const apiBaseline = Number(
+      previousCoverage.apiResponseCount
+    );
+
+    if (
+      Number.isFinite(responseBaseline) &&
+      responseBaseline > 0
+    ) {
+      const responseRatio =
+        coverage.capturedResponseCount /
+        responseBaseline;
+
+      if (responseRatio < 0.5) {
+        coverageReasons.push(
+          `captured_response_drop:${responseRatio.toFixed(2)}`
+        );
+
+        coverageStatus = "DEGRADED";
+      }
+    }
+
+    if (
+      Number.isFinite(apiBaseline) &&
+      apiBaseline > 0
+    ) {
+      const apiRatio =
+        coverage.apiResponseCount /
+        apiBaseline;
+
+      if (apiRatio < 0.5) {
+        coverageReasons.push(
+          `api_response_drop:${apiRatio.toFixed(2)}`
+        );
+
+        coverageStatus = "DEGRADED";
+      }
+    }
+  }
+
+  if (!previousCoverage) {
+    coverageReasons.push(
+      "previous_baseline_not_available"
+    );
+  }
+
+  coverage.status = coverageStatus;
+  coverage.reasons = coverageReasons;
+
+  coverage.blindSpotDetected =
+    coverageStatus === "BLIND_SPOT";
+
+  coverage.degraded =
+    coverageStatus === "DEGRADED";
+
+  coverage.previousBaseline =
+    previousCoverage;
+
   await fs.writeJson(path.join(outDir, "urls.json"), captured, { spaces: 2 });
   await fs.writeJson(path.join(outDir, "api.json"), apiCaptured, { spaces: 2 });
   await fs.writeJson(
@@ -303,6 +587,7 @@ async function main() {
       pageSignals,
       assetCount: captured.length,
       apiCount: apiCaptured.length,
+      coverage,
     },
     { spaces: 2 }
   );
