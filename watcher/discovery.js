@@ -347,7 +347,28 @@ async function readSnapshotTextFiles(snapshotDir) {
   if (await fs.pathExists(apiFile)) {
     try {
       const apiJson = await fs.readJson(apiFile);
-      apiText = JSON.stringify(apiJson);
+
+      const firstPartyApi = Array.isArray(apiJson)
+        ? apiJson.filter((entry) => {
+            if (entry?.sourceClass === "FIRST_PARTY") {
+              return true;
+            }
+
+            // Backward compatibility for snapshots created before
+            // explicit source attribution was added.
+            if (!entry?.sourceClass && entry?.url) {
+              try {
+                return new URL(entry.url).hostname === "www.pond0x.com";
+              } catch {
+                return false;
+              }
+            }
+
+            return false;
+          })
+        : [];
+
+      apiText = JSON.stringify(firstPartyApi);
     } catch {
       apiText = "";
     }
