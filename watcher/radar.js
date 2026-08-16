@@ -1305,16 +1305,62 @@ const oldApiData = oldApiFile
   if (signals.includes("nonce")) weightedRawScore += 3;
 
   if (discovery.newUnknownChange) weightedRawScore += 4;
-  if (discoveryNewApiRoutes.length >= 1) weightedRawScore += 8;
-  if (discoveryNewApiRoutes.length >= 2) weightedRawScore += 6;
+
+  // Newly discovered routes are weak structural context only.
+  if (discoveryNewApiRoutes.length >= 1) weightedRawScore += 1;
+  if (discoveryNewApiRoutes.length >= 2) weightedRawScore += 1;
+
+  // Newly live first-party routes are fresh runtime evidence.
+  if (discoveryNewLiveApiRoutes.length >= 1) weightedRawScore += 8;
+  if (discoveryNewLiveApiRoutes.length >= 2) weightedRawScore += 4;
+
   if (discoveryCriticalKeywords.length >= 2) weightedRawScore += 6;
-  if (discoveryCandidate.startsWith("api:")) weightedRawScore += 8;
-  if (discoveryCandidate.startsWith("critical:")) weightedRawScore += 10;
-  if (discoveryNewApiRoutes.some((x) => x.includes("claim"))) weightedRawScore += 10;
-  if (discoveryNewApiRoutes.some((x) => x.includes("reward"))) weightedRawScore += 8;
-  if (discoveryNewApiRoutes.some((x) => x.includes("verify") || x.includes("nonce"))) weightedRawScore += 6;
-  if (discoveryNewApiRoutes.some((x) => x.includes("account") || x.includes("wallet") || x.includes("user"))) {
+  if (discoveryCandidate.startsWith("api:")) weightedRawScore += 4;
+  if (discoveryCandidate.startsWith("critical:")) weightedRawScore += 8;
+
+  if (
+    discoveryNewLiveApiRoutes.some((x) =>
+      x.includes("claim")
+    )
+  ) {
+    weightedRawScore += 10;
+  }
+
+  if (
+    discoveryNewLiveApiRoutes.some((x) =>
+      x.includes("reward")
+    )
+  ) {
+    weightedRawScore += 8;
+  }
+
+  if (
+    discoveryNewLiveApiRoutes.some((x) =>
+      x.includes("verify") ||
+      x.includes("nonce")
+    )
+  ) {
+    weightedRawScore += 6;
+  }
+
+  if (
+    discoveryNewLiveApiRoutes.some((x) =>
+      x.includes("account") ||
+      x.includes("wallet") ||
+      x.includes("user")
+    )
+  ) {
     weightedRawScore += 5;
+  }
+
+  if (
+    discoveryNewLiveApiRoutes.some((x) =>
+      x.includes("fund") ||
+      x.includes("pair") ||
+      x.includes("build")
+    )
+  ) {
+    weightedRawScore += 8;
   }
 
   if (uniqueBackendSignals.includes("eligible_true")) weightedRawScore += 20;
