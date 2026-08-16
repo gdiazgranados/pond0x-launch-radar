@@ -86,6 +86,12 @@ export function ChainIntelligencePanel({
   const p = chain.predictor || {}
   const m = chain.patternMatch || {}
   const w = chain.windows?.["5m"] || {}
+
+  const recipientLedger = chain.recipientLedger || {}
+  const recipients = Array.isArray(recipientLedger.recipients)
+    ? recipientLedger.recipients
+    : []
+
   const match = Number(m.historicalPatternMatchPct || 0)
 
   const freshTrigger =
@@ -280,6 +286,7 @@ export function ChainIntelligencePanel({
           <div className="mt-1 text-lg">
             {baseline ? `${fmt(baseline.cyclesAnalyzed, 0)} cycles` : "Not built yet"}
           </div>
+
           <div className="mt-2 text-xs text-slate-500">
             {baseline
               ? `${fmt(baseline.correlatedCycles, 0)} correlated · ${fmt(
@@ -314,6 +321,94 @@ export function ChainIntelligencePanel({
               FRESH TRIGGER: {freshTrigger ? "DETECTED" : "NONE"}
             </span>
           </div>
+        </div>
+      </div>
+
+      <div className="mt-3 rounded-2xl border border-cyan-500/20 bg-black/20 p-4">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <div className="text-xs font-semibold uppercase tracking-wider text-cyan-300">
+              Observed Reward Recipients
+            </div>
+
+            <div className="mt-1 text-xs text-slate-500">
+              Persistent ledger of observed external claim candidates
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-2 text-[10px]">
+            <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-slate-300">
+              {fmt(recipientLedger.totalRecipients, 0)} recipients
+            </span>
+
+            <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-slate-300">
+              {fmt(recipientLedger.totalTransfers, 0)} transfers
+            </span>
+
+            <span className="rounded-full border border-cyan-500/20 bg-cyan-500/10 px-3 py-1 text-cyan-200">
+              {fmt(recipientLedger.totalWPOND)} wPOND
+            </span>
+          </div>
+        </div>
+
+        {recipients.length > 0 ? (
+          <div className="mt-4 overflow-x-auto">
+            <table className="w-full min-w-[720px] text-left text-xs">
+              <thead className="border-b border-white/10 text-slate-500">
+                <tr>
+                  <th className="pb-2 pr-4 font-medium">Wallet</th>
+                  <th className="pb-2 pr-4 font-medium">wPOND</th>
+                  <th className="pb-2 pr-4 font-medium">Transfers</th>
+                  <th className="pb-2 pr-4 font-medium">First Seen</th>
+                  <th className="pb-2 font-medium">Last Seen</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {recipients.map((recipient: any) => (
+                  <tr
+                    key={recipient.wallet}
+                    className="border-b border-white/5 text-slate-300 last:border-0"
+                  >
+                    <td className="py-3 pr-4 font-mono text-cyan-300">
+                      {recipient.wallet
+                        ? `${recipient.wallet.slice(0, 6)}...${recipient.wallet.slice(-6)}`
+                        : "—"}
+                    </td>
+
+                    <td className="py-3 pr-4">
+                      {fmt(recipient.totalWPOND)}
+                    </td>
+
+                    <td className="py-3 pr-4">
+                      {fmt(recipient.transferCount, 0)}
+                    </td>
+
+                    <td className="py-3 pr-4 text-slate-400">
+                      {when(recipient.firstSeenAt)}
+                    </td>
+
+                    <td className="py-3 text-slate-400">
+                      {when(recipient.lastSeenAt)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.02] px-4 py-5 text-sm text-slate-400">
+            No external claim recipients observed yet.
+            <div className="mt-1 text-xs text-slate-500">
+              The historical ledger remains persistent during quiet periods and
+              will populate when qualifying distributor transfers are observed.
+            </div>
+          </div>
+        )}
+
+        <div className="mt-3 text-[11px] leading-5 text-slate-500">
+          Classification: EXTERNAL CLAIM CANDIDATES. Observed transfers are not
+          automatically asserted to be rewards.
         </div>
       </div>
 
