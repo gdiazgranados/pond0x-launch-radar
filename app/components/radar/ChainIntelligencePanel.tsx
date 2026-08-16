@@ -360,7 +360,8 @@ export function ChainIntelligencePanel({
                   <th className="pb-2 pr-4 font-medium">wPOND</th>
                   <th className="pb-2 pr-4 font-medium">Transfers</th>
                   <th className="pb-2 pr-4 font-medium">First Seen</th>
-                  <th className="pb-2 font-medium">Last Seen</th>
+                  <th className="pb-2 pr-4 font-medium">Last Seen</th>
+                  <th className="pb-2 font-medium">Last Tx</th>
                 </tr>
               </thead>
 
@@ -370,10 +371,20 @@ export function ChainIntelligencePanel({
                     key={recipient.wallet}
                     className="border-b border-white/5 text-slate-300 last:border-0"
                   >
-                    <td className="py-3 pr-4 font-mono text-cyan-300">
-                      {recipient.wallet
-                        ? `${recipient.wallet.slice(0, 6)}...${recipient.wallet.slice(-6)}`
-                        : "—"}
+                    <td className="py-3 pr-4 font-mono">
+                      {recipient.wallet ? (
+                        <a
+                          href={`https://solscan.io/account/${recipient.wallet}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-cyan-300 transition hover:text-cyan-200 hover:underline"
+                          title={recipient.wallet}
+                        >
+                         {`${recipient.wallet.slice(0, 6)}...${recipient.wallet.slice(-6)}`}
+                        </a>
+                      ) : (
+                        <span className="text-slate-500">—</span>
+                      )}
                     </td>
 
                     <td className="py-3 pr-4">
@@ -388,9 +399,25 @@ export function ChainIntelligencePanel({
                       {when(recipient.firstSeenAt)}
                     </td>
 
-                    <td className="py-3 text-slate-400">
+                    <td className="py-3 pr-4 text-slate-400">
                       {when(recipient.lastSeenAt)}
                     </td>
+
+                    <td className="py-3">
+                      {recipient.lastSignature ? (
+                        <a
+                          href={`https://solscan.io/tx/${recipient.lastSignature}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-cyan-300 transition hover:text-cyan-200 hover:underline"
+                          title={recipient.lastSignature}
+                        >
+                          View ↗
+                        </a>
+                      ) : (
+                        <span className="text-slate-500">—</span>
+                     )}
+                   </td>
                   </tr>
                 ))}
               </tbody>
