@@ -268,7 +268,13 @@ async function main() {
 
   console.log("Navigating to:", TARGET_URL);
 
-  await page.goto(TARGET_URL, { waitUntil: "domcontentloaded", timeout: 90000 });
+  const navigationResponse = await page.goto(
+    TARGET_URL,
+    {
+      waitUntil: "domcontentloaded",
+      timeout: 90000,
+    }
+  );
 
   console.log("Page loaded, waiting for network activity...");
 
@@ -291,6 +297,83 @@ async function main() {
 
   const pageSignals = extractEndpointHints(html);
 
+  const firstPartyCaptured = captured.filter(
+    (entry) => entry.sourceClass === "FIRST_PARTY"
+  );
+
+  const thirdPartyCaptured = captured.filter(
+    (entry) => entry.sourceClass === "THIRD_PARTY"
+  );
+
+  const unknownCaptured = captured.filter(
+    (entry) => entry.sourceClass === "UNKNOWN"
+  );
+
+  const firstPartyApiCaptured = apiCaptured.filter(
+    (entry) => entry.sourceClass === "FIRST_PARTY"
+  );
+
+  const thirdPartyApiCaptured = apiCaptured.filter(
+    (entry) => entry.sourceClass === "THIRD_PARTY"
+  );
+
+  const unknownApiCaptured = apiCaptured.filter(
+    (entry) => entry.sourceClass === "UNKNOWN"
+  );
+
+  const observedHosts = [
+    ...new Set(
+      captured
+        .map((entry) => entry.sourceHost)
+        .filter(Boolean)
+    ),
+  ].sort();
+
+  const coverage = {
+    targetUrl: TARGET_URL,
+    targetHost: TARGET_HOST,
+
+    navigation: {
+      status: navigationResponse
+        ? navigationResponse.status()
+        : null,
+      ok: navigationResponse
+        ? navigationResponse.ok()
+        : false,
+      finalUrl: page.url(),
+    },
+
+    documentCaptured:
+      typeof html === "string" &&
+      html.length > 0,
+
+    capturedResponseCount:
+      captured.length,
+
+    firstPartyResponseCount:
+      firstPartyCaptured.length,
+
+    thirdPartyResponseCount:
+      thirdPartyCaptured.length,
+
+    unknownResponseCount:
+      unknownCaptured.length,
+
+    apiResponseCount:
+      apiCaptured.length,
+
+    firstPartyApiCount:
+      firstPartyApiCaptured.length,
+
+    thirdPartyApiCount:
+      thirdPartyApiCaptured.length,
+
+    unknownApiCount:
+      unknownApiCaptured.length,
+
+    observedHosts,
+  };
+
   await fs.writeJson(path.join(outDir, "urls.json"), captured, { spaces: 2 });
   await fs.writeJson(path.join(outDir, "api.json"), apiCaptured, { spaces: 2 });
   await fs.writeJson(
@@ -303,6 +386,7 @@ async function main() {
       pageSignals,
       assetCount: captured.length,
       apiCount: apiCaptured.length,
+      coverage,
     },
     { spaces: 2 }
   );
