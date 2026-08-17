@@ -139,6 +139,69 @@ function extractEndpointHints(text) {
   return [...new Set(hits)];
 }
 
+function extractJsonSchemaPaths(text) {
+  try {
+    const parsed = JSON.parse(String(text || ""));
+    const paths = new Set();
+
+    function visit(value, prefix = "") {
+      if (Array.isArray(value)) {
+        const arrayPath =
+          prefix ? `${prefix}[]` : "[]";
+
+        paths.add(arrayPath);
+
+        if (value.length > 0) {
+          visit(value[0], arrayPath);
+        }
+
+        return;
+      }
+
+      if (
+        value &&
+        typeof value === "object"
+      ) {
+        const keys = Object.keys(value).sort();
+
+        for (const key of keys) {
+          const nextPath =
+            prefix
+              ? `${prefix}.${key}`
+              : key;
+
+          paths.add(nextPath);
+          visit(value[key], nextPath);
+        }
+      }
+    }
+
+    visit(parsed);
+
+    return [...paths]
+      .filter(Boolean)
+      .sort();
+  } catch {
+    return [];
+  }
+}
+
+function buildSchemaFingerprint(schemaPaths) {
+  if (
+    !Array.isArray(schemaPaths) ||
+    schemaPaths.length === 0
+  ) {
+    return null;
+  }
+
+  return sha256(
+    Buffer.from(
+      schemaPaths.join("\n"),
+      "utf8"
+    )
+  );
+}
+
 function detectBackendSignals(text) {
   const lower = String(text || "").toLowerCase();
   const signals = [];
@@ -337,13 +400,27 @@ async function main() {
 
       if (isApi) {
         const textBody = await safeReadText(response);
-        const hints = extractEndpointHints(`${responseUrl}\n${textBody}`);
-        const backendSignals = detectBackendSignals(textBody);
+
+        const hints =
+          extractEndpointHints(
+            `${responseUrl}\n${textBody}`
+          );
+
+        const backendSignals =
+          detectBackendSignals(textBody);
+
+        const schemaPaths =
+          extractJsonSchemaPaths(textBody);
+
+        const schemaFingerprint =
+          buildSchemaFingerprint(schemaPaths);
 
         apiCaptured.push({
           ...entry,
           endpointHints: hints,
           backendSignals,
+          schemaPaths,
+          schemaFingerprint,
           bodyPreview: textBody.slice(0, 1200),
         });
       }

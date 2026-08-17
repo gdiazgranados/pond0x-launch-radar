@@ -404,6 +404,89 @@ async function readSnapshotTextFiles(snapshotDir) {
   };
 }
 
+async function readFirstPartyApiSchemas(
+  snapshotDir
+) {
+  if (!snapshotDir) {
+    return {};
+  }
+
+  const apiFile =
+    path.join(snapshotDir, "api.json");
+
+  if (!(await fs.pathExists(apiFile))) {
+    return {};
+  }
+
+  try {
+    const apiJson =
+      await fs.readJson(apiFile);
+
+    if (!Array.isArray(apiJson)) {
+      return {};
+    }
+
+    const schemas = {};
+
+    for (const entry of apiJson) {
+      let isFirstParty = false;
+
+      if (
+        entry?.sourceClass === "FIRST_PARTY"
+      ) {
+        isFirstParty = true;
+      } else if (
+        !entry?.sourceClass &&
+        entry?.url
+      ) {
+        try {
+          isFirstParty =
+            new URL(entry.url).hostname ===
+            "www.pond0x.com";
+        } catch {
+          isFirstParty = false;
+        }
+      }
+
+      if (
+        !isFirstParty ||
+        !entry?.url
+      ) {
+        continue;
+      }
+
+      let route;
+
+      try {
+        route =
+          new URL(entry.url).pathname;
+      } catch {
+        continue;
+      }
+
+      schemas[route] = {
+        schemaFingerprint:
+          entry.schemaFingerprint || null,
+
+        schemaPaths:
+          Array.isArray(entry.schemaPaths)
+            ? [...entry.schemaPaths].sort()
+            : [],
+
+        size:
+          Number(entry.size || 0),
+
+        status:
+          Number(entry.status || 0),
+      };
+    }
+
+    return schemas;
+  } catch {
+    return {};
+  }
+}
+
 async function main() {
   const snapshotDir = getLatestSnapshotDir();
 
@@ -448,6 +531,11 @@ async function main() {
     jsText,
     apiText,
   } = await readSnapshotTextFiles(snapshotDir);
+
+  const observedApiSchemas =
+  await readFirstPartyApiSchemas(
+    snapshotDir
+  );
 
   const declaredText = [
     html,
@@ -529,6 +617,116 @@ async function main() {
       previousDiscovery = {};
     }
   }
+
+  const previousApiSchemas =
+  previousDiscovery.observedApiSchemas &&
+  typeof previousDiscovery.observedApiSchemas === "object"
+    ? previousDiscovery.observedApiSchemas
+    : {};
+
+  const hasPreviousApiSchemaBaseline =
+    Object.keys(previousApiSchemas).length > 0;
+
+  const changedApiResponseRoutes = [];
+
+  if (hasPreviousApiSchemaBaseline) {
+    for (
+      const [
+        route,
+        currentSchema,
+      ] of Object.entries(
+        observedApiSchemas
+      )
+    ) {
+      const previousSchema =
+        previousApiSchemas[route];
+
+      if (!previousSchema) {
+        continue;
+      }
+
+      const currentFingerprint =
+        currentSchema?.schemaFingerprint || null;
+
+      const previousFingerprint =
+        previousSchema?.schemaFingerprint || null;
+
+      if (
+        !currentFingerprint ||
+        !previousFingerprint ||
+        currentFingerprint === previousFingerprint
+      ) {
+        continue;
+      }
+
+      const currentPaths =
+        new Set(
+          currentSchema.schemaPaths || []
+        );
+
+      const previousPaths =
+        new Set(
+          previousSchema.schemaPaths || []
+        );
+
+      const addedPaths =
+        [...currentPaths].filter(
+          (value) =>
+            !previousPaths.has(value)
+        );
+
+      const removedPaths =
+        [...previousPaths].filter(
+          (value) =>
+            !currentPaths.has(value)
+        );
+
+      changedApiResponseRoutes.push({
+        route,
+
+        previousFingerprint,
+        currentFingerprint,
+
+        previousSize:
+          Number(
+            previousSchema.size || 0
+          ),
+
+        currentSize:
+          Number(
+            currentSchema.size || 0
+          ),
+
+        sizeDelta:
+          Number(
+            currentSchema.size || 0
+          ) -
+          Number(
+            previousSchema.size || 0
+          ),
+
+        addedPaths:
+          addedPaths.sort(),
+
+        removedPaths:
+          removedPaths.sort(),
+      });
+    }
+  }
+
+  const apiResponseDrift = {
+  detected:
+    changedApiResponseRoutes.length > 0,
+
+  changedRouteCount:
+    changedApiResponseRoutes.length,
+
+  changedRoutes:
+    changedApiResponseRoutes.slice(
+      0,
+      25
+    ),
+};
 
   const currentLiveApiRouteSet = new Set(
     liveApiRoutes.map((route) =>
@@ -812,6 +1010,10 @@ async function main() {
 
     observedApiRoutes:
       apiRoutes.slice(0, 250),
+
+    observedApiSchemas,
+
+    apiResponseDrift,
 
     observedKeywords:
       keywordCandidates.slice(0, 250),
