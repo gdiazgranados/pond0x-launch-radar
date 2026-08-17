@@ -191,6 +191,21 @@ export type RadarData = {
     }
   }
 
+  temporalCorrelation?: {
+    windowMinutes?: number
+    domainCount?: number
+    sequence?: string[]
+    events?: Array<{
+      domain?: string
+      seenAt?: string
+      source?: string
+    }>
+    firstSeenAt?: string | null
+    lastSeenAt?: string | null
+    spanMinutes?: number | null
+    classification?: "NONE" | "LOOSE" | "CLUSTERED" | "TIGHT_CLUSTER" | string
+  }
+
   discovery?: DiscoveryMeta
 
   observability?: {
