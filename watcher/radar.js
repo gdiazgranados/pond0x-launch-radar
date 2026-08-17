@@ -1444,24 +1444,24 @@ const oldApiData = oldApiFile
     trendDirection: radarScore.trendDirection,
     backendSignals: uniqueBackendSignals,
     summary: !oldDir
-      ? `Primera captura base generada con ${totalFiles} archivos. Aún no hay comparación histórica.`
+      ? `Initial baseline snapshot generated with ${totalFiles} files. No historical comparison is available yet.`
       : movementCount === 0
-        ? `No se detectaron cambios en ${totalFiles} archivos analizados.`
-        : `${movementCount} de ${totalFiles} archivos muestran movimiento (${movementPct}%). ${added} nuevos (${addedPct}%) y ${changed} modificados (${changedPct}).${
-            signals.length ? ` Señales: ${signals.join(", ")}.` : " Sin señales relevantes."
+        ? `No changes detected across ${totalFiles} analyzed files.`
+        : `${movementCount} of ${totalFiles} files show movement (${movementPct}%). ${added} new (${addedPct}%) and ${changed} modified (${changedPct}).${
+            signals.length ? ` Signals: ${signals.join(", ")}.` : " No relevant signals."
           }`,
     note:
       weightedRawScore >= 100
-        ? "Señales muy fuertes de activación real o launch inminente."
+        ? "Very strong signals of real activation or an imminent launch."
         : radarScore.level === "CRITICAL"
-          ? "Señales muy fuertes de posible launch imminente."
+          ? "Very strong signals of a possible imminent launch."
           : radarScore.level === "VERY HIGH"
-            ? "Señales fuertes de activación o pre-launch."
+            ? "Strong activation or pre-launch signals."
             : radarScore.level === "HIGH"
-              ? "Cambios importantes en frontend y señales relevantes."
+              ? "Significant frontend changes and relevant signals."
               : radarScore.level === "MEDIUM"
-                ? "Actividad de desarrollo visible."
-                : "Sin señales fuertes por ahora.",
+                ? "Visible development activity."
+                : "No strong signals at this time.",
   };
 
   const { insight, confidence } = buildInsight(
@@ -1478,13 +1478,13 @@ const oldApiData = oldApiFile
   );
 
   const summary = !oldDir
-    ? `Primera captura base generada con ${totalFiles} archivos. Aún no hay comparación histórica.`
+    ? `Initial baseline snapshot generated with ${totalFiles} files. No historical comparison is available yet.`
     : movementCount === 0
-      ? `No se detectaron cambios en ${totalFiles} archivos analizados.`
-      : `${movementCount} de ${totalFiles} archivos muestran movimiento (${movementPct}%). ${added} nuevos (${addedPct}%) y ${changed} modificados (${changedPct}).${
-          signals.length ? ` Señales: ${signals.join(", ")}.` : " Sin señales relevantes."
+      ? `No changes detected across ${totalFiles} analyzed files.`
+      : `${movementCount} of ${totalFiles} files show movement (${movementPct}%). ${added} new (${addedPct}%) and ${changed} modified (${changedPct}).${
+          signals.length ? ` Signals: ${signals.join(", ")}.` : " No relevant signals."
         }${
-          discoveryNewApiRoutes.length ? ` API nuevas detectadas: ${discoveryNewApiRoutes.slice(0, 5).join(", ")}.` : ""
+          discoveryNewApiRoutes.length ? ` New APIs detected: ${discoveryNewApiRoutes.slice(0, 5).join(", ")}.` : ""
         }${
           uniqueBackendSignals.length ? ` Backend signals: ${uniqueBackendSignals.slice(0, 6).join(", ")}.` : ""
         }`;
@@ -1492,18 +1492,18 @@ const oldApiData = oldApiFile
   const intelligence = summarizeRadarIntelligence(draftSnapshot, existingHistory);
 
   const note = !oldDir
-    ? "Primera corrida base. El siguiente snapshot permitirá detectar cambios."
+    ? "Initial baseline run. The next snapshot will allow change detection."
     : weightedRawScore >= 100
-      ? "Señales muy fuertes de activación real o launch inminente."
+      ? "Very strong signals of real activation or an imminent launch."
       : radarScore.level === "CRITICAL"
-        ? "Señales muy fuertes de posible launch imminente."
+        ? "Very strong signals of a possible imminent launch."
         : radarScore.level === "VERY HIGH"
-          ? "Señales fuertes de activación o pre-launch."
+          ? "Strong activation or pre-launch signals."
           : radarScore.level === "HIGH"
-            ? "Cambios importantes en frontend y señales relevantes."
+            ? "Significant frontend changes and relevant signals."
             : radarScore.level === "MEDIUM"
-              ? "Actividad de desarrollo visible."
-              : "Sin señales fuertes por ahora.";
+              ? "Visible development activity."
+              : "No strong signals at this time.";
 
   const snapshotId = path.basename(newDir);
   const generatedAt = new Date().toISOString();

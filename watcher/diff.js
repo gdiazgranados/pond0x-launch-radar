@@ -69,13 +69,13 @@ async function main() {
   console.log(`Anterior: ${path.basename(oldDir)}`);
   console.log(`Nuevo   : ${path.basename(newDir)}\n`);
 
-  console.log(`Archivos nuevos: ${added.length}`);
+  console.log(`New files: ${added.length}`);
   for (const a of added) console.log(` + ${a.url}`);
 
-  console.log(`\nArchivos eliminados: ${removed.length}`);
+  console.log(`\nRemoved files: ${removed.length}`);
   for (const r of removed) console.log(` - ${r.url}`);
 
-  console.log(`\nArchivos modificados: ${changed.length}`);
+  console.log(`\nModified files: ${changed.length}`);
   for (const c of changed) console.log(` * ${c.url}`);
 }
 
