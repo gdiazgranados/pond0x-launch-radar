@@ -795,9 +795,9 @@ export default function Home() {
           <CheckInTape
             items={checkInHistory.map((item) => ({
               id: `${item.id}-${item.generatedAt}`,
-              time: shortTime(item.generatedAt),
+              time: formatDate(item.generatedAt),
               full: formatDate(item.generatedAt),
-              level: item.level || "LOW",
+              status: item.observability?.status || "UNKNOWN",
             }))}
           />
         </section>
