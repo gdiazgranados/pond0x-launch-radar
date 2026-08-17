@@ -1554,6 +1554,78 @@ const oldApiData = oldApiFile
         : "LOW";
   }
 
+  const correlationEvidence = {
+    apiResponseDrift:
+      discoveryMatchesCurrentSnapshot &&
+      discovery.apiResponseDrift?.detected === true,
+
+    newApiRoute:
+      discoveryMatchesCurrentSnapshot &&
+      discoveryNewApiRoutes.length > 0,
+
+    newLiveApiRoute:
+      discoveryMatchesCurrentSnapshot &&
+      discoveryNewLiveApiRoutes.length > 0,
+
+    backendSignal:
+      freshBackendSignals.length > 0,
+
+    criticalKeyword:
+      discoveryMatchesCurrentSnapshot &&
+      discoveryCriticalKeywords.length > 0,
+
+    surfaceMovement:
+      hasFreshSurfaceMovement,
+
+    onchainMovement:
+      normalizedOnchain.available === true &&
+      normalizedOnchain.fresh === true &&
+      normalizedOnchain.hasOnchainMovement === true,
+  };
+
+  const correlationDomains = {
+    api:
+      correlationEvidence.apiResponseDrift ||
+      correlationEvidence.newApiRoute ||
+      correlationEvidence.newLiveApiRoute,
+
+    backend:
+      correlationEvidence.backendSignal,
+
+    semantic:
+      correlationEvidence.criticalKeyword,
+
+    webSurface:
+      correlationEvidence.surfaceMovement,
+
+    onchain:
+      correlationEvidence.onchainMovement,
+  };
+
+  const correlationEvidenceCount =
+    Object.values(correlationEvidence)
+      .filter(Boolean)
+      .length;
+
+  const correlationDomainCount =
+    Object.values(correlationDomains)
+      .filter(Boolean)
+      .length;
+
+  const evidenceCorrelation = {
+    ...correlationEvidence,
+    evidenceCount: correlationEvidenceCount,
+    domainCount: correlationDomainCount,
+    domains: correlationDomains,
+    classification:
+      correlationDomainCount >= 4
+        ? "STRONG"
+        : correlationDomainCount >= 2
+          ? "MULTI_SURFACE"
+          : correlationEvidenceCount > 0
+            ? "ISOLATED"
+            : "NONE",
+  };
   const baseResult = {
     id: `${snapshotId}__${generatedAt}`,
     snapshotId,
@@ -1604,6 +1676,8 @@ const oldApiData = oldApiFile
     },
     advancedSignals,
 
+    evidenceCorrelation,
+
     observability,
 
     discovery: {
@@ -1618,6 +1692,15 @@ const oldApiData = oldApiFile
       newLiveApiRoutes: discoveryNewLiveApiRoutes.slice(0, 20),
       newKeywords: discoveryNewKeywords.slice(0, 20),
       criticalKeywords: discoveryCriticalKeywords.slice(0, 20),
+      apiResponseDrift:
+        discovery.apiResponseDrift &&
+        typeof discovery.apiResponseDrift === "object"
+          ? discovery.apiResponseDrift
+          : {
+              detected: false,
+              changedRouteCount: 0,
+              changedRoutes: [],
+            },
     },
     whyItMatters: intelligence.whyItMatters || "",
   };
