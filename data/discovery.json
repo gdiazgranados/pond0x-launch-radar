@@ -1,7 +1,7 @@
 {
-  "checkedAt": "2026-08-17T03:28:45.997Z",
-  "sourceSnapshotId": "2026-08-17_032835",
-  "snapshotDir": "2026-08-17_032835",
+  "checkedAt": "2026-08-17T03:46:13.078Z",
+  "sourceSnapshotId": "2026-08-17_034603",
+  "snapshotDir": "2026-08-17_034603",
   "newUnknownChange": false,
   "keyFunctionCandidate": null,
   "newLabels": [],
@@ -83,25 +83,41 @@
       "status": 200
     },
     "/api/auth/session": {
-      "schemaFingerprint": null,
-      "schemaPaths": [],
+      "schemaFingerprint": "8fea01e1c363a1f4270e487d656ce760aea198c8d8919aa00d35488220949998",
+      "schemaPaths": [
+        "ROOT:EMPTY_OBJECT"
+      ],
       "size": 2,
       "status": 200
     },
     "/api/rewards/feed": {
-      "schemaFingerprint": "2ac9b545ea36ecfa0e7b222cfe4828481703d71255d54ad7cfeab43e5230f849",
+      "schemaFingerprint": "6b0c26f18f3156518d69a8e6d6252f254375d9bbfbf2ed05227e475e86476402",
       "schemaPaths": [
         "rewards",
-        "rewards[]"
+        "rewards[]",
+        "rewards[]:EMPTY_ARRAY"
       ],
       "size": 14,
       "status": 200
     }
   },
   "apiResponseDrift": {
-    "detected": false,
-    "changedRouteCount": 0,
-    "changedRoutes": []
+    "detected": true,
+    "changedRouteCount": 1,
+    "changedRoutes": [
+      {
+        "route": "/api/rewards/feed",
+        "previousFingerprint": "2ac9b545ea36ecfa0e7b222cfe4828481703d71255d54ad7cfeab43e5230f849",
+        "currentFingerprint": "6b0c26f18f3156518d69a8e6d6252f254375d9bbfbf2ed05227e475e86476402",
+        "previousSize": 14,
+        "currentSize": 14,
+        "sizeDelta": 0,
+        "addedPaths": [
+          "rewards[]:EMPTY_ARRAY"
+        ],
+        "removedPaths": []
+      }
+    ]
   },
   "observedKeywords": [
     "water",
@@ -129,7 +145,7 @@
     "rewards"
   ],
   "diagnostics": {
-    "previousSnapshotId": "2026-08-17_032418",
+    "previousSnapshotId": "2026-08-17_032835",
     "freshCounts": {
       "labels": 0,
       "routes": 0,
