@@ -1081,7 +1081,63 @@ async function main() {
   const chainIntelligencePath = path.join(publicDir, "chain-intelligence.json");
   const discoveryPath = path.join(publicDir, "discovery.json");
   const apiFile = path.join(newDir, "api.json");
-  const chainIntelligence = await readJsonSafe(chainIntelligencePath, null);
+  const manifestFile = path.join(newDir, "manifest.json");
+
+  const chainIntelligence = await readJsonSafe(
+    chainIntelligencePath,
+    null
+  );
+
+  const manifest = await readJsonSafe(
+    manifestFile,
+    {}
+  );
+
+  const captureCoverage =
+    manifest?.coverage || {};
+
+  const observability = {
+    status: String(
+      captureCoverage.status || "UNKNOWN"
+    ).toUpperCase(),
+
+    blindSpot:
+      captureCoverage.blindSpotDetected === true,
+
+    degraded:
+      captureCoverage.degraded === true,
+
+    reasons:
+      uniqueSortedStrings(
+        captureCoverage.reasons || []
+      ),
+
+    navigationOk:
+      captureCoverage.navigation?.ok === true,
+
+    documentCaptured:
+      captureCoverage.documentCaptured === true,
+
+    capturedResponseCount:
+      Number(
+        captureCoverage.capturedResponseCount ?? 0
+      ),
+
+    firstPartyResponseCount:
+      Number(
+        captureCoverage.firstPartyResponseCount ?? 0
+      ),
+
+    apiResponseCount:
+      Number(
+        captureCoverage.apiResponseCount ?? 0
+      ),
+
+    firstPartyApiCount:
+      Number(
+        captureCoverage.firstPartyApiCount ?? 0
+      ),
+  };
 
   function normalizeOnchainState(chain) {
     if (!chain || !chain.generatedAt) {
@@ -1547,6 +1603,9 @@ const oldApiData = oldApiFile
       backendSignalCount: uniqueBackendSignals.length,
     },
     advancedSignals,
+
+    observability,
+
     discovery: {
       checkedAt: discovery.checkedAt || null,
       sourceSnapshotId: discovery.sourceSnapshotId || null,
