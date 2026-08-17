@@ -1006,6 +1006,81 @@ const rewardTxs = rewardResult.transactions;
     (predictor.status==='IN_FUNDING_WINDOW'?15:0)
   );
 
+  const chainCoverageEntries = [
+    distResult.coverage,
+    upstreamResult.coverage,
+    rewardResult.coverage,
+  ];
+
+  const incompleteCoverage = chainCoverageEntries.filter(
+    (coverage) =>
+      !coverage ||
+      coverage.coverageComplete !== true
+  );
+
+  const maxPagesCoverage = chainCoverageEntries.filter(
+    (coverage) =>
+      coverage?.maxPagesReached === true
+  );
+
+  const chainObservabilityReasons = [];
+
+  if (incompleteCoverage.length > 0) {
+    chainObservabilityReasons.push(
+      "incomplete_chain_coverage"
+    );
+  }
+
+  if (maxPagesCoverage.length > 0) {
+    chainObservabilityReasons.push(
+      "chain_max_pages_reached"
+    );
+  }
+
+  const chainObservabilityStatus =
+    incompleteCoverage.length > 0
+      ? "BLIND_SPOT"
+      : maxPagesCoverage.length > 0
+        ? "DEGRADED"
+        : "HEALTHY";
+
+  const chainObservability = {
+    status: chainObservabilityStatus,
+
+    blindSpot:
+      chainObservabilityStatus === "BLIND_SPOT",
+
+    degraded:
+      chainObservabilityStatus === "DEGRADED",
+
+    reasons:
+      chainObservabilityReasons,
+
+    distributorCoverageComplete:
+      distResult.coverage?.coverageComplete === true,
+
+    upstreamCoverageComplete:
+      upstreamResult.coverage?.coverageComplete === true,
+
+    rewardWalletCoverageComplete:
+      rewardResult.coverage?.coverageComplete === true,
+
+    distributorTransactionsFetched:
+      Number(
+        distResult.coverage?.transactionsFetched ?? 0
+      ),
+
+    upstreamTransactionsFetched:
+      Number(
+        upstreamResult.coverage?.transactionsFetched ?? 0
+      ),
+
+    rewardWalletTransactionsFetched:
+      Number(
+        rewardResult.coverage?.transactionsFetched ?? 0
+      ),
+  };
+
   const output = {
     generatedAt,
     version:'1.3.0',
@@ -1013,10 +1088,12 @@ const rewardTxs = rewardResult.transactions;
     confidence:'VERY HIGH',
     
     dataCoverage: {
-    distributor: distResult.coverage,
-    upstream: upstreamResult.coverage,
-    rewardWallet: rewardResult.coverage,
-   },
+      distributor: distResult.coverage,
+      upstream: upstreamResult.coverage,
+      rewardWallet: rewardResult.coverage,
+    },
+
+    chainObservability,
     
     entities:{wpondMint:WPOND_MINT,claimDistributor:DISTRIBUTOR,upstream:UPSTREAM,rewardWallet:REWARD_WALLET},
     flowClassification: {
