@@ -444,7 +444,7 @@ async function main() {
         });
       }
     } catch (err) {
-      console.error("Error capturando response:", err.message);
+      console.error("Error capturing response:", err.message);
     }
   });
 
@@ -690,9 +690,9 @@ async function main() {
 
   await browser.close();
 
-  console.log(`Snapshot guardado en: ${outDir}`);
-  console.log(`Archivos capturados: ${captured.length}`);
-  console.log(`Respuestas API-like capturadas: ${apiCaptured.length}`);
+  console.log(`Snapshot saved to: ${outDir}`);
+  console.log(`Captured files: ${captured.length}`);
+  console.log(`Captured API-like responses: ${apiCaptured.length}`);
 }
 
 main().catch((err) => {
