@@ -1046,6 +1046,103 @@ export default function Home() {
             </div>
           </div>
 
+          <div className="rounded-3xl border border-white/10 bg-[#05070a] p-4 sm:p-5 xl:col-span-12">
+            <SectionTitle
+              title="API Response Drift"
+              subtitle="Structural changes detected in first-party API responses"
+              right={
+                <span
+                  className={`rounded-full border px-3 py-1 text-xs font-medium ${
+                    current?.discovery?.apiResponseDrift?.detected
+                      ? "border-amber-500/30 bg-amber-500/10 text-amber-300"
+                      : "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
+                  }`}
+                >
+                  {current?.discovery?.apiResponseDrift?.detected
+                    ? "DRIFT DETECTED"
+                    : "STABLE"}
+                </span>
+              }
+            />
+
+            {current?.discovery?.apiResponseDrift?.detected ? (
+              <div className="space-y-3">
+                {current.discovery.apiResponseDrift.changedRoutes?.map(
+                  (drift, index) => (
+                    <div
+                      key={`${drift.route || "unknown"}-${index}`}
+                      className="rounded-2xl border border-amber-500/20 bg-amber-500/[0.05] p-4"
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="font-mono text-sm text-amber-200">
+                          {drift.route || "Unknown API route"}
+                        </div>
+
+                        <div className="text-xs text-slate-500">
+                          size Δ {drift.sizeDelta ?? 0}
+                        </div>
+                      </div>
+
+                      {!!drift.addedPaths?.length && (
+                        <div className="mt-3">
+                          <div className="mb-2 text-[11px] uppercase tracking-[0.2em] text-emerald-400">
+                            Added schema paths
+                          </div>
+
+                          <div className="flex flex-wrap gap-2">
+                            {drift.addedPaths.map((path) => (
+                              <span
+                                key={`added-${path}`}
+                                className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2 py-1 font-mono text-xs text-emerald-300"
+                              >
+                                + {path}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {!!drift.removedPaths?.length && (
+                        <div className="mt-3">
+                          <div className="mb-2 text-[11px] uppercase tracking-[0.2em] text-red-400">
+                            Removed schema paths
+                          </div>
+
+                          <div className="flex flex-wrap gap-2">
+                            {drift.removedPaths.map((path) => (
+                              <span
+                                key={`removed-${path}`}
+                                className="rounded-full border border-red-500/20 bg-red-500/10 px-2 py-1 font-mono text-xs text-red-300"
+                              >
+                                − {path}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )
+                )}
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-emerald-500/10 bg-emerald-500/[0.03] p-4">
+                <div className="flex items-center gap-3">
+                  <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
+
+                  <div>
+                    <div className="text-sm font-medium text-slate-200">
+                      No structural API changes detected
+                    </div>
+
+                    <div className="mt-1 text-xs text-slate-500">
+                      First-party API response schemas match the previous monitoring baseline.
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
           {!isPriorityView && (
             <div className="grid gap-5 xl:col-span-12 xl:grid-cols-2">
               <div className="rounded-3xl border border-white/10 bg-[#05070a] p-4 sm:p-5">
