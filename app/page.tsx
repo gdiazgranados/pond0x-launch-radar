@@ -307,6 +307,91 @@ export default function Home() {
     heartbeatData?.scheduleMinutes || 5
   )
 
+  const radarTrust = useMemo(() => {
+    const heartbeatState = heartbeat.label
+    const observabilityState =
+      current?.observability?.status || "UNKNOWN"
+
+    if (observabilityState === "BLIND_SPOT") {
+      return {
+        label: "UNTRUSTED",
+        description: "Monitoring visibility is impaired.",
+        detail: "Absence of signals cannot be trusted.",
+        dot: "bg-red-500",
+        text: "text-red-400",
+        badge:
+          "border-red-500/40 bg-red-500/10 text-red-300",
+      }
+    }
+
+    if (heartbeatState === "STALE") {
+      return {
+        label: "STALE DATA",
+        description: "Radar data is no longer fresh.",
+        detail: "Wait for a successful monitoring sweep.",
+        dot: "bg-red-500",
+        text: "text-red-400",
+        badge:
+          "border-red-500/40 bg-red-500/10 text-red-300",
+      }
+    }
+
+    if (heartbeatState === "LAGGING") {
+      return {
+        label: "LAGGING",
+        description: "Monitoring is running behind schedule.",
+        detail: "Interpret current signals with caution.",
+        dot: "bg-amber-400",
+        text: "text-amber-400",
+        badge:
+          "border-amber-500/40 bg-amber-500/10 text-amber-300",
+      }
+    }
+
+    if (
+      heartbeatState === "FRESH" &&
+      observabilityState === "DEGRADED"
+    ) {
+      return {
+        label: "PARTIAL",
+        description: "Radar is fresh but visibility is degraded.",
+        detail: "Some monitoring coverage may be missing.",
+        dot: "bg-amber-400",
+        text: "text-amber-400",
+        badge:
+          "border-amber-500/40 bg-amber-500/10 text-amber-300",
+      }
+    }
+
+    if (
+      heartbeatState === "FRESH" &&
+      observabilityState === "HEALTHY"
+    ) {
+      return {
+        label: "TRUSTED",
+        description: "Radar data is fresh and visibility is healthy.",
+        detail: "Current signal absence can be interpreted normally.",
+        dot: "bg-emerald-400",
+        text: "text-emerald-400",
+        badge:
+          "border-emerald-500/40 bg-emerald-500/10 text-emerald-300",
+      }
+    }
+
+    return {
+      label: "UNKNOWN",
+      description: "Radar trust cannot be established yet.",
+      detail: "Waiting for complete monitoring telemetry.",
+      dot: "bg-slate-500",
+      text: "text-slate-400",
+      badge:
+        "border-slate-500/30 bg-slate-500/10 text-slate-300",
+    }
+  }, [
+    heartbeat.label,
+    current?.observability?.status,
+  ])
+
   const previousPollAt = useMemo(() => {
     if (!effectiveFreshnessDate) return null
     const dt = new Date(effectiveFreshnessDate)
@@ -722,6 +807,46 @@ export default function Home() {
                )}
             </div>
 
+            <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
+              <div className="text-[11px] uppercase tracking-[0.26em] text-slate-500">
+                Radar Trust
+              </div>
+
+              <div className="mt-3 flex items-center gap-3">
+                <span
+                  className={`h-3 w-3 rounded-full ${radarTrust.dot}`}
+                />
+
+                <div
+                  className={`text-2xl font-semibold ${radarTrust.text}`}
+                >
+                  {radarTrust.label}
+                </div>
+              </div>
+
+              <div className="mt-3 text-sm text-slate-300">
+                {radarTrust.description}
+              </div>
+
+              <div className="mt-1 text-xs text-slate-500">
+                {radarTrust.detail}
+              </div>
+
+              <div className="mt-3 flex flex-wrap gap-2 text-xs">
+                <span
+                  className={`rounded-full border px-2 py-0.5 ${heartbeat.badge}`}
+                >
+                  Heartbeat {heartbeat.label}
+                </span>
+
+                <span
+                  className={`rounded-full border px-2 py-0.5 ${radarTrust.badge}`}
+                >
+                  Observability{" "}
+                  {current?.observability?.status || "UNKNOWN"}
+                </span>
+              </div>
+            </div>
               <div className="rounded-2xl border border-orange-500/20 bg-orange-500/[0.05] p-4">
                 <div className="text-[11px] uppercase tracking-[0.24em] text-orange-300">
                   Activation Probability
