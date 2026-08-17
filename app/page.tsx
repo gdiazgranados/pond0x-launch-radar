@@ -542,7 +542,7 @@ export default function Home() {
       ? [
           {
             id: `latest-${current.id ?? "current"}`,
-            time: shortTime(current.generatedAt),
+            time: formatDate(current.generatedAt),
             level: current.level || "LOW",
             signalType: getSignalType(current),
             probability: getLaunchProbability(current),
@@ -553,7 +553,7 @@ export default function Home() {
 
     const historyItems = tapeHistory.map((item) => ({
       id: `history-${item.id}-${item.generatedAt}`,
-      time: shortTime(item.generatedAt),
+      time: formatDate(item.generatedAt),
       level: item.level || "LOW",
       signalType: getSignalType(item),
       probability: probabilityFromLevel(item.level),
@@ -567,7 +567,7 @@ export default function Home() {
 
         return {
           id: `alert-${alert.id || alertTimestamp}`,
-          time: alertTimestamp ? shortTime(alertTimestamp) : "no-ts",
+          time: alertTimestamp ? formatDate(alertTimestamp) : "no-ts",
           level: alert.level || "LOW",
           signalType: getSignalType(alert),
           probability: probabilityFromLevel(alert.level),
