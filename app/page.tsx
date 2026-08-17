@@ -645,6 +645,83 @@ export default function Home() {
                 </div>
               </div>
 
+              <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
+                <div className="text-[11px] uppercase tracking-[0.26em] text-slate-500">
+                  Observability
+                </div>
+
+                <div className="mt-3 flex items-center gap-3">
+                  <span
+                    className={`h-3 w-3 rounded-full ${
+                      current?.observability?.status === "HEALTHY"
+                        ? "bg-emerald-400"
+                        : current?.observability?.status === "DEGRADED"
+                          ? "bg-amber-400"
+                          : current?.observability?.status === "BLIND_SPOT"
+                            ? "bg-red-500"
+                            : "bg-slate-500"
+                    }`}
+                  />
+
+                  <div
+                    className={`text-2xl font-semibold ${
+                      current?.observability?.status === "HEALTHY"
+                        ? "text-emerald-400"
+                        : current?.observability?.status === "DEGRADED"
+                          ? "text-amber-400"
+                          : current?.observability?.status === "BLIND_SPOT"
+                            ? "text-red-400"
+                            : "text-slate-400"
+                    }`}
+                 >
+                    {current?.observability?.status || "UNKNOWN"}
+                  </div>
+                </div>
+
+                <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-slate-400">
+                  <div>
+                    <div className="text-slate-500">Navigation</div>
+                    <div className="mt-1 text-slate-200">
+                      {current?.observability?.navigationOk ? "OK" : "FAILED"}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="text-slate-500">Document</div>
+                    <div className="mt-1 text-slate-200">
+                      {current?.observability?.documentCaptured ? "CAPTURED" : "MISSING"}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="text-slate-500">First-party</div>
+                    <div className="mt-1 text-slate-200">
+                      {current?.observability?.firstPartyResponseCount ?? 0} responses
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="text-slate-500">First-party APIs</div>
+                    <div className="mt-1 text-slate-200">
+                      {current?.observability?.firstPartyApiCount ?? 0}
+                    </div>
+                  </div>
+                </div>
+
+                {current?.observability?.blindSpot && (
+                  <div className="mt-3 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-300">
+                    Monitoring visibility impaired. Absence of signals cannot be trusted.
+                  </div>
+               )}
+
+               {current?.observability?.degraded &&
+                 !current?.observability?.blindSpot && (
+                   <div className="mt-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-300">
+                     Monitoring coverage is degraded.
+                   </div>
+               )}
+            </div>
+
               <div className="rounded-2xl border border-orange-500/20 bg-orange-500/[0.05] p-4">
                 <div className="text-[11px] uppercase tracking-[0.24em] text-orange-300">
                   Activation Probability

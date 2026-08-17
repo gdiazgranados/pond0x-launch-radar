@@ -156,6 +156,19 @@ export type RadarData = {
   advancedSignals?: AdvancedSignals
   discovery?: DiscoveryMeta
 
+  observability?: {
+    status?: "HEALTHY" | "DEGRADED" | "BLIND_SPOT" | "UNKNOWN"
+    blindSpot?: boolean
+    degraded?: boolean
+    reasons?: string[]
+    navigationOk?: boolean
+    documentCaptured?: boolean
+    capturedResponseCount?: number
+    firstPartyResponseCount?: number
+    apiResponseCount?: number
+    firstPartyApiCount?: number
+  }
+
   alphaClass?: string
   alphaScore?: number
   triggerState?: string
