@@ -151,10 +151,17 @@ function extractJsonSchemaPaths(text) {
 
         paths.add(arrayPath);
 
-        if (value.length > 0) {
-          visit(value[0], arrayPath);
+        if (value.length === 0) {
+          paths.add(
+            prefix
+              ? `${prefix}[]:EMPTY_ARRAY`
+              : "ROOT:EMPTY_ARRAY"
+          );
+
+          return;
         }
 
+        visit(value[0], arrayPath);
         return;
       }
 
@@ -163,6 +170,16 @@ function extractJsonSchemaPaths(text) {
         typeof value === "object"
       ) {
         const keys = Object.keys(value).sort();
+
+        if (keys.length === 0) {
+          paths.add(
+            prefix
+              ? `${prefix}:EMPTY_OBJECT`
+              : "ROOT:EMPTY_OBJECT"
+          );
+
+          return;
+        }
 
         for (const key of keys) {
           const nextPath =
@@ -173,6 +190,8 @@ function extractJsonSchemaPaths(text) {
           paths.add(nextPath);
           visit(value[key], nextPath);
         }
+
+        return;
       }
     }
 
