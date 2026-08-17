@@ -92,6 +92,22 @@ export type DiscoveryMeta = {
   newApiRoutes?: string[]
   newKeywords?: string[]
   criticalKeywords?: string[]
+
+  apiResponseDrift?: {
+    detected?: boolean
+    changedRouteCount?: number
+    changedRoutes?: Array<{
+      route?: string
+      previousFingerprint?: string | null
+      currentFingerprint?: string | null
+      previousSize?: number
+      currentSize?: number
+      sizeDelta?: number
+      addedPaths?: string[]
+      removedPaths?: string[]
+    }>
+  }
+
   [key: string]: unknown
 }
 
