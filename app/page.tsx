@@ -1143,6 +1143,81 @@ export default function Home() {
             )}
           </div>
 
+          <div className="rounded-3xl border border-white/10 bg-[#05070a] p-4 sm:p-5 xl:col-span-12">
+            <SectionTitle
+              title="Evidence Correlation"
+              subtitle="Fresh evidence correlated across independent monitoring domains"
+              right={
+                <span
+                  className={`rounded-full border px-3 py-1 text-xs font-medium ${
+                    current?.evidenceCorrelation?.classification === "STRONG"
+                      ? "border-red-500/30 bg-red-500/10 text-red-300"
+                      : current?.evidenceCorrelation?.classification === "MULTI_SURFACE"
+                        ? "border-amber-500/30 bg-amber-500/10 text-amber-300"
+                        : current?.evidenceCorrelation?.classification === "ISOLATED"
+                          ? "border-cyan-500/30 bg-cyan-500/10 text-cyan-300"
+                          : "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
+                  }`}
+                >
+                  {current?.evidenceCorrelation?.classification || "NONE"}
+                </span>
+              }
+            />
+
+            <div className="grid gap-4 lg:grid-cols-[0.7fr_1.3fr]">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-2xl border border-white/10 bg-black/25 p-4">
+                  <div className="text-[11px] uppercase tracking-[0.22em] text-slate-500">
+                    Evidence
+                  </div>
+                  <div className="mt-2 text-3xl font-semibold text-white">
+                    {current?.evidenceCorrelation?.evidenceCount ?? 0}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-white/10 bg-black/25 p-4">
+                  <div className="text-[11px] uppercase tracking-[0.22em] text-slate-500">
+                    Domains
+                  </div>
+                  <div className="mt-2 text-3xl font-semibold text-white">
+                    {current?.evidenceCorrelation?.domainCount ?? 0}
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
+                {[
+                  ["API", current?.evidenceCorrelation?.domains?.api],
+                  ["Backend", current?.evidenceCorrelation?.domains?.backend],
+                  ["Semantic", current?.evidenceCorrelation?.domains?.semantic],
+                  ["Web Surface", current?.evidenceCorrelation?.domains?.webSurface],
+                  ["On-chain", current?.evidenceCorrelation?.domains?.onchain],
+                ].map(([label, active]) => (
+                  <div
+                    key={String(label)}
+                    className="rounded-xl border border-white/10 bg-black/25 px-3 py-3"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs text-slate-400">{String(label)}</span>
+                      <span
+                        className={`h-2.5 w-2.5 rounded-full ${
+                          active ? "bg-emerald-400" : "bg-slate-600"
+                        }`}
+                      />
+                    </div>
+
+                    <div
+                      className={`mt-2 text-xs font-medium ${
+                        active ? "text-emerald-300" : "text-slate-600"
+                      }`}
+                    >
+                      {active ? "ACTIVE" : "OFF"}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
           {!isPriorityView && (
             <div className="grid gap-5 xl:col-span-12 xl:grid-cols-2">
               <div className="rounded-3xl border border-white/10 bg-[#05070a] p-4 sm:p-5">

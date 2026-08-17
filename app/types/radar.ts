@@ -170,6 +170,27 @@ export type RadarData = {
 
   breakdown?: RadarBreakdown
   advancedSignals?: AdvancedSignals
+
+  evidenceCorrelation?: {
+    apiResponseDrift?: boolean
+    newApiRoute?: boolean
+    newLiveApiRoute?: boolean
+    backendSignal?: boolean
+    criticalKeyword?: boolean
+    surfaceMovement?: boolean
+    onchainMovement?: boolean
+    evidenceCount?: number
+    domainCount?: number
+    classification?: "NONE" | "ISOLATED" | "MULTI_SURFACE" | "STRONG" | string
+    domains?: {
+      api?: boolean
+      backend?: boolean
+      semantic?: boolean
+      webSurface?: boolean
+      onchain?: boolean
+    }
+  }
+
   discovery?: DiscoveryMeta
 
   observability?: {
