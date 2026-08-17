@@ -1626,6 +1626,90 @@ const oldApiData = oldApiFile
             ? "ISOLATED"
             : "NONE",
   };
+  const TEMPORAL_CORRELATION_WINDOW_MS = 60 * 60 * 1000;
+  const temporalNow = new Date(generatedAt).getTime();
+
+  const temporalDomainEvents = [];
+
+  for (const [domain, active] of Object.entries(correlationDomains)) {
+    if (active) {
+      temporalDomainEvents.push({
+        domain,
+        seenAt: generatedAt,
+        source: "current",
+      });
+    }
+  }
+
+  for (const historicalResult of existingHistory) {
+    const historicalTime = new Date(historicalResult?.generatedAt || 0).getTime();
+
+    if (!Number.isFinite(historicalTime)) continue;
+    if (historicalTime > temporalNow) continue;
+    if (temporalNow - historicalTime > TEMPORAL_CORRELATION_WINDOW_MS) continue;
+
+    const historicalDomains =
+      historicalResult?.evidenceCorrelation?.domains || {};
+
+    for (const [domain, active] of Object.entries(historicalDomains)) {
+      if (active) {
+        temporalDomainEvents.push({
+          domain,
+          seenAt: historicalResult.generatedAt,
+          source: "history",
+        });
+      }
+    }
+  }
+
+  const temporalFirstByDomain = new Map();
+
+  for (const event of temporalDomainEvents) {
+    const eventTime = new Date(event.seenAt).getTime();
+    const previous = temporalFirstByDomain.get(event.domain);
+
+    if (!previous || eventTime < new Date(previous.seenAt).getTime()) {
+      temporalFirstByDomain.set(event.domain, event);
+    }
+  }
+
+  const temporalSequence = [...temporalFirstByDomain.values()]
+    .sort((a, b) => new Date(a.seenAt).getTime() - new Date(b.seenAt).getTime());
+
+  const temporalFirstSeenAt = temporalSequence[0]?.seenAt || null;
+  const temporalLastSeenAt =
+    temporalSequence[temporalSequence.length - 1]?.seenAt || null;
+
+  const temporalSpanMinutes =
+    temporalFirstSeenAt && temporalLastSeenAt
+      ? Math.round(
+          (new Date(temporalLastSeenAt).getTime() -
+            new Date(temporalFirstSeenAt).getTime()) /
+            60000
+        )
+      : null;
+
+  const temporalDomainCount = temporalSequence.length;
+
+  const temporalCorrelation = {
+    windowMinutes: 60,
+    domainCount: temporalDomainCount,
+    sequence: temporalSequence.map((event) => event.domain),
+    events: temporalSequence,
+    firstSeenAt: temporalFirstSeenAt,
+    lastSeenAt: temporalLastSeenAt,
+    spanMinutes: temporalSpanMinutes,
+    classification:
+      temporalDomainCount >= 3 &&
+      temporalSpanMinutes !== null &&
+      temporalSpanMinutes <= 10
+        ? "TIGHT_CLUSTER"
+        : temporalDomainCount >= 3
+          ? "CLUSTERED"
+          : temporalDomainCount >= 2
+            ? "LOOSE"
+            : "NONE",
+  };
   const baseResult = {
     id: `${snapshotId}__${generatedAt}`,
     snapshotId,
@@ -1677,6 +1761,8 @@ const oldApiData = oldApiFile
     advancedSignals,
 
     evidenceCorrelation,
+
+    temporalCorrelation,
 
     observability,
 
