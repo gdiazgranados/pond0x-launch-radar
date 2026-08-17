@@ -1218,6 +1218,81 @@ export default function Home() {
               </div>
             </div>
           </div>
+          <div className="rounded-3xl border border-white/10 bg-[#05070a] p-4 sm:p-5 xl:col-span-12">
+            <SectionTitle
+              title="Temporal Correlation"
+              subtitle="Evidence timing across the rolling historical window"
+              right={
+                <span
+                  className={`rounded-full border px-3 py-1 text-xs font-medium ${
+                    current?.temporalCorrelation?.classification === "TIGHT_CLUSTER"
+                      ? "border-red-500/30 bg-red-500/10 text-red-300"
+                      : current?.temporalCorrelation?.classification === "CLUSTERED"
+                        ? "border-amber-500/30 bg-amber-500/10 text-amber-300"
+                        : current?.temporalCorrelation?.classification === "LOOSE"
+                          ? "border-cyan-500/30 bg-cyan-500/10 text-cyan-300"
+                          : "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
+                  }`}
+                >
+                  {current?.temporalCorrelation?.classification || "NONE"}
+                </span>
+              }
+            />
+
+            <div className="grid gap-4 lg:grid-cols-[0.8fr_1.2fr]">
+              <div className="grid grid-cols-3 gap-3">
+                <div className="rounded-2xl border border-white/10 bg-black/25 p-4">
+                  <div className="text-[11px] uppercase tracking-[0.22em] text-slate-500">Window</div>
+                  <div className="mt-2 text-2xl font-semibold text-white">
+                    {current?.temporalCorrelation?.windowMinutes ?? 60} min
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-white/10 bg-black/25 p-4">
+                  <div className="text-[11px] uppercase tracking-[0.22em] text-slate-500">Domains</div>
+                  <div className="mt-2 text-2xl font-semibold text-white">
+                    {current?.temporalCorrelation?.domainCount ?? 0}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-white/10 bg-black/25 p-4">
+                  <div className="text-[11px] uppercase tracking-[0.22em] text-slate-500">Span</div>
+                  <div className="mt-2 text-2xl font-semibold text-white">
+                    {current?.temporalCorrelation?.spanMinutes == null
+                      ? "--"
+                      : `${current.temporalCorrelation.spanMinutes} min`}
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-white/10 bg-black/25 p-4">
+                <div className="text-[11px] uppercase tracking-[0.22em] text-slate-500">Sequence</div>
+
+                {current?.temporalCorrelation?.sequence?.length ? (
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    {current.temporalCorrelation.sequence.map((domain, index) => (
+                      <div
+                        key={`${domain}-${index}`}
+                        className="flex items-center gap-2"
+                      >
+                        <span className="rounded-full border border-cyan-500/20 bg-cyan-500/10 px-3 py-1 font-mono text-xs text-cyan-300">
+                          {domain}
+                        </span>
+
+                        {index < current.temporalCorrelation!.sequence!.length - 1 && (
+                          <span className="text-slate-600">-&gt;</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="mt-3 text-sm text-slate-500">
+                    No correlated temporal sequence detected.
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
           {!isPriorityView && (
             <div className="grid gap-5 xl:col-span-12 xl:grid-cols-2">
               <div className="rounded-3xl border border-white/10 bg-[#05070a] p-4 sm:p-5">
