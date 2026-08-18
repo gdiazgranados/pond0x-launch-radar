@@ -25,6 +25,23 @@ function classifySource(responseUrl) {
   }
 }
 
+function normalizeSurfaceUrl(requestUrl) {
+  try {
+    const parsed = new URL(requestUrl);
+
+    if (
+      parsed.protocol !== "http:" &&
+      parsed.protocol !== "https:"
+    ) {
+      return null;
+    }
+
+    return `${parsed.origin}${parsed.pathname}`;
+  } catch {
+    return null;
+  }
+}
+
 const INTERESTING_API_HINTS = [
   "/api/",
   "claim",
@@ -378,6 +395,53 @@ async function main() {
   const apiCaptured = [];
   const seen = new Set();
 
+  /*
+   * Runtime Surface Inventory
+   *
+   * Observe every HTTP(S) request independently from the deeper
+   * response-capture filter below.
+   *
+   * Query strings and fragments are intentionally removed before
+   * persistence to avoid storing transient or sensitive parameters.
+   */
+  const surfaceRequests = [];
+  const surfaceSeen = new Set();
+
+  page.on("request", (request) => {
+    try {
+      const normalizedUrl =
+        normalizeSurfaceUrl(request.url());
+
+      if (!normalizedUrl) return;
+
+      const method = request.method();
+      const resourceType = request.resourceType();
+      const source = classifySource(normalizedUrl);
+      const parsed = new URL(normalizedUrl);
+
+      const key =
+        `${method}|${resourceType}|${normalizedUrl}`;
+
+      if (surfaceSeen.has(key)) return;
+
+      surfaceSeen.add(key);
+
+      surfaceRequests.push({
+        url: normalizedUrl,
+        origin: parsed.origin,
+        sourceHost: source.sourceHost,
+        sourceClass: source.sourceClass,
+        method,
+        resourceType,
+      });
+    } catch (error) {
+      console.error(
+        "Error observing runtime surface:",
+        error.message
+      );
+    }
+  });
+
   page.on("response", async (response) => {
     try {
       const responseUrl = response.url();
@@ -510,6 +574,59 @@ async function main() {
         .filter(Boolean)
     ),
   ].sort();
+
+  const surfaceHosts = [
+    ...new Set(
+      surfaceRequests
+        .map((entry) => entry.sourceHost)
+        .filter(Boolean)
+    ),
+  ].sort();
+
+  const surfaceOrigins = [
+    ...new Set(
+      surfaceRequests
+        .map((entry) => entry.origin)
+        .filter(Boolean)
+    ),
+  ].sort();
+
+  const surfaceResourceTypes =
+    surfaceRequests.reduce(
+      (counts, entry) => {
+        const type = entry.resourceType || "unknown";
+
+        counts[type] =
+          (counts[type] || 0) + 1;
+
+        return counts;
+      },
+      {}
+    );
+
+  const surfaceInventory = {
+    requestCount: surfaceRequests.length,
+
+    firstPartyRequestCount:
+      surfaceRequests.filter(
+        (entry) => entry.sourceClass === "FIRST_PARTY"
+      ).length,
+
+    thirdPartyRequestCount:
+      surfaceRequests.filter(
+        (entry) => entry.sourceClass === "THIRD_PARTY"
+      ).length,
+
+    unknownRequestCount:
+      surfaceRequests.filter(
+        (entry) => entry.sourceClass === "UNKNOWN"
+      ).length,
+
+    hosts: surfaceHosts,
+    origins: surfaceOrigins,
+    resourceTypes: surfaceResourceTypes,
+    requests: surfaceRequests.slice(0, 1000),
+  };
 
   const coverage = {
     targetUrl: TARGET_URL,
@@ -683,6 +800,7 @@ async function main() {
       pageSignals,
       assetCount: captured.length,
       apiCount: apiCaptured.length,
+      surfaceInventory,
       coverage,
     },
     { spaces: 2 }
