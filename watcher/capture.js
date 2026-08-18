@@ -292,7 +292,7 @@ async function safeReadText(response) {
     return "";
   }
 }
-async function loadPreviousCoverage(
+async function loadPreviousSnapshotBaseline(
   snapshotsRoot,
   currentStamp
 ) {
@@ -334,23 +334,31 @@ async function loadPreviousCoverage(
         return {
           snapshotId: snapshotName,
 
-          capturedResponseCount:
-            manifest.coverage?.capturedResponseCount ??
-            manifest.assetCount ??
-            null,
+          coverage: {
+            capturedResponseCount:
+              manifest.coverage?.capturedResponseCount ??
+              manifest.assetCount ??
+              null,
 
-          firstPartyResponseCount:
-            manifest.coverage?.firstPartyResponseCount ??
-            null,
+            firstPartyResponseCount:
+              manifest.coverage?.firstPartyResponseCount ??
+              null,
 
-          apiResponseCount:
-            manifest.coverage?.apiResponseCount ??
-            manifest.apiCount ??
-            null,
+            apiResponseCount:
+              manifest.coverage?.apiResponseCount ??
+              manifest.apiCount ??
+              null,
 
-          firstPartyApiCount:
-            manifest.coverage?.firstPartyApiCount ??
-            null,
+            firstPartyApiCount:
+              manifest.coverage?.firstPartyApiCount ??
+              null,
+          },
+
+          surfaceInventory:
+            manifest.surfaceInventory &&
+            typeof manifest.surfaceInventory === "object"
+              ? manifest.surfaceInventory
+              : null,
         };
       } catch {
         // Ignore unreadable historical manifests.
@@ -371,11 +379,17 @@ async function main() {
     "snapshots"
   );
 
-  const previousCoverage =
-    await loadPreviousCoverage(
+  const previousBaseline =
+    await loadPreviousSnapshotBaseline(
       snapshotsRoot,
       stamp
     );
+
+  const previousCoverage =
+    previousBaseline?.coverage || null;
+
+  const previousSurfaceInventory =
+    previousBaseline?.surfaceInventory || null;
 
   const outDir = path.join(
     snapshotsRoot,
@@ -628,6 +642,89 @@ async function main() {
     requests: surfaceRequests.slice(0, 1000),
   };
 
+  const previousSurfaceRequests =
+    Array.isArray(previousSurfaceInventory?.requests)
+      ? previousSurfaceInventory.requests
+      : [];
+
+  const previousSurfaceKeys = new Set(
+    previousSurfaceRequests.map(
+      (entry) =>
+        `${entry.method || ""}|${entry.resourceType || ""}|${entry.url || ""}`
+    )
+  );
+
+  const currentSurfaceKeys = new Set(
+    surfaceRequests.map(
+      (entry) =>
+        `${entry.method || ""}|${entry.resourceType || ""}|${entry.url || ""}`
+    )
+  );
+
+  const newSurfaces = surfaceRequests.filter(
+    (entry) =>
+      !previousSurfaceKeys.has(
+        `${entry.method || ""}|${entry.resourceType || ""}|${entry.url || ""}`
+      )
+  );
+
+  const missingSurfaces = previousSurfaceRequests.filter(
+    (entry) =>
+      !currentSurfaceKeys.has(
+        `${entry.method || ""}|${entry.resourceType || ""}|${entry.url || ""}`
+      )
+  );
+
+  const previousHosts = Array.isArray(previousSurfaceInventory?.hosts)
+    ? previousSurfaceInventory.hosts
+    : [];
+
+  const previousHostSet = new Set(previousHosts);
+  const currentHostSet = new Set(surfaceHosts);
+
+  const newHosts = surfaceHosts.filter(
+    (host) => !previousHostSet.has(host)
+  );
+
+  const missingHosts = previousHosts.filter(
+    (host) => !currentHostSet.has(host)
+  );
+
+  const surfaceComparable =
+    Array.isArray(previousSurfaceInventory?.requests);
+
+  const surfaceDriftDetected =
+    surfaceComparable &&
+    (
+      newSurfaces.length > 0 ||
+      missingSurfaces.length > 0 ||
+      newHosts.length > 0 ||
+      missingHosts.length > 0
+    );
+
+  const surfaceDrift = {
+    comparable: surfaceComparable,
+    baselineSnapshotId:
+      previousBaseline?.snapshotId || null,
+
+    status:
+      !surfaceComparable
+        ? "BASELINE"
+        : surfaceDriftDetected
+          ? "DRIFT"
+          : "STABLE",
+
+    newSurfaceCount: newSurfaces.length,
+    missingSurfaceCount: missingSurfaces.length,
+    newHostCount: newHosts.length,
+    missingHostCount: missingHosts.length,
+
+    newSurfaces: newSurfaces.slice(0, 100),
+    missingSurfaces: missingSurfaces.slice(0, 100),
+    newHosts,
+    missingHosts,
+  };
+
   const coverage = {
     targetUrl: TARGET_URL,
     targetHost: TARGET_HOST,
@@ -801,6 +898,7 @@ async function main() {
       assetCount: captured.length,
       apiCount: apiCaptured.length,
       surfaceInventory,
+      surfaceDrift,
       coverage,
     },
     { spaces: 2 }
