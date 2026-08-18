@@ -198,6 +198,106 @@ $observability =
 } |
   Format-List
 
+Write-Section "SURFACE DISCOVERY" DarkYellow
+
+$surfaceDiscovery =
+  $latest.surfaceDiscovery
+
+$surfaceInventory =
+  $surfaceDiscovery?.inventory
+
+$surfaceDrift =
+  $surfaceDiscovery?.drift
+
+$observedSurfaceHosts = @(
+  $surfaceInventory?.hosts |
+    Where-Object {
+      -not [string]::IsNullOrWhiteSpace([string]$_)
+    }
+)
+
+$newSurfaceHosts = @(
+  $surfaceDrift?.newHosts |
+    Where-Object {
+      -not [string]::IsNullOrWhiteSpace([string]$_)
+    }
+)
+
+$missingSurfaceHosts = @(
+  $surfaceDrift?.missingHosts |
+    Where-Object {
+      -not [string]::IsNullOrWhiteSpace([string]$_)
+    }
+)
+
+[PSCustomObject]@{
+  Status =
+    Format-Nullable $surfaceDrift?.status "UNAVAILABLE"
+
+  Comparable =
+    Format-Nullable $surfaceDrift?.comparable
+
+  Baseline =
+    Format-Nullable $surfaceDrift?.baselineSnapshotId
+
+  ObservedRequests =
+    Format-Nullable $surfaceInventory?.requestCount "0"
+
+  FirstParty =
+    Format-Nullable $surfaceInventory?.firstPartyRequestCount "0"
+
+  ThirdParty =
+    Format-Nullable $surfaceInventory?.thirdPartyRequestCount "0"
+
+  Unknown =
+    Format-Nullable $surfaceInventory?.unknownRequestCount "0"
+
+  ObservedHosts =
+    $observedSurfaceHosts.Count
+
+  NewSurfaces =
+    Format-Nullable $surfaceDrift?.newSurfaceCount "0"
+
+  MissingSurfaces =
+    Format-Nullable $surfaceDrift?.missingSurfaceCount "0"
+
+  NewHosts =
+    Format-Nullable $surfaceDrift?.newHostCount "0"
+
+  MissingHosts =
+    Format-Nullable $surfaceDrift?.missingHostCount "0"
+} |
+  Format-List
+
+Write-Host "Observed hosts:"
+
+if ($observedSurfaceHosts.Count -gt 0) {
+  $observedSurfaceHosts |
+    ForEach-Object {
+      Write-Host "  $_"
+    }
+} else {
+  Write-Host "  none"
+}
+
+if ($newSurfaceHosts.Count -gt 0) {
+  Write-Host "`nNew hosts:" -ForegroundColor Green
+
+  $newSurfaceHosts |
+    ForEach-Object {
+      Write-Host "  + $_"
+    }
+}
+
+if ($missingSurfaceHosts.Count -gt 0) {
+  Write-Host "`nMissing hosts:" -ForegroundColor Yellow
+
+  $missingSurfaceHosts |
+    ForEach-Object {
+      Write-Host "  - $_"
+    }
+}
+
 Write-Section "RECENT RUNS" Cyan
 
 $history |
