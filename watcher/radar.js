@@ -1139,6 +1139,90 @@ async function main() {
       ),
   };
 
+  const captureSurfaceInventory =
+    manifest?.surfaceInventory || {};
+
+  const captureSurfaceDrift =
+    manifest?.surfaceDrift || {};
+
+  const surfaceDiscovery = {
+    inventory: {
+      requestCount: Number(
+        captureSurfaceInventory.requestCount ?? 0
+      ),
+
+      firstPartyRequestCount: Number(
+        captureSurfaceInventory.firstPartyRequestCount ?? 0
+      ),
+
+      thirdPartyRequestCount: Number(
+        captureSurfaceInventory.thirdPartyRequestCount ?? 0
+      ),
+
+      unknownRequestCount: Number(
+        captureSurfaceInventory.unknownRequestCount ?? 0
+      ),
+
+      hosts: uniqueSortedStrings(
+        captureSurfaceInventory.hosts || []
+      ),
+
+      origins: uniqueSortedStrings(
+        captureSurfaceInventory.origins || []
+      ),
+
+      resourceTypes:
+        captureSurfaceInventory.resourceTypes &&
+        typeof captureSurfaceInventory.resourceTypes === "object"
+          ? captureSurfaceInventory.resourceTypes
+          : {},
+    },
+
+    drift: {
+      comparable:
+        captureSurfaceDrift.comparable === true,
+
+      baselineSnapshotId:
+        captureSurfaceDrift.baselineSnapshotId || null,
+
+      status: String(
+        captureSurfaceDrift.status || "UNKNOWN"
+      ).toUpperCase(),
+
+      newSurfaceCount: Number(
+        captureSurfaceDrift.newSurfaceCount ?? 0
+      ),
+
+      missingSurfaceCount: Number(
+        captureSurfaceDrift.missingSurfaceCount ?? 0
+      ),
+
+      newHostCount: Number(
+        captureSurfaceDrift.newHostCount ?? 0
+      ),
+
+      missingHostCount: Number(
+        captureSurfaceDrift.missingHostCount ?? 0
+      ),
+
+      newHosts: uniqueSortedStrings(
+        captureSurfaceDrift.newHosts || []
+      ),
+
+      missingHosts: uniqueSortedStrings(
+        captureSurfaceDrift.missingHosts || []
+      ),
+
+      newSurfaces: ensureArray(
+        captureSurfaceDrift.newSurfaces
+      ).slice(0, 100),
+
+      missingSurfaces: ensureArray(
+        captureSurfaceDrift.missingSurfaces
+      ).slice(0, 100),
+    },
+  };
+
   function normalizeOnchainState(chain) {
     if (!chain || !chain.generatedAt) {
       return {
@@ -1763,6 +1847,8 @@ const oldApiData = oldApiFile
     evidenceCorrelation,
 
     temporalCorrelation,
+
+    surfaceDiscovery,
 
     observability,
 
