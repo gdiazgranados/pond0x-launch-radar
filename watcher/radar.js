@@ -10,6 +10,7 @@ const { buildSignalClassification } = require("./lib/signal-classification");
 const { buildEvidenceCorrelation } = require("./lib/evidence-correlation");
 const { buildSignalBuilder } = require("./lib/signal-builder");
 const { buildDetectionPersistence } = require("./lib/detection-persistence");
+const { buildDetectionResultBuilder } = require("./lib/detection-result");
 
 const KEY_SIGNALS = [
   "claim",
@@ -422,6 +423,19 @@ const {
   readJsonArraySafe,
   maxHistory: MAX_HISTORY,
   triggerPriorities: TRIGGER_PRIORITIES,
+});
+const {
+  buildDetectionResult,
+} = buildDetectionResultBuilder({
+  ensureArray,
+  evaluateAlpha,
+  detectEventType,
+  classifySignalRegime,
+  detectSignalFusion,
+  getPriority,
+  getEta,
+  buildSignature,
+  buildAlertSignatureStable,
 });
 async function main() {
   const { oldDir, newDir } = await loadLatestSnapshots();
@@ -979,85 +993,10 @@ const oldApiData = oldApiFile
     whyItMatters: intelligence.whyItMatters || "",
   };
 
-  const alpha = evaluateAlpha(baseResult);
-  const eventType = detectEventType(baseResult);
-  const signalRegime = classifySignalRegime(baseResult, alpha, eventType);
-  const signalFusion = detectSignalFusion(baseResult, alpha, eventType);
-
-  const launchImminent =
-    hasFreshActivationEvidence &&
-    !!baseResult.launchImminent &&
-    eventType === "CLAIM READINESS" &&
-    (
-      signalFusion === "FULL ACTIVATION STACK" ||
-      signalFusion ===
-        "REWARD + WALLET + AUTH CLUSTER"
-    );
-
-  const portalArmed =
-    hasFreshActivationEvidence &&
-    !!baseResult.portalArmed &&
-    (
-      signalFusion ===
-        "REWARD + WALLET + AUTH CLUSTER" ||
-      signalFusion ===
-        "FULL ACTIVATION STACK"
-    ) &&
-    eventType === "CLAIM READINESS";
-
-    const enrichedBaseResult = {
-      ...baseResult,
-      launchImminent,
-      portalArmed,
-      tags: [
-        ...new Set([
-          ...ensureArray(baseResult.tags),
-          ...(launchImminent ? ["LAUNCH_IMMINENT"] : []),
-          ...(portalArmed ? ["PORTAL_ARMED"] : []),
-        ]),
-      ],
-    };
-
-  const alphaClass = alpha.alphaClass;
-  const triggerState = alpha.triggerState;
-  const suggestedAction = alpha.suggestedAction;
-
-  let activationState = "IDLE";
-  let activationAction = "No fresh activation event confirmed.";
-
-  if (portalArmed) {
-    activationState = "ARMED";
-    activationAction =
-      "Portal activation conditions detected. Maintain high-frequency monitoring.";
-  }
-
-  if (launchImminent) {
-    activationState = "TRIGGERED";
-    activationAction =
-      "Launch-imminent activation conditions detected. Escalate immediately and monitor backend/UI flips aggressively.";
-  }
-
-  const priority = getPriority(enrichedBaseResult);
-  const eta = getEta(enrichedBaseResult);
-
-  const result = {
-    ...enrichedBaseResult,
-    alphaScore: alpha.alphaScore,
-    alphaClass,
-    triggerState,
-    suggestedAction,
-    activationState,
-    activationAction,
-    eventType,
-    signalRegime,
-    signalFusion,
-    priority,
-    eta,
-  };
-
-  result.signature = buildSignature(result);
-  result.alertSignature = buildAlertSignatureStable(result);
-
+  const result = buildDetectionResult({
+    baseResult,
+    hasFreshActivationEvidence,
+  });
   await persistDetectionOutputs({
     publicDir,
     result,
