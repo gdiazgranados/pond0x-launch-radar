@@ -9,6 +9,7 @@ const { normalizeOnchainState } = require("./lib/onchain-state");
 const { buildSignalClassification } = require("./lib/signal-classification");
 const { buildEvidenceCorrelation } = require("./lib/evidence-correlation");
 const { buildSignalBuilder } = require("./lib/signal-builder");
+const { buildDetectionPersistence } = require("./lib/detection-persistence");
 
 const KEY_SIGNALS = [
   "claim",
@@ -210,13 +211,6 @@ async function readJsonSafe(filePath, fallback = {}) {
   }
 }
 
-function dedupeById(items) {
-  return items.filter((item, index, arr) => {
-    if (!item || !item.id) return false;
-    return arr.findIndex((x) => x && x.id === item.id) === index;
-  });
-}
-
 function normalizePatternEntry(pattern) {
   if (typeof pattern === "string") {
     return {
@@ -272,18 +266,6 @@ function detectGroups(signals) {
   }
 
   return detectedGroups;
-}
-
-async function writeJsonAtomic(filePath, data, spaces = 2) {
-  const dir = path.dirname(filePath);
-  const tmpPath = path.join(
-    dir,
-    `.${path.basename(filePath)}.${process.pid}.${Date.now()}.tmp`
-  );
-
-  await fs.ensureDir(dir);
-  await fs.writeJson(tmpPath, data, { spaces });
-  await fs.move(tmpPath, filePath, { overwrite: true });
 }
 
 const {
@@ -434,24 +416,13 @@ function buildAlertSignatureStable(latest) {
   return crypto.createHash("sha256").update(JSON.stringify(stable)).digest("hex");
 }
 
-async function persistDetectionOutputs({ publicDir, result }) {
-  const latestPath = path.join(publicDir, "latest.json");
-  const historyPath = path.join(publicDir, "history.json");
-  const lastTriggeredPath = path.join(publicDir, "last-triggered.json");
-
-  await fs.ensureDir(publicDir);
-
-  const existingHistory = await readJsonArraySafe(historyPath);
-  const nextHistory = dedupeById([result, ...existingHistory]).slice(0, MAX_HISTORY);
-
-  await writeJsonAtomic(latestPath, result);
-  await writeJsonAtomic(historyPath, nextHistory);
-
-  if (TRIGGER_PRIORITIES.has(result.priority)) {
-    await writeJsonAtomic(lastTriggeredPath, result);
-  }
-}
-
+const {
+  persistDetectionOutputs,
+} = buildDetectionPersistence({
+  readJsonArraySafe,
+  maxHistory: MAX_HISTORY,
+  triggerPriorities: TRIGGER_PRIORITIES,
+});
 async function main() {
   const { oldDir, newDir } = await loadLatestSnapshots();
 
