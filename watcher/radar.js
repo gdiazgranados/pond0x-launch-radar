@@ -1266,8 +1266,19 @@ async function main() {
       };
     });
 
+  const unclassifiedSurfaceHosts =
+    surfaceHostRoles.filter(
+      (entry) => entry.role === "UNCLASSIFIED"
+    );
+
   const surfaceDiscovery = {
     hostRoles: surfaceHostRoles,
+
+    unclassifiedHostCount:
+      unclassifiedSurfaceHosts.length,
+
+    unclassifiedHosts:
+      unclassifiedSurfaceHosts,
 
     inventory: {
       requestCount: Number(
