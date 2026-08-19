@@ -25,6 +25,23 @@ function classifySource(responseUrl) {
   }
 }
 
+function normalizeSurfaceUrl(requestUrl) {
+  try {
+    const parsed = new URL(requestUrl);
+
+    if (
+      parsed.protocol !== "http:" &&
+      parsed.protocol !== "https:"
+    ) {
+      return null;
+    }
+
+    return `${parsed.origin}${parsed.pathname}`;
+  } catch {
+    return null;
+  }
+}
+
 const INTERESTING_API_HINTS = [
   "/api/",
   "claim",
@@ -275,7 +292,7 @@ async function safeReadText(response) {
     return "";
   }
 }
-async function loadPreviousCoverage(
+async function loadPreviousSnapshotBaseline(
   snapshotsRoot,
   currentStamp
 ) {
@@ -317,23 +334,31 @@ async function loadPreviousCoverage(
         return {
           snapshotId: snapshotName,
 
-          capturedResponseCount:
-            manifest.coverage?.capturedResponseCount ??
-            manifest.assetCount ??
-            null,
+          coverage: {
+            capturedResponseCount:
+              manifest.coverage?.capturedResponseCount ??
+              manifest.assetCount ??
+              null,
 
-          firstPartyResponseCount:
-            manifest.coverage?.firstPartyResponseCount ??
-            null,
+            firstPartyResponseCount:
+              manifest.coverage?.firstPartyResponseCount ??
+              null,
 
-          apiResponseCount:
-            manifest.coverage?.apiResponseCount ??
-            manifest.apiCount ??
-            null,
+            apiResponseCount:
+              manifest.coverage?.apiResponseCount ??
+              manifest.apiCount ??
+              null,
 
-          firstPartyApiCount:
-            manifest.coverage?.firstPartyApiCount ??
-            null,
+            firstPartyApiCount:
+              manifest.coverage?.firstPartyApiCount ??
+              null,
+          },
+
+          surfaceInventory:
+            manifest.surfaceInventory &&
+            typeof manifest.surfaceInventory === "object"
+              ? manifest.surfaceInventory
+              : null,
         };
       } catch {
         // Ignore unreadable historical manifests.
@@ -354,11 +379,17 @@ async function main() {
     "snapshots"
   );
 
-  const previousCoverage =
-    await loadPreviousCoverage(
+  const previousBaseline =
+    await loadPreviousSnapshotBaseline(
       snapshotsRoot,
       stamp
     );
+
+  const previousCoverage =
+    previousBaseline?.coverage || null;
+
+  const previousSurfaceInventory =
+    previousBaseline?.surfaceInventory || null;
 
   const outDir = path.join(
     snapshotsRoot,
@@ -377,6 +408,53 @@ async function main() {
   const captured = [];
   const apiCaptured = [];
   const seen = new Set();
+
+  /*
+   * Runtime Surface Inventory
+   *
+   * Observe every HTTP(S) request independently from the deeper
+   * response-capture filter below.
+   *
+   * Query strings and fragments are intentionally removed before
+   * persistence to avoid storing transient or sensitive parameters.
+   */
+  const surfaceRequests = [];
+  const surfaceSeen = new Set();
+
+  page.on("request", (request) => {
+    try {
+      const normalizedUrl =
+        normalizeSurfaceUrl(request.url());
+
+      if (!normalizedUrl) return;
+
+      const method = request.method();
+      const resourceType = request.resourceType();
+      const source = classifySource(normalizedUrl);
+      const parsed = new URL(normalizedUrl);
+
+      const key =
+        `${method}|${resourceType}|${normalizedUrl}`;
+
+      if (surfaceSeen.has(key)) return;
+
+      surfaceSeen.add(key);
+
+      surfaceRequests.push({
+        url: normalizedUrl,
+        origin: parsed.origin,
+        sourceHost: source.sourceHost,
+        sourceClass: source.sourceClass,
+        method,
+        resourceType,
+      });
+    } catch (error) {
+      console.error(
+        "Error observing runtime surface:",
+        error.message
+      );
+    }
+  });
 
   page.on("response", async (response) => {
     try {
@@ -510,6 +588,142 @@ async function main() {
         .filter(Boolean)
     ),
   ].sort();
+
+  const surfaceHosts = [
+    ...new Set(
+      surfaceRequests
+        .map((entry) => entry.sourceHost)
+        .filter(Boolean)
+    ),
+  ].sort();
+
+  const surfaceOrigins = [
+    ...new Set(
+      surfaceRequests
+        .map((entry) => entry.origin)
+        .filter(Boolean)
+    ),
+  ].sort();
+
+  const surfaceResourceTypes =
+    surfaceRequests.reduce(
+      (counts, entry) => {
+        const type = entry.resourceType || "unknown";
+
+        counts[type] =
+          (counts[type] || 0) + 1;
+
+        return counts;
+      },
+      {}
+    );
+
+  const surfaceInventory = {
+    requestCount: surfaceRequests.length,
+
+    firstPartyRequestCount:
+      surfaceRequests.filter(
+        (entry) => entry.sourceClass === "FIRST_PARTY"
+      ).length,
+
+    thirdPartyRequestCount:
+      surfaceRequests.filter(
+        (entry) => entry.sourceClass === "THIRD_PARTY"
+      ).length,
+
+    unknownRequestCount:
+      surfaceRequests.filter(
+        (entry) => entry.sourceClass === "UNKNOWN"
+      ).length,
+
+    hosts: surfaceHosts,
+    origins: surfaceOrigins,
+    resourceTypes: surfaceResourceTypes,
+    requests: surfaceRequests.slice(0, 1000),
+  };
+
+  const previousSurfaceRequests =
+    Array.isArray(previousSurfaceInventory?.requests)
+      ? previousSurfaceInventory.requests
+      : [];
+
+  const previousSurfaceKeys = new Set(
+    previousSurfaceRequests.map(
+      (entry) =>
+        `${entry.method || ""}|${entry.resourceType || ""}|${entry.url || ""}`
+    )
+  );
+
+  const currentSurfaceKeys = new Set(
+    surfaceRequests.map(
+      (entry) =>
+        `${entry.method || ""}|${entry.resourceType || ""}|${entry.url || ""}`
+    )
+  );
+
+  const newSurfaces = surfaceRequests.filter(
+    (entry) =>
+      !previousSurfaceKeys.has(
+        `${entry.method || ""}|${entry.resourceType || ""}|${entry.url || ""}`
+      )
+  );
+
+  const missingSurfaces = previousSurfaceRequests.filter(
+    (entry) =>
+      !currentSurfaceKeys.has(
+        `${entry.method || ""}|${entry.resourceType || ""}|${entry.url || ""}`
+      )
+  );
+
+  const previousHosts = Array.isArray(previousSurfaceInventory?.hosts)
+    ? previousSurfaceInventory.hosts
+    : [];
+
+  const previousHostSet = new Set(previousHosts);
+  const currentHostSet = new Set(surfaceHosts);
+
+  const newHosts = surfaceHosts.filter(
+    (host) => !previousHostSet.has(host)
+  );
+
+  const missingHosts = previousHosts.filter(
+    (host) => !currentHostSet.has(host)
+  );
+
+  const surfaceComparable =
+    Array.isArray(previousSurfaceInventory?.requests);
+
+  const surfaceDriftDetected =
+    surfaceComparable &&
+    (
+      newSurfaces.length > 0 ||
+      missingSurfaces.length > 0 ||
+      newHosts.length > 0 ||
+      missingHosts.length > 0
+    );
+
+  const surfaceDrift = {
+    comparable: surfaceComparable,
+    baselineSnapshotId:
+      previousBaseline?.snapshotId || null,
+
+    status:
+      !surfaceComparable
+        ? "BASELINE"
+        : surfaceDriftDetected
+          ? "DRIFT"
+          : "STABLE",
+
+    newSurfaceCount: newSurfaces.length,
+    missingSurfaceCount: missingSurfaces.length,
+    newHostCount: newHosts.length,
+    missingHostCount: missingHosts.length,
+
+    newSurfaces: newSurfaces.slice(0, 100),
+    missingSurfaces: missingSurfaces.slice(0, 100),
+    newHosts,
+    missingHosts,
+  };
 
   const coverage = {
     targetUrl: TARGET_URL,
@@ -683,6 +897,8 @@ async function main() {
       pageSignals,
       assetCount: captured.length,
       apiCount: apiCaptured.length,
+      surfaceInventory,
+      surfaceDrift,
       coverage,
     },
     { spaces: 2 }
