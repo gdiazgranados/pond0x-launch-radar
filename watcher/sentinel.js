@@ -1,7 +1,6 @@
 const fs = require("fs-extra");
 const path = require("path");
 const crypto = require("crypto");
-const { execFile } = require("child_process");
 
 const SURFACES = [
   { url: "https://www.pond0x.com", kind: "PUBLIC", label: "home" },
@@ -40,29 +39,6 @@ const SURFACE_PRIORITY = {
 
 function sha256(input) {
   return crypto.createHash("sha256").update(input).digest("hex");
-}
-
-function execNodeScript(scriptName) {
-  return new Promise((resolve, reject) => {
-    execFile(
-      process.execPath,
-      [path.join(__dirname, scriptName)],
-      { cwd: __dirname, env: process.env },
-      (error, stdout, stderr) => {
-        if (stdout) process.stdout.write(stdout);
-        if (stderr) process.stderr.write(stderr);
-
-        if (error) {
-          reject(
-            new Error(`Failed running ${scriptName}\n${stderr || error.message}`)
-          );
-          return;
-        }
-
-        resolve();
-      }
-    );
-  });
 }
 
 async function fetchSurface(url) {
@@ -270,15 +246,6 @@ async function appendSentinelEvent(event) {
   const events = await loadJson(EVENTS_PATH, []);
   const next = [event, ...events].slice(0, 100);
   await saveJson(EVENTS_PATH, next);
-}
-
-async function runDeepPipeline() {
-  console.log("Change detected. Running deep radar pipeline...");
-  await execNodeScript("capture.js");
-  await execNodeScript("radar.js");
-  await execNodeScript("update-history.js");
-  await execNodeScript("notify.js");
-  console.log("Deep radar pipeline completed.");
 }
 
 async function main() {
