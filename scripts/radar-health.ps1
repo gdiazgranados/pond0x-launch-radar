@@ -204,27 +204,27 @@ $surfaceDiscovery =
   $latest.surfaceDiscovery
 
 $surfaceInventory =
-  $surfaceDiscovery?.inventory
+  $surfaceDiscovery.inventory
 
 $surfaceDrift =
-  $surfaceDiscovery?.drift
+  $surfaceDiscovery.drift
 
 $observedSurfaceHosts = @(
-  $surfaceInventory?.hosts |
+  $surfaceInventory.hosts |
     Where-Object {
       -not [string]::IsNullOrWhiteSpace([string]$_)
     }
 )
 
 $newSurfaceHosts = @(
-  $surfaceDrift?.newHosts |
+  $surfaceDrift.newHosts |
     Where-Object {
       -not [string]::IsNullOrWhiteSpace([string]$_)
     }
 )
 
 $missingSurfaceHosts = @(
-  $surfaceDrift?.missingHosts |
+  $surfaceDrift.missingHosts |
     Where-Object {
       -not [string]::IsNullOrWhiteSpace([string]$_)
     }
@@ -232,40 +232,40 @@ $missingSurfaceHosts = @(
 
 [PSCustomObject]@{
   Status =
-    Format-Nullable $surfaceDrift?.status "UNAVAILABLE"
+    Format-Nullable $surfaceDrift.status "UNAVAILABLE"
 
   Comparable =
-    Format-Nullable $surfaceDrift?.comparable
+    Format-Nullable $surfaceDrift.comparable
 
   Baseline =
-    Format-Nullable $surfaceDrift?.baselineSnapshotId
+    Format-Nullable $surfaceDrift.baselineSnapshotId
 
   ObservedRequests =
-    Format-Nullable $surfaceInventory?.requestCount "0"
+    Format-Nullable $surfaceInventory.requestCount "0"
 
   FirstParty =
-    Format-Nullable $surfaceInventory?.firstPartyRequestCount "0"
+    Format-Nullable $surfaceInventory.firstPartyRequestCount "0"
 
   ThirdParty =
-    Format-Nullable $surfaceInventory?.thirdPartyRequestCount "0"
+    Format-Nullable $surfaceInventory.thirdPartyRequestCount "0"
 
   Unknown =
-    Format-Nullable $surfaceInventory?.unknownRequestCount "0"
+    Format-Nullable $surfaceInventory.unknownRequestCount "0"
 
   ObservedHosts =
     $observedSurfaceHosts.Count
 
   NewSurfaces =
-    Format-Nullable $surfaceDrift?.newSurfaceCount "0"
+    Format-Nullable $surfaceDrift.newSurfaceCount "0"
 
   MissingSurfaces =
-    Format-Nullable $surfaceDrift?.missingSurfaceCount "0"
+    Format-Nullable $surfaceDrift.missingSurfaceCount "0"
 
   NewHosts =
-    Format-Nullable $surfaceDrift?.newHostCount "0"
+    Format-Nullable $surfaceDrift.newHostCount "0"
 
   MissingHosts =
-    Format-Nullable $surfaceDrift?.missingHostCount "0"
+    Format-Nullable $surfaceDrift.missingHostCount "0"
 } |
   Format-List
 
