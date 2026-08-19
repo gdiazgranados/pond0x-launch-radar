@@ -4,11 +4,14 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "radar": "node radar.js",
-    "history": "node update-history.js",
-    "alerts": "node notify.js",
+    "sentinel": "node sentinel.js",
     "capture": "node capture.js",
-    "pipeline": "node capture.js && node radar.js && node update-history.js && node notify.js"
+    "discovery": "node discovery.js",
+    "chain": "node chain-intelligence.js",
+    "radar": "node radar.js",
+    "prune": "node prune-snapshots.js",
+    "alerts": "node notify.js",
+    "pipeline:surface": "node capture.js && node discovery.js && node radar.js"
   },
   "keywords": [],
   "author": "",
