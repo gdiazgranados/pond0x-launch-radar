@@ -2,6 +2,9 @@
 const path = require("path");
 const crypto = require("crypto");
 
+const {
+  buildFeatureActivationEvidence,
+} = require("./lib/feature-activation-evidence");
 const { summarizeRadarIntelligence } = require("./radar-intelligence");
 const { computeRadarScore } = require("./lib/scoring-engine");
 const { buildSurfaceDiscovery } = require("./lib/surface-discovery");
@@ -685,172 +688,18 @@ const oldApiData = oldApiFile
 
   const signals = uniqueSortedStrings([...allSignals]);
   const detectedGroups = detectGroups(signals);
-  /*
-   * Feature Activation Evidence
-   *
-   * Preserve feature-surface transitions as observational evidence
-   * without allowing them to influence Radar score, Alpha score or
-   * event classification yet.
-   */
-  const featureSurface =
-    manifest?.featureSurface &&
-    typeof manifest.featureSurface === "object"
-      ? manifest.featureSurface
-      : null;
+  const featureActivationEvidence =
+    buildFeatureActivationEvidence({
+      featureSurface:
+        manifest?.featureSurface ||
+        null,
 
-  const featureSurfaceDrift =
-    manifest?.featureSurfaceDrift &&
-    typeof manifest.featureSurfaceDrift === "object"
-      ? manifest.featureSurfaceDrift
-      : null;
+      featureSurfaceDrift:
+        manifest?.featureSurfaceDrift ||
+        null,
 
-  const featureFlagChanges =
-    ensureArray(featureSurfaceDrift?.flagChanges);
-
-  const featureRouteChanges =
-    ensureArray(featureSurfaceDrift?.routeChanges);
-
-  const unlockedFlags =
-    featureFlagChanges
-      .filter(
-        (change) =>
-          change &&
-          change.previous === true &&
-          change.current === false
-      )
-      .map((change) => change.name)
-      .filter(Boolean);
-
-  const lockedFlags =
-    featureFlagChanges
-      .filter(
-        (change) =>
-          change &&
-          change.previous === false &&
-          change.current === true
-      )
-      .map((change) => change.name)
-      .filter(Boolean);
-
-  const activatedRoutes =
-    featureRouteChanges
-      .filter(
-        (change) =>
-          change &&
-          change.becameReachable === true
-      )
-      .map((change) => ({
-        route: change.route || null,
-        previousStatus:
-          change.previousStatus ?? null,
-        currentStatus:
-          change.currentStatus ?? null,
-      }))
-      .filter((change) => change.route);
-
-  const deactivatedRoutes =
-    featureRouteChanges
-      .filter(
-        (change) =>
-          change &&
-          change.becameUnreachable === true
-      )
-      .map((change) => ({
-        route: change.route || null,
-        previousStatus:
-          change.previousStatus ?? null,
-        currentStatus:
-          change.currentStatus ?? null,
-      }))
-      .filter((change) => change.route);
-
-  const observedDormantRoutes =
-    Object.entries(
-      featureSurface?.routes || {}
-    )
-      .filter(
-        ([, routeState]) =>
-          routeState?.referenced === true &&
-          routeState?.probed === true &&
-          routeState?.ok === false
-      )
-      .map(
-        ([route, routeState]) => ({
-          route,
-          status:
-            routeState.status ?? null,
-          finalUrl:
-            routeState.finalUrl || null,
-        })
-      );
-
-  const featureBuildChanged =
-    featureSurfaceDrift?.buildChanged === true;
-
-  const featureConvergence =
-    unlockedFlags.length > 0 &&
-    activatedRoutes.length > 0;
-
-  const featureActivationCluster =
-    featureBuildChanged &&
-    featureConvergence;
-
-  let featureClassification =
-    "STABLE_FEATURE_SURFACE";
-
-  if (featureActivationCluster) {
-    featureClassification =
-      "FEATURE_ACTIVATION_CANDIDATE";
-  } else if (featureConvergence) {
-    featureClassification =
-      "FEATURE_ACTIVATION_CONVERGENCE";
-  } else if (
-    unlockedFlags.length > 0 ||
-    activatedRoutes.length > 0
-  ) {
-    featureClassification =
-      "FEATURE_SURFACE_TRANSITION";
-  } else if (
-    observedDormantRoutes.length > 0
-  ) {
-    featureClassification =
-      "DORMANT_FEATURE_SURFACE";
-  } else if (!featureSurfaceDrift?.comparable) {
-    featureClassification =
-      "FEATURE_SURFACE_BASELINE";
-  }
-
-  const featureActivationEvidence = {
-    classification:
-      featureClassification,
-
-    comparable:
-      featureSurfaceDrift?.comparable === true,
-
-    buildChanged:
-      featureBuildChanged,
-
-    previousBuildId:
-      featureSurfaceDrift?.previousBuildId ||
-      null,
-
-    currentBuildId:
-      featureSurfaceDrift?.currentBuildId ||
-      featureSurface?.buildId ||
-      null,
-
-    unlockedFlags,
-    lockedFlags,
-    activatedRoutes,
-    deactivatedRoutes,
-    observedDormantRoutes,
-
-    convergence:
-      featureConvergence,
-
-    activationCluster:
-      featureActivationCluster,
-  };
+      ensureArray,
+    });
   const radarScore = computeRadarScore(advancedSignals, existingHistory);
 
   let weightedRawScore = Number(radarScore.score || 0);
@@ -1202,5 +1051,7 @@ main().catch((err) => {
   console.error("Error:", err.message || err);
   process.exit(1);
 });
+
+
 
 
