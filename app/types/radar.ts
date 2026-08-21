@@ -206,6 +206,39 @@ export type RadarData = {
     classification?: "NONE" | "LOOSE" | "CLUSTERED" | "TIGHT_CLUSTER" | string
   }
 
+  featureActivationEvidence?: {
+    classification?: string
+    comparable?: boolean
+
+    buildChanged?: boolean
+    previousBuildId?: string | null
+    currentBuildId?: string | null
+
+    unlockedFlags?: string[]
+    lockedFlags?: string[]
+
+    activatedRoutes?: Array<{
+      route?: string | null
+      previousStatus?: number | null
+      currentStatus?: number | null
+    }>
+
+    deactivatedRoutes?: Array<{
+      route?: string | null
+      previousStatus?: number | null
+      currentStatus?: number | null
+    }>
+
+    observedDormantRoutes?: Array<{
+      route?: string
+      status?: number | null
+      finalUrl?: string | null
+    }>
+
+    convergence?: boolean
+    activationCluster?: boolean
+  }
+
   discovery?: DiscoveryMeta
 
   observability?: {
