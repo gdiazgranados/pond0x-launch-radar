@@ -13,6 +13,7 @@ import { TrendGraph } from "./components/radar/TrendGraph"
 import { useSentinelData } from "./hooks/useSentinelData"
 import { SentinelPanel } from "./components/radar/SentinelPanel"
 import { ChainIntelligencePanel } from "./components/radar/ChainIntelligencePanel"
+import { FeatureActivationPanel } from "./components/radar/FeatureActivationPanel"
 import { evaluateAlpha } from "./lib/alpha"
 import { AlphaPanel } from "./components/AlphaPanel"
 import {
@@ -1045,6 +1046,10 @@ export default function Home() {
               <Gauge label="Movement %" value={uiMovement} tone="emerald" />
             </div>
           </div>
+
+          <FeatureActivationPanel
+            data={current}
+          />
 
           <div className="rounded-3xl border border-white/10 bg-[#05070a] p-4 sm:p-5 xl:col-span-12">
             <SectionTitle
