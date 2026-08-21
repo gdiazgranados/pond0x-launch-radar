@@ -84,9 +84,76 @@ function extractBuildId(text) {
   return null;
 }
 
+async function probeFeatureRoute(
+  baseUrl,
+  route
+) {
+  const url =
+    new URL(
+      route,
+      baseUrl
+    ).toString();
+
+  const controller =
+    new AbortController();
+
+  const timeout =
+    setTimeout(
+      () =>
+        controller.abort(),
+      15000
+    );
+
+  try {
+    const response =
+      await fetch(
+        url,
+        {
+          method: "GET",
+          redirect: "follow",
+          signal:
+            controller.signal,
+          headers: {
+            "user-agent":
+              "Pond0x-Radar/feature-surface",
+          },
+        }
+      );
+
+    return {
+      probed: true,
+      status:
+        response.status,
+      ok:
+        response.ok,
+      finalUrl:
+        response.url ||
+        url,
+      error: null,
+    };
+  } catch (error) {
+    return {
+      probed: true,
+      status: null,
+      ok: false,
+      finalUrl: url,
+      error:
+        error?.name ===
+        "AbortError"
+          ? "TIMEOUT"
+          : String(
+              error?.message ||
+              error
+            ),
+    };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
 async function extractFeatureSurface({
   captured,
   outDir,
+  baseUrl,
 }) {
   const flags = {};
 
@@ -229,6 +296,34 @@ async function extractFeatureSurface({
     }
   }
 
+  /*
+   * Probe only routes already referenced by captured
+   * production bundles. A failed/404 probe is state,
+   * not launch evidence by itself.
+   */
+  if (baseUrl) {
+    for (const route of ROUTE_HINTS) {
+      const routeState =
+        routes[route];
+
+      if (
+        !routeState?.referenced
+      ) {
+        continue;
+      }
+
+      const probeResult =
+        await probeFeatureRoute(
+          baseUrl,
+          route
+        );
+
+      routes[route] = {
+        ...routeState,
+        ...probeResult,
+      };
+    }
+  }
   const observedFlags =
     Object.fromEntries(
       Object.entries(flags)
@@ -364,35 +459,89 @@ function compareFeatureSurface(
     ]);
 
   for (const route of routeNames) {
-    const before =
+    const previousRoute =
+      previous.routes?.[
+        route
+      ] ||
+      null;
+
+    const currentRoute =
+      current.routes?.[
+        route
+      ] ||
+      null;
+
+    const beforeReferenced =
       Boolean(
-        previous.routes?.[
-          route
-        ]?.referenced
+        previousRoute?.referenced
       );
 
-    const after =
+    const afterReferenced =
       Boolean(
-        current.routes?.[
-          route
-        ]?.referenced
+        currentRoute?.referenced
       );
+
+    const referenceChanged =
+      beforeReferenced !==
+      afterReferenced;
+
+    const previousStatus =
+      Number.isInteger(
+        previousRoute?.status
+      )
+        ? previousRoute.status
+        : null;
+
+    const currentStatus =
+      Number.isInteger(
+        currentRoute?.status
+      )
+        ? currentRoute.status
+        : null;
+
+    /*
+     * Only call this a status transition when both snapshots
+     * actually observed an HTTP status. This prevents the first
+     * route-probing snapshot from creating artificial drift.
+     */
+    const statusChanged =
+      previousStatus !== null &&
+      currentStatus !== null &&
+      previousStatus !==
+        currentStatus;
 
     if (
-      before === after
+      !referenceChanged &&
+      !statusChanged
     ) {
       continue;
     }
 
     routeChanges.push({
       route,
+
+      referenceChanged,
+
       previousReferenced:
-        before,
+        beforeReferenced,
+
       currentReferenced:
-        after,
+        afterReferenced,
+
+      statusChanged,
+
+      previousStatus,
+
+      currentStatus,
+
+      becameReachable:
+        previousStatus !== null &&
+        previousStatus >= 400 &&
+        currentStatus !== null &&
+        currentStatus >= 200 &&
+        currentStatus < 400,
     });
   }
-
   const previousBuildId =
     previous.buildId ||
     null;
@@ -438,3 +587,7 @@ module.exports = {
   extractFeatureSurface,
   compareFeatureSurface,
 };
+
+
+
+

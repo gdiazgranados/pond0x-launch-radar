@@ -753,6 +753,8 @@ async function main() {
       captured:
         firstPartyCaptured,
       outDir,
+      baseUrl:
+        TARGET_URL,
     });
 
   const versionApiEntry =
@@ -981,6 +983,7 @@ main().catch((err) => {
   console.error(err);
   process.exit(1);
 });
+
 
 
 
