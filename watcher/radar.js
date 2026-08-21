@@ -1,7 +1,10 @@
-const fs = require("fs-extra");
+﻿const fs = require("fs-extra");
 const path = require("path");
 const crypto = require("crypto");
 
+const {
+  buildFeatureActivationEvidence,
+} = require("./lib/feature-activation-evidence");
 const { summarizeRadarIntelligence } = require("./radar-intelligence");
 const { computeRadarScore } = require("./lib/scoring-engine");
 const { buildSurfaceDiscovery } = require("./lib/surface-discovery");
@@ -685,6 +688,18 @@ const oldApiData = oldApiFile
 
   const signals = uniqueSortedStrings([...allSignals]);
   const detectedGroups = detectGroups(signals);
+  const featureActivationEvidence =
+    buildFeatureActivationEvidence({
+      featureSurface:
+        manifest?.featureSurface ||
+        null,
+
+      featureSurfaceDrift:
+        manifest?.featureSurfaceDrift ||
+        null,
+
+      ensureArray,
+    });
   const radarScore = computeRadarScore(advancedSignals, existingHistory);
 
   let weightedRawScore = Number(radarScore.score || 0);
@@ -958,6 +973,7 @@ const oldApiData = oldApiFile
       discoveryKeywordCount: discoveryCriticalKeywords.length,
       backendSignalCount: uniqueBackendSignals.length,
     },
+    featureActivationEvidence,
     advancedSignals,
 
     evidenceCorrelation,
@@ -1035,3 +1051,7 @@ main().catch((err) => {
   console.error("Error:", err.message || err);
   process.exit(1);
 });
+
+
+
+
