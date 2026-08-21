@@ -1,7 +1,12 @@
-const { chromium } = require("playwright");
+﻿const { chromium } = require("playwright");
 const fs = require("fs-extra");
 const path = require("path");
 const crypto = require("crypto");
+
+const {
+  extractFeatureSurface,
+  compareFeatureSurface,
+} = require("./lib/feature-surface");
 
 const TARGET_URL = "https://www.pond0x.com";
 const TARGET_HOST = new URL(TARGET_URL).hostname;
@@ -359,6 +364,12 @@ async function loadPreviousSnapshotBaseline(
             typeof manifest.surfaceInventory === "object"
               ? manifest.surfaceInventory
               : null,
+
+          featureSurface:
+            manifest.featureSurface &&
+            typeof manifest.featureSurface === "object"
+              ? manifest.featureSurface
+              : null,
         };
       } catch {
         // Ignore unreadable historical manifests.
@@ -390,6 +401,9 @@ async function main() {
 
   const previousSurfaceInventory =
     previousBaseline?.surfaceInventory || null;
+
+  const previousFeatureSurface =
+    previousBaseline?.featureSurface || null;
 
   const outDir = path.join(
     snapshotsRoot,
@@ -725,6 +739,56 @@ async function main() {
     missingHosts,
   };
 
+  /*
+   * Feature Surface Intelligence
+   *
+   * Extract feature flags and dormant route references from the
+   * first-party JavaScript bundles already captured in this snapshot.
+   *
+   * This is observational evidence only. A feature being locked or
+   * referenced does not by itself imply launch readiness.
+   */
+  const featureSurface =
+    await extractFeatureSurface({
+      captured:
+        firstPartyCaptured,
+      outDir,
+    });
+
+  const versionApiEntry =
+    apiCaptured.find(
+      (entry) =>
+        entry.url ===
+        `${TARGET_URL}/api/version`
+    );
+
+  if (
+    versionApiEntry?.bodyPreview
+  ) {
+    try {
+      const versionPayload =
+        JSON.parse(
+          versionApiEntry.bodyPreview
+        );
+
+      if (
+        versionPayload?.buildId
+      ) {
+        featureSurface.buildId =
+          String(
+            versionPayload.buildId
+          );
+      }
+    } catch {
+      // Preserve bundle-derived buildId when API payload is not valid JSON.
+    }
+  }
+
+  const featureSurfaceDrift =
+    compareFeatureSurface(
+      previousFeatureSurface,
+      featureSurface
+    );
   const coverage = {
     targetUrl: TARGET_URL,
     targetHost: TARGET_HOST,
@@ -899,6 +963,8 @@ async function main() {
       apiCount: apiCaptured.length,
       surfaceInventory,
       surfaceDrift,
+      featureSurface,
+      featureSurfaceDrift,
       coverage,
     },
     { spaces: 2 }
@@ -915,3 +981,12 @@ main().catch((err) => {
   console.error(err);
   process.exit(1);
 });
+
+
+
+
+
+
+
+
+
