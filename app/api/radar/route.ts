@@ -68,16 +68,25 @@ function normalizeRadarItem(item: any) {
 
 export async function GET() {
   try {
-    const [latest, history, heartbeat, sentinelState, sentinelEvents, chainIntelligence, chainBaseline] =
-      await Promise.all([
-        loadRemoteJson("latest.json"),
-        loadRemoteJson("history.json"),
-        loadRemoteJson("heartbeat.json"),
-        loadRemoteJson("sentinel-state.json"),
-        loadRemoteJson("sentinel-events.json"),
-        loadRemoteJson("chain-intelligence.json"),
-        loadRemoteJson("chain-baseline.json"),
-      ])
+    const [
+      latest,
+      history,
+      heartbeat,
+      sentinelState,
+      sentinelEvents,
+      chainIntelligence,
+      chainBaseline,
+      rewardRecipients,
+    ] = await Promise.all([
+      loadRemoteJson("latest.json"),
+      loadRemoteJson("history.json"),
+      loadRemoteJson("heartbeat.json"),
+      loadRemoteJson("sentinel-state.json"),
+      loadRemoteJson("sentinel-events.json"),
+      loadRemoteJson("chain-intelligence.json"),
+      loadRemoteJson("chain-baseline.json"),
+      loadRemoteJson("reward-recipients.json"),
+    ])
 
     const normalizedLatest = latest ? normalizeRadarItem(latest) : null
 
@@ -85,14 +94,27 @@ export async function GET() {
       ? history.filter(Boolean).map(normalizeRadarItem)
       : []
 
+    // reward-recipients.json is the canonical persistent recipient ledger.
+    // Merge it into chain intelligence so the existing UI always renders the
+    // freshest ledger even if chain-intelligence.json was published earlier.
+    const mergedChainIntelligence = chainIntelligence
+      ? {
+          ...chainIntelligence,
+          recipientLedger: rewardRecipients || chainIntelligence?.recipientLedger || null,
+        }
+      : rewardRecipients
+        ? { recipientLedger: rewardRecipients }
+        : null
+
     return NextResponse.json({
       latest: normalizedLatest,
       history: normalizedHistory,
       heartbeat,
       sentinelState,
       sentinelEvents,
-      chainIntelligence,
+      chainIntelligence: mergedChainIntelligence,
       chainBaseline,
+      rewardRecipients,
       source: "remote-radar-data",
       fetchedAt: new Date().toISOString(),
     })
