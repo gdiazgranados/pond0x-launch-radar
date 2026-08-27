@@ -2,7 +2,12 @@ name: Pond0x Radar
 
 on:
   schedule:
+    # Primary hourly sweep.
     - cron: "17 * * * *"
+    # Redundant fallback sweep 30 minutes later. GitHub documents that
+    # scheduled Actions can occasionally be delayed or dropped under load;
+    # this gives the radar a second independent trigger opportunity each hour.
+    - cron: "47 * * * *"
   workflow_dispatch:
 
 concurrency:
