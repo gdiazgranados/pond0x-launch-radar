@@ -329,14 +329,39 @@ jobs:
 
           cd /tmp/radar-data
 
+          # Force-copy and force-stage the two canonical freshness files.
+          # This prevents an ignored/stale copy from surviving in radar-data.
+          cp "$GITHUB_WORKSPACE/.publish/data/heartbeat.json" data/heartbeat.json
+          cp "$GITHUB_WORKSPACE/.publish/data/latest.json" data/latest.json
+
           git config user.name "radar-bot"
           git config user.email "bot@radar.ai"
 
           git add data snapshots
+          git add -f data/heartbeat.json data/latest.json
+
+          # Fail closed if the exact files about to be committed differ from
+          # the publish bundle that was already validated above.
+          cmp -s data/heartbeat.json "$GITHUB_WORKSPACE/.publish/data/heartbeat.json" \
+            || { echo "heartbeat mismatch before commit"; exit 1; }
+          cmp -s data/latest.json "$GITHUB_WORKSPACE/.publish/data/latest.json" \
+            || { echo "latest mismatch before commit"; exit 1; }
+
+          echo "Staged freshness files:"
+          git diff --cached -- data/heartbeat.json data/latest.json || true
 
           git commit \
             -m "Auto radar data update" \
             || echo "No changes"
+
+          # Verify the committed tree itself before pushing it.
+          git show HEAD:data/heartbeat.json > /tmp/committed-heartbeat.json
+          git show HEAD:data/latest.json > /tmp/committed-latest.json
+
+          cmp -s /tmp/committed-heartbeat.json "$GITHUB_WORKSPACE/.publish/data/heartbeat.json" \
+            || { echo "committed heartbeat mismatch"; exit 1; }
+          cmp -s /tmp/committed-latest.json "$GITHUB_WORKSPACE/.publish/data/latest.json" \
+            || { echo "committed latest mismatch"; exit 1; }
 
           git push origin HEAD:radar-data
 
