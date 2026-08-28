@@ -1,8 +1,9 @@
 {
-  "version": 2,
-  "generatedAt": "2026-08-28T16:33:00.882Z",
+  "version": 3,
+  "generatedAt": "2026-08-28T17:33:00.986Z",
   "sampleCount": 200,
   "groundTruthEventCount": 4,
+  "exactSweepCount": 1,
   "profiles": {
     "SENSITIVE": {
       "thresholds": {
@@ -22,7 +23,9 @@
       },
       "nonQuietCount": 0,
       "runtimeOrHigherCount": 0,
-      "reconstructibleCount": 0,
+      "exactSweepCount": 1,
+      "reconstructedEvidenceCount": 0,
+      "usableEvidenceCount": 1,
       "groundTruthMetrics": {
         "eventCount": 4,
         "signalCount": 0,
@@ -45,6 +48,7 @@
             "detected": false,
             "matchedSnapshotId": null,
             "matchedState": null,
+            "matchedReplayQuality": null,
             "leadMinutes": null
           },
           {
@@ -54,6 +58,7 @@
             "detected": false,
             "matchedSnapshotId": null,
             "matchedState": null,
+            "matchedReplayQuality": null,
             "leadMinutes": null
           },
           {
@@ -63,6 +68,7 @@
             "detected": false,
             "matchedSnapshotId": null,
             "matchedState": null,
+            "matchedReplayQuality": null,
             "leadMinutes": null
           },
           {
@@ -72,6 +78,7 @@
             "detected": false,
             "matchedSnapshotId": null,
             "matchedState": null,
+            "matchedReplayQuality": null,
             "leadMinutes": null
           }
         ]
@@ -95,7 +102,9 @@
       },
       "nonQuietCount": 0,
       "runtimeOrHigherCount": 0,
-      "reconstructibleCount": 0,
+      "exactSweepCount": 1,
+      "reconstructedEvidenceCount": 0,
+      "usableEvidenceCount": 1,
       "groundTruthMetrics": {
         "eventCount": 4,
         "signalCount": 0,
@@ -118,6 +127,7 @@
             "detected": false,
             "matchedSnapshotId": null,
             "matchedState": null,
+            "matchedReplayQuality": null,
             "leadMinutes": null
           },
           {
@@ -127,6 +137,7 @@
             "detected": false,
             "matchedSnapshotId": null,
             "matchedState": null,
+            "matchedReplayQuality": null,
             "leadMinutes": null
           },
           {
@@ -136,6 +147,7 @@
             "detected": false,
             "matchedSnapshotId": null,
             "matchedState": null,
+            "matchedReplayQuality": null,
             "leadMinutes": null
           },
           {
@@ -145,6 +157,7 @@
             "detected": false,
             "matchedSnapshotId": null,
             "matchedState": null,
+            "matchedReplayQuality": null,
             "leadMinutes": null
           }
         ]
@@ -168,7 +181,9 @@
       },
       "nonQuietCount": 0,
       "runtimeOrHigherCount": 0,
-      "reconstructibleCount": 0,
+      "exactSweepCount": 1,
+      "reconstructedEvidenceCount": 0,
+      "usableEvidenceCount": 1,
       "groundTruthMetrics": {
         "eventCount": 4,
         "signalCount": 0,
@@ -191,6 +206,7 @@
             "detected": false,
             "matchedSnapshotId": null,
             "matchedState": null,
+            "matchedReplayQuality": null,
             "leadMinutes": null
           },
           {
@@ -200,6 +216,7 @@
             "detected": false,
             "matchedSnapshotId": null,
             "matchedState": null,
+            "matchedReplayQuality": null,
             "leadMinutes": null
           },
           {
@@ -209,6 +226,7 @@
             "detected": false,
             "matchedSnapshotId": null,
             "matchedState": null,
+            "matchedReplayQuality": null,
             "leadMinutes": null
           },
           {
@@ -218,6 +236,7 @@
             "detected": false,
             "matchedSnapshotId": null,
             "matchedState": null,
+            "matchedReplayQuality": null,
             "leadMinutes": null
           }
         ]
@@ -230,7 +249,7 @@
     "sensitiveRecallDelta": 0,
     "conservativeRecallDelta": 0
   },
-  "recommendation": "INSUFFICIENT_REPLAY_EVIDENCE_COVERAGE",
+  "recommendation": "ACCUMULATE_EXACT_SWEEP_EVIDENCE",
   "groundTruth": {
     "available": true,
     "scope": "CONFIRMED_EXTERNAL_DISTRIBUTOR_TRANSFERS_ONLY",
@@ -257,6 +276,7 @@
           "detected": false,
           "matchedSnapshotId": null,
           "matchedState": null,
+          "matchedReplayQuality": null,
           "leadMinutes": null
         },
         {
@@ -266,6 +286,7 @@
           "detected": false,
           "matchedSnapshotId": null,
           "matchedState": null,
+          "matchedReplayQuality": null,
           "leadMinutes": null
         },
         {
@@ -275,6 +296,7 @@
           "detected": false,
           "matchedSnapshotId": null,
           "matchedState": null,
+          "matchedReplayQuality": null,
           "leadMinutes": null
         },
         {
@@ -284,11 +306,19 @@
           "detected": false,
           "matchedSnapshotId": null,
           "matchedState": null,
+          "matchedReplayQuality": null,
           "leadMinutes": null
         }
       ]
     },
     "note": "These metrics evaluate whether replayed decision states appeared near confirmed external distributor transfers. They do not measure launch prediction accuracy or reward eligibility."
   },
-  "caution": "Calibration v2 combines exact registered on-chain outcomes with compatibility replay. Precision/recall are coverage-sensitive until richer historical evidence accumulates."
+  "archive": {
+    "available": true,
+    "entryCount": 1,
+    "firstObservedAt": "2026-08-28T17:33:00.830Z",
+    "lastObservedAt": "2026-08-28T17:33:00.830Z",
+    "note": "Exact sweep evidence will gradually replace compatibility reconstruction as the archive grows."
+  },
+  "caution": "Calibration v3 combines exact registered on-chain outcomes, exact sweep evidence, and compatibility replay for older periods. Precision/recall remain coverage-sensitive for events predating the archive."
 }
