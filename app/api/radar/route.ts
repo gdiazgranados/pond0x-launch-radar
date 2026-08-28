@@ -78,6 +78,7 @@ export async function GET() {
       calibrationReport,
       groundTruthEvents,
       historicalEvidenceArchive,
+      thresholdDriftReport,
     ] = await Promise.all([
       loadRemoteJson("latest.json"),
       loadRemoteJson("history.json"),
@@ -97,6 +98,7 @@ export async function GET() {
       loadRemoteJson("calibration-report.json"),
       loadRemoteJson("ground-truth-events.json"),
       loadRemoteJson("historical-evidence-archive.json"),
+      loadRemoteJson("threshold-drift-report.json"),
     ])
 
     const normalizedLatest = latest
@@ -109,8 +111,9 @@ export async function GET() {
           calibrationReport: calibrationReport || null,
           groundTruthEvents: groundTruthEvents || null,
           historicalEvidenceArchive: historicalEvidenceArchive || null,
+          thresholdDriftReport: thresholdDriftReport || null,
         }
-      : routeApiIntelligence || activationTimeline || activationDecision || historicalReplay || calibrationReport || groundTruthEvents || historicalEvidenceArchive
+      : routeApiIntelligence || activationTimeline || activationDecision || historicalReplay || calibrationReport || groundTruthEvents || historicalEvidenceArchive || thresholdDriftReport
         ? {
             routeApiIntelligence: routeApiIntelligence || null,
             activationTimeline: activationTimeline || null,
@@ -119,6 +122,7 @@ export async function GET() {
             calibrationReport: calibrationReport || null,
             groundTruthEvents: groundTruthEvents || null,
             historicalEvidenceArchive: historicalEvidenceArchive || null,
+            thresholdDriftReport: thresholdDriftReport || null,
           }
         : null
 
@@ -158,6 +162,7 @@ export async function GET() {
       calibrationReport,
       groundTruthEvents,
       historicalEvidenceArchive,
+      thresholdDriftReport,
       source: "remote-radar-data",
       fetchedAt: new Date().toISOString(),
     })
