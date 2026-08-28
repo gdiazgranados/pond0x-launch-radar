@@ -27,9 +27,23 @@ function semanticTone(level?: string) {
   }
 }
 
+function timelineTone(classification?: string) {
+  switch (classification) {
+    case "COORDINATED_ACTIVATION_CANDIDATE": return "border-red-500/30 bg-red-500/10 text-red-300"
+    case "ACTIVATION_SEQUENCE": return "border-orange-500/30 bg-orange-500/10 text-orange-300"
+    case "SURFACE_TRANSITION": return "border-amber-500/30 bg-amber-500/10 text-amber-300"
+    case "MULTI_DOMAIN_ACTIVITY": return "border-cyan-500/30 bg-cyan-500/10 text-cyan-300"
+    default: return "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
+  }
+}
+
 function shortHash(value?: string | null) {
   if (!value) return "—"
   return value.length > 16 ? `${value.slice(0, 8)}…${value.slice(-8)}` : value
+}
+
+function shortEventType(value?: string) {
+  return String(value || "UNKNOWN").replaceAll("_", " ")
 }
 
 export function FeatureActivationPanel({ data }: { data?: RadarData | null }) {
@@ -38,6 +52,7 @@ export function FeatureActivationPanel({ data }: { data?: RadarData | null }) {
   const bundleDiff = intelligence?.bundleDiff || null
   const semanticChange = intelligence?.semanticChange || null
   const routeApi = (data as any)?.routeApiIntelligence || null
+  const activationTimeline = (data as any)?.activationTimeline || null
 
   const classification = evidence?.classification || "UNKNOWN"
   const style = getClassificationStyle(classification)
@@ -60,6 +75,8 @@ export function FeatureActivationPanel({ data }: { data?: RadarData | null }) {
   const dormantToLive = Array.isArray(routeApi?.dormantToLive) ? routeApi.dormantToLive : []
   const liveToDormant = Array.isArray(routeApi?.liveToDormant) ? routeApi.liveToDormant : []
   const liveApi = Array.isArray(routeApi?.liveApiRoutes) ? routeApi.liveApiRoutes : []
+  const recentTimelineEvents = Array.isArray(activationTimeline?.recent?.events) ? activationTimeline.recent.events : []
+  const newTimelineEvents = Array.isArray(activationTimeline?.newEvents) ? activationTimeline.newEvents : []
 
   const hasBundleEvidence = bundleDiff?.comparable === true || Number(intelligence?.bundleCount || 0) > 0
 
@@ -67,7 +84,7 @@ export function FeatureActivationPanel({ data }: { data?: RadarData | null }) {
     <div className="rounded-3xl border border-white/10 bg-[#05070a] p-4 sm:p-5 xl:col-span-12">
       <SectionTitle
         title="Feature Activation Intelligence"
-        subtitle="Production feature-state, bundle-diff, semantic-change, and automatic route/API monitoring"
+        subtitle="Production feature-state, bundle-diff, semantic-change, automatic route/API monitoring, and activation timeline"
         right={<span className={`rounded-full border px-3 py-1 text-xs font-medium ${style.badge}`}>{classification}</span>}
       />
 
@@ -104,6 +121,50 @@ export function FeatureActivationPanel({ data }: { data?: RadarData | null }) {
           <div className="rounded-2xl border border-white/10 bg-black/25 p-4"><div className="text-[11px] uppercase tracking-[0.2em] text-slate-500">Activation Cluster</div><div className={`mt-2 text-xl font-semibold ${evidence?.activationCluster ? "text-red-300" : "text-slate-300"}`}>{evidence?.activationCluster ? "YES" : "NO"}</div></div>
         </div>
       </div>
+
+      {activationTimeline && (
+        <div className="mt-4 rounded-2xl border border-orange-500/20 bg-orange-500/[0.03] p-4">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-orange-300">Activation Timeline v2</div>
+              <div className="mt-1 text-xs text-slate-500">Persistent feature-flag history plus dormant → live, semantic, on-chain, distributor, and recipient events in one ordered timeline.</div>
+            </div>
+            <span className={`w-fit rounded-full border px-3 py-1 text-[10px] font-semibold ${timelineTone(activationTimeline.classification)}`}>
+              {String(activationTimeline.classification || "QUIET").replaceAll("_", " ")} · {Number(activationTimeline.score || 0)}/100
+            </span>
+          </div>
+
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            <div className="rounded-xl border border-white/10 bg-black/20 p-3"><div className="text-[10px] uppercase tracking-[0.18em] text-slate-500">Flags Tracked</div><div className="mt-2 text-2xl font-semibold text-white">{Number(activationTimeline?.flagHistory?.observed || 0)}</div></div>
+            <div className="rounded-xl border border-white/10 bg-black/20 p-3"><div className="text-[10px] uppercase tracking-[0.18em] text-slate-500">Flag Transitions</div><div className="mt-2 text-2xl font-semibold text-fuchsia-300">{Number(activationTimeline?.flagHistory?.transitionsThisSweep || 0)}</div></div>
+            <div className="rounded-xl border border-white/10 bg-black/20 p-3"><div className="text-[10px] uppercase tracking-[0.18em] text-slate-500">Dormant → Live</div><div className="mt-2 text-2xl font-semibold text-red-300">{Number(activationTimeline?.dormantActive?.routeTransitionsThisSweep || 0) + Number(activationTimeline?.dormantActive?.apiTransitionsThisSweep || 0)}</div></div>
+            <div className="rounded-xl border border-white/10 bg-black/20 p-3"><div className="text-[10px] uppercase tracking-[0.18em] text-slate-500">Recent Domains</div><div className="mt-2 text-2xl font-semibold text-cyan-300">{Number(activationTimeline?.recent?.domainCount || 0)}</div></div>
+            <div className="rounded-xl border border-white/10 bg-black/20 p-3"><div className="text-[10px] uppercase tracking-[0.18em] text-slate-500">New Events</div><div className="mt-2 text-2xl font-semibold text-orange-300">{newTimelineEvents.length}</div></div>
+          </div>
+
+          {recentTimelineEvents.length > 0 && (
+            <div className="mt-4">
+              <div className="mb-2 text-[10px] uppercase tracking-[0.2em] text-slate-500">Rolling 60-minute sequence</div>
+              <div className="space-y-2">
+                {recentTimelineEvents.slice().reverse().slice(0, 12).map((event: any, index: number) => (
+                  <div key={`${event.id || event.type}-${index}`} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/10 bg-black/20 px-4 py-3">
+                    <div className="min-w-0">
+                      <div className="text-xs font-semibold text-slate-200">{shortEventType(event.type)}</div>
+                      <div className="mt-1 break-all font-mono text-[10px] text-slate-500">{event.subject || event.detail || event.domain}</div>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2 text-[10px]">
+                      <span className="rounded-full border border-cyan-500/20 bg-cyan-500/10 px-2 py-1 text-cyan-300">{event.domain}</span>
+                      <span className="font-mono text-slate-500">{event.seenAt ? new Date(event.seenAt).toLocaleString() : "—"}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="mt-3 text-[11px] leading-5 text-slate-500">{activationTimeline.caution}</div>
+        </div>
+      )}
 
       {routeApi && (
         <div className="mt-4 rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.03] p-4">
@@ -208,7 +269,7 @@ export function FeatureActivationPanel({ data }: { data?: RadarData | null }) {
 
       {!!dormantRoutes.length && <div className="mt-4"><div className="mb-2 text-[11px] uppercase tracking-[0.22em] text-slate-500">Dormant Routes</div><div className="space-y-2">{dormantRoutes.map((route, index) => <div key={`${route.route || "unknown"}-${index}`} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/10 bg-black/20 px-4 py-3"><div className="font-mono text-sm text-slate-200">{route.route || "Unknown route"}</div><div className="flex items-center gap-2"><span className="text-xs text-slate-500">HTTP</span><span className="rounded-full border border-slate-500/20 bg-slate-500/10 px-2 py-1 font-mono text-xs text-slate-300">{route.status ?? "—"}</span></div></div>)}</div></div>}
 
-      <div className="mt-4 rounded-xl border border-white/10 bg-black/20 p-3 text-xs text-slate-500">Route/API, semantic, and bundle-diff evidence is observational. Reachability or code references do not by themselves prove activation, claim readiness, or launch readiness.</div>
+      <div className="mt-4 rounded-xl border border-white/10 bg-black/20 p-3 text-xs text-slate-500">Route/API, timeline, semantic, and bundle-diff evidence is observational. Reachability, temporal proximity, or code references do not by themselves prove activation, claim readiness, causality, or launch readiness.</div>
     </div>
   )
 }
