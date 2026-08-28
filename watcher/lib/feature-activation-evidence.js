@@ -1,5 +1,9 @@
 "use strict";
 
+const {
+  buildSemanticChangeScore,
+} = require("./semantic-change-score");
+
 function buildFeatureActivationEvidence({
   featureSurface = null,
   featureSurfaceDrift = null,
@@ -65,12 +69,17 @@ function buildFeatureActivationEvidence({
     }));
 
   const buildChanged = featureSurfaceDrift?.buildChanged === true;
-
   const bundleChanged =
     bundleDiff?.status === "DRIFT" ||
     ensureArray(bundleDiff?.addedBundles).length > 0 ||
     ensureArray(bundleDiff?.removedBundles).length > 0 ||
     ensureArray(bundleDiff?.changedBundles).length > 0;
+
+  const semanticChange = buildSemanticChangeScore({
+    bundleDiff,
+    flagChanges,
+    routeChanges,
+  });
 
   const convergence = unlockedFlags.length > 0 && activatedRoutes.length > 0;
   const activationCluster = buildChanged && convergence;
@@ -83,6 +92,11 @@ function buildFeatureActivationEvidence({
     classification = "FEATURE_ACTIVATION_CONVERGENCE";
   } else if (unlockedFlags.length > 0 || activatedRoutes.length > 0) {
     classification = "FEATURE_SURFACE_TRANSITION";
+  } else if (
+    semanticChange.classification === "ACTIVATION_RELEVANT_CHANGE" ||
+    semanticChange.classification === "SEMANTICALLY_MEANINGFUL_CHANGE"
+  ) {
+    classification = "BUNDLE_SURFACE_DRIFT";
   } else if (bundleChanged) {
     classification = "BUNDLE_SURFACE_DRIFT";
   } else if (observedDormantRoutes.length > 0) {
@@ -102,6 +116,7 @@ function buildFeatureActivationEvidence({
     bundleCount: Number(featureSurface?.bundleCount || 0),
     bundleChanged,
     bundleDiff,
+    semanticChange,
     unlockedFlags,
     lockedFlags,
     activatedRoutes,
