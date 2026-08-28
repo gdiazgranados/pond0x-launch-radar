@@ -1,5 +1,6 @@
 ﻿const fs = require("fs-extra");
 const path = require("path");
+const crypto = require("crypto");
 
 const FEATURE_FLAG_NAMES = [
   "lockedMining",
@@ -67,9 +68,16 @@ function extractBooleanFlag(text, flagName) {
 }
 
 function extractBuildId(text) {
+  /*
+   * Only accept an explicit buildId assignment.
+   *
+   * The old detector also treated any long numeric useRef("...") value
+   * as a build id. Pond0x currently ships a stable timestamp-like useRef
+   * literal (1786340515953), so that heuristic produced a false, static
+   * build identifier even when the production JS surface changed.
+   */
   const patterns = [
-    /useRef\(["'](\d{8,})["']\)/,
-    /buildId["']?\s*[:=]\s*["']([^"']+)["']/,
+    /["']?buildId["']?\s*[:=]\s*["']([^"']+)["']/i,
   ];
 
   for (const pattern of patterns) {
@@ -82,6 +90,31 @@ function extractBuildId(text) {
   }
 
   return null;
+}
+
+function buildBundleFingerprint(entries) {
+  const rows = entries
+    .filter(
+      (entry) =>
+        entry &&
+        entry.sourceClass === "FIRST_PARTY" &&
+        entry.sha256
+    )
+    .map(
+      (entry) =>
+        `${entry.url || entry.file || "unknown"}:${entry.sha256}`
+    )
+    .sort();
+
+  if (rows.length === 0) {
+    return null;
+  }
+
+  return crypto
+    .createHash("sha256")
+    .update(rows.join("\n"))
+    .digest("hex")
+    .slice(0, 20);
 }
 
 async function probeFeatureRoute(
@@ -177,6 +210,8 @@ async function extractFeatureSurface({
   const buildIds =
     new Map();
 
+  const firstPartyJavaScriptEntries = [];
+
   for (const entry of captured) {
     const contentType =
       String(
@@ -200,6 +235,13 @@ async function extractFeatureSurface({
 
     if (!looksLikeJavaScript) {
       continue;
+    }
+
+    if (
+      entry.sourceClass === "FIRST_PARTY" &&
+      entry.sha256
+    ) {
+      firstPartyJavaScriptEntries.push(entry);
     }
 
     const absolutePath =
@@ -350,13 +392,33 @@ async function extractFeatureSurface({
       })
     );
 
+  const explicitBuildId =
+    buildCandidates[0]
+      ?.value ||
+    null;
+
+  const bundleFingerprint =
+    buildBundleFingerprint(
+      firstPartyJavaScriptEntries
+    );
+
   return {
     buildId:
-      buildCandidates[0]
-        ?.value ||
-      null,
+      explicitBuildId ||
+      (bundleFingerprint
+        ? `bundle:${bundleFingerprint}`
+        : null),
+
+    buildIdSource:
+      explicitBuildId
+        ? "EXPLICIT_BUILD_ID"
+        : bundleFingerprint
+          ? "FIRST_PARTY_JS_FINGERPRINT"
+          : "UNAVAILABLE",
 
     buildCandidates,
+
+    bundleFingerprint,
 
     flags:
       observedFlags,
