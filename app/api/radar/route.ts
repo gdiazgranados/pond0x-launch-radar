@@ -78,6 +78,7 @@ export async function GET() {
       telegramHealth,
       distributorIntelligence,
       routeApiIntelligence,
+      activationTimeline,
     ] = await Promise.all([
       loadRemoteJson("latest.json"),
       loadRemoteJson("history.json"),
@@ -91,15 +92,20 @@ export async function GET() {
       loadRemoteJson("telegram-health.json"),
       loadRemoteJson("distributor-intelligence.json"),
       loadRemoteJson("route-api-intelligence.json"),
+      loadRemoteJson("activation-timeline.json"),
     ])
 
     const normalizedLatest = latest
       ? {
           ...normalizeRadarItem(latest),
           routeApiIntelligence: routeApiIntelligence || null,
+          activationTimeline: activationTimeline || null,
         }
-      : routeApiIntelligence
-        ? { routeApiIntelligence }
+      : routeApiIntelligence || activationTimeline
+        ? {
+            routeApiIntelligence: routeApiIntelligence || null,
+            activationTimeline: activationTimeline || null,
+          }
         : null
 
     const normalizedHistory = Array.isArray(history)
@@ -132,6 +138,7 @@ export async function GET() {
       telegramHealth,
       distributorIntelligence,
       routeApiIntelligence,
+      activationTimeline,
       source: "remote-radar-data",
       fetchedAt: new Date().toISOString(),
     })
