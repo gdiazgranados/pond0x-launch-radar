@@ -18,6 +18,21 @@ function matchTone(v: number) {
   return "text-slate-300"
 }
 
+function distributorTone(state?: string) {
+  switch (String(state || "QUIET")) {
+    case "SURGING":
+      return "border-red-500/30 bg-red-500/10 text-red-300"
+    case "BURSTING":
+      return "border-orange-500/30 bg-orange-500/10 text-orange-300"
+    case "ACTIVE":
+      return "border-yellow-500/30 bg-yellow-500/10 text-yellow-300"
+    case "COOLING":
+      return "border-cyan-500/20 bg-cyan-500/10 text-cyan-300"
+    default:
+      return "border-white/10 bg-white/5 text-slate-300"
+  }
+}
+
 function getWindowState(p: any) {
   const expectedAt = p?.nextFundingExpectedAt
   const halfWidthSeconds = Number(p?.fundingWindowHalfWidthSeconds || 0)
@@ -86,6 +101,7 @@ export function ChainIntelligencePanel({
   const p = chain.predictor || {}
   const m = chain.patternMatch || {}
   const w = chain.windows?.["5m"] || {}
+  const d = chain.distributorIntelligence || {}
 
   const recipientLedger = chain.recipientLedger || {}
   const recipients = Array.isArray(recipientLedger.recipients)
@@ -100,6 +116,13 @@ export function ChainIntelligencePanel({
     p.status === "IN_FUNDING_WINDOW"
 
   const windowState = getWindowState(p)
+  const distributorOneHour = d.windows?.["1h"] || {}
+  const distributorSixHours = d.windows?.["6h"] || {}
+  const distributorTwentyFourHours = d.windows?.["24h"] || {}
+  const recipientMix = d.recipientMix || {}
+  const transferProfile = d.transferProfile || {}
+  const burstInfo = d.bursts || {}
+  const velocity = d.velocity1h || {}
 
   return (
     <section className="mb-5 rounded-3xl border border-cyan-500/20 bg-cyan-950/10 p-4 shadow-[0_0_30px_rgba(34,211,238,0.06)] sm:p-5">
@@ -266,8 +289,7 @@ export function ChainIntelligencePanel({
             Delay similarity {fmt(
               m.components?.rewardTransferDelaySimilarityPct ??
               m.components?.claimDelaySimilarityPct
-)            }% ·
-            proximity {fmt(m.components?.predictorProximityPct)}%
+            )}% · proximity {fmt(m.components?.predictorProximityPct)}%
           </div>
         </div>
 
@@ -275,10 +297,10 @@ export function ChainIntelligencePanel({
           <div className="text-xs text-slate-500">Last 5 Minutes</div>
           <div className="mt-1 text-lg">
             {fmt(w.rewardTransfers ?? w.rewards, 0)} reward transfers · {fmt(w.wpondDistributed)} wPOND
-         </div>
-         <div className="mt-2 text-xs text-slate-500">
-           Chain score {fmt(chain.chainConfirmationScore, 0)}/100
-         </div>
+          </div>
+          <div className="mt-2 text-xs text-slate-500">
+            Chain score {fmt(chain.chainConfirmationScore, 0)}/100
+          </div>
         </div>
 
         <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
@@ -323,6 +345,132 @@ export function ChainIntelligencePanel({
           </div>
         </div>
       </div>
+
+      {d.version && (
+        <div className="mt-3 rounded-2xl border border-fuchsia-500/20 bg-fuchsia-500/[0.04] p-4">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <div className="text-xs font-semibold uppercase tracking-wider text-fuchsia-300">
+                Reward Distributor Intelligence
+              </div>
+              <div className="mt-1 font-mono text-[11px] text-slate-500">
+                {d.distributor || "unknown distributor"}
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-2 text-[10px]">
+              <span className={`rounded-full border px-3 py-1 font-semibold ${distributorTone(d.activityState)}`}>
+                {d.activityState || "QUIET"}
+              </span>
+              <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-slate-300">
+                v{d.version}
+              </span>
+            </div>
+          </div>
+
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-8">
+            <div className="rounded-xl border border-white/10 bg-black/20 p-3">
+              <div className="text-[10px] uppercase tracking-wider text-slate-500">1h Flow</div>
+              <div className="mt-1 text-lg font-semibold text-white">
+                {fmt(distributorOneHour.wpondDistributed)}
+              </div>
+              <div className="text-[11px] text-slate-500">
+                {fmt(distributorOneHour.transfers, 0)} transfers · {fmt(distributorOneHour.uniqueRecipients, 0)} wallets
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-white/10 bg-black/20 p-3">
+              <div className="text-[10px] uppercase tracking-wider text-slate-500">6h Flow</div>
+              <div className="mt-1 text-lg font-semibold text-white">
+                {fmt(distributorSixHours.wpondDistributed)}
+              </div>
+              <div className="text-[11px] text-slate-500">
+                {fmt(distributorSixHours.transfers, 0)} transfers
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-white/10 bg-black/20 p-3">
+              <div className="text-[10px] uppercase tracking-wider text-slate-500">24h Flow</div>
+              <div className="mt-1 text-lg font-semibold text-cyan-300">
+                {fmt(distributorTwentyFourHours.wpondDistributed)}
+              </div>
+              <div className="text-[11px] text-slate-500">
+                {fmt(distributorTwentyFourHours.transfers, 0)} transfers
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-white/10 bg-black/20 p-3">
+              <div className="text-[10px] uppercase tracking-wider text-slate-500">1h Velocity</div>
+              <div className={`mt-1 text-lg font-semibold ${Number(velocity.volumeVelocityPct || 0) > 0 ? "text-emerald-300" : Number(velocity.volumeVelocityPct || 0) < 0 ? "text-red-300" : "text-slate-300"}`}>
+                {Number(velocity.volumeVelocityPct || 0) > 0 ? "+" : ""}{fmt(velocity.volumeVelocityPct)}%
+              </div>
+              <div className="text-[11px] text-slate-500">
+                transfer velocity {Number(velocity.transferVelocityPct || 0) > 0 ? "+" : ""}{fmt(velocity.transferVelocityPct)}%
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-white/10 bg-black/20 p-3">
+              <div className="text-[10px] uppercase tracking-wider text-slate-500">Recipient Mix</div>
+              <div className="mt-1 text-lg font-semibold text-white">
+                {fmt(recipientMix.totalRecipients, 0)}
+              </div>
+              <div className="text-[11px] text-slate-500">
+                {fmt(recipientMix.newRecipients, 0)} new · {fmt(recipientMix.repeatRecipients, 0)} repeat · {fmt(recipientMix.frequentRecipients, 0)} frequent
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-white/10 bg-black/20 p-3">
+              <div className="text-[10px] uppercase tracking-wider text-slate-500">Bursts</div>
+              <div className={`mt-1 text-lg font-semibold ${Number(burstInfo.count || 0) > 0 ? "text-orange-300" : "text-slate-300"}`}>
+                {fmt(burstInfo.count, 0)}
+              </div>
+              <div className="text-[11px] text-slate-500">
+                latest {burstInfo.latest ? `${fmt(burstInfo.latest.transfers, 0)} tx / ${fmt(burstInfo.latest.totalWPOND)} wPOND` : "none"}
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-white/10 bg-black/20 p-3">
+              <div className="text-[10px] uppercase tracking-wider text-slate-500">Median Transfer</div>
+              <div className="mt-1 text-lg font-semibold text-white">
+                {fmt(transferProfile.medianTransfer)}
+              </div>
+              <div className="text-[11px] text-slate-500">
+                largest {fmt(transferProfile.largestTransfer)}
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-white/10 bg-black/20 p-3">
+              <div className="text-[10px] uppercase tracking-wider text-slate-500">Anomalies</div>
+              <div className={`mt-1 text-lg font-semibold ${Number(transferProfile.amountAnomalyCount || 0) > 0 ? "text-red-300" : "text-emerald-300"}`}>
+                {fmt(transferProfile.amountAnomalyCount, 0)}
+              </div>
+              <div className="text-[11px] text-slate-500">
+                amount ≥ 3× median
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-3 flex flex-col gap-2 rounded-xl border border-white/10 bg-black/20 p-3 text-[11px] text-slate-400 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              Last observed transfer: {d.latestTransfer?.time ? when(d.latestTransfer.time) : "—"}
+              {d.lastTransferAgeMinutes !== null && d.lastTransferAgeMinutes !== undefined
+                ? ` · ${fmt(d.lastTransferAgeMinutes)} min ago`
+                : ""}
+            </div>
+            <div className={d.coverage?.sampleLimited ? "text-amber-300" : "text-emerald-300"}>
+              {d.coverage?.sampleLimited
+                ? `Recent sample limited to ${fmt(d.coverage?.analyzedTransferSample, 0)} of ${fmt(d.coverage?.fetchedExternalClaims, 0)} fetched external transfers`
+                : d.coverage?.coverageComplete
+                  ? "24h distributor coverage complete"
+                  : "Distributor coverage incomplete"}
+            </div>
+          </div>
+
+          <div className="mt-3 text-[11px] leading-5 text-slate-500">
+            Observational behavior only. External distributor transfers remain classified as claim candidates and are not automatically asserted to be rewards or claims.
+          </div>
+        </div>
+      )}
 
       <div className="mt-3 rounded-2xl border border-cyan-500/20 bg-black/20 p-4">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
@@ -381,7 +529,7 @@ export function ChainIntelligencePanel({
                           className="text-cyan-300 transition hover:text-cyan-200 hover:underline"
                           title={recipient.wallet}
                         >
-                         {`${recipient.wallet.slice(0, 6)}...${recipient.wallet.slice(-6)}`}
+                          {`${recipient.wallet.slice(0, 6)}...${recipient.wallet.slice(-6)}`}
                         </a>
                       ) : (
                         <span className="text-slate-500">—</span>
@@ -399,16 +547,16 @@ export function ChainIntelligencePanel({
                         }`}
                       >
                         {recipient.frequencyClass || "NEW"}
-                       </span>
-                     </td>
+                      </span>
+                    </td>
 
-                     <td className="py-3 pr-4">
-                       {fmt(recipient.totalWPOND)}
-                     </td>
+                    <td className="py-3 pr-4">
+                      {fmt(recipient.totalWPOND)}
+                    </td>
 
-                     <td className="py-3 pr-4">
-                       {fmt(recipient.transferCount, 0)}
-                     </td>
+                    <td className="py-3 pr-4">
+                      {fmt(recipient.transferCount, 0)}
+                    </td>
 
                     <td className="py-3 pr-4 text-slate-400">
                       {when(recipient.firstSeenAt)}
@@ -431,8 +579,8 @@ export function ChainIntelligencePanel({
                         </a>
                       ) : (
                         <span className="text-slate-500">—</span>
-                     )}
-                   </td>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
