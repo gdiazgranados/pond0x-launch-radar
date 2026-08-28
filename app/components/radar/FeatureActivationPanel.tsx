@@ -37,6 +37,7 @@ export function FeatureActivationPanel({ data }: { data?: RadarData | null }) {
   const intelligence = evidence as any
   const bundleDiff = intelligence?.bundleDiff || null
   const semanticChange = intelligence?.semanticChange || null
+  const routeApi = (data as any)?.routeApiIntelligence || null
 
   const classification = evidence?.classification || "UNKNOWN"
   const style = getClassificationStyle(classification)
@@ -55,6 +56,10 @@ export function FeatureActivationPanel({ data }: { data?: RadarData | null }) {
   const addedFlags = Array.isArray(bundleDiff?.addedFlags) ? bundleDiff.addedFlags : []
   const semanticEvidence = Array.isArray(semanticChange?.highValueEvidence) ? semanticChange.highValueEvidence : []
   const semanticReasons = Array.isArray(semanticChange?.reasons) ? semanticChange.reasons : []
+  const freshSurface = Array.isArray(routeApi?.freshDiscoveries) ? routeApi.freshDiscoveries : []
+  const dormantToLive = Array.isArray(routeApi?.dormantToLive) ? routeApi.dormantToLive : []
+  const liveToDormant = Array.isArray(routeApi?.liveToDormant) ? routeApi.liveToDormant : []
+  const liveApi = Array.isArray(routeApi?.liveApiRoutes) ? routeApi.liveApiRoutes : []
 
   const hasBundleEvidence = bundleDiff?.comparable === true || Number(intelligence?.bundleCount || 0) > 0
 
@@ -62,7 +67,7 @@ export function FeatureActivationPanel({ data }: { data?: RadarData | null }) {
     <div className="rounded-3xl border border-white/10 bg-[#05070a] p-4 sm:p-5 xl:col-span-12">
       <SectionTitle
         title="Feature Activation Intelligence"
-        subtitle="Production feature-state, bundle-diff, semantic-change, and dormant-route monitoring"
+        subtitle="Production feature-state, bundle-diff, semantic-change, and automatic route/API monitoring"
         right={<span className={`rounded-full border px-3 py-1 text-xs font-medium ${style.badge}`}>{classification}</span>}
       />
 
@@ -99,6 +104,53 @@ export function FeatureActivationPanel({ data }: { data?: RadarData | null }) {
           <div className="rounded-2xl border border-white/10 bg-black/25 p-4"><div className="text-[11px] uppercase tracking-[0.2em] text-slate-500">Activation Cluster</div><div className={`mt-2 text-xl font-semibold ${evidence?.activationCluster ? "text-red-300" : "text-slate-300"}`}>{evidence?.activationCluster ? "YES" : "NO"}</div></div>
         </div>
       </div>
+
+      {routeApi && (
+        <div className="mt-4 rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.03] p-4">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-emerald-300">Route + API Discovery v2</div>
+              <div className="mt-1 text-xs text-slate-500">Learns same-origin surfaces from HTML, bundles, and runtime API traffic, then tracks dormant → live transitions.</div>
+            </div>
+            <span className={`w-fit rounded-full border px-3 py-1 text-[10px] font-semibold ${dormantToLive.length ? "border-red-500/30 bg-red-500/10 text-red-300" : "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"}`}>
+              {dormantToLive.length ? `${dormantToLive.length} ACTIVATED` : "NO NEW ACTIVATION"}
+            </span>
+          </div>
+
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            <div className="rounded-xl border border-white/10 bg-black/20 p-3"><div className="text-[10px] uppercase tracking-[0.18em] text-slate-500">Discovered</div><div className="mt-2 text-2xl font-semibold text-white">{Number(routeApi?.discovered?.total || 0)}</div></div>
+            <div className="rounded-xl border border-white/10 bg-black/20 p-3"><div className="text-[10px] uppercase tracking-[0.18em] text-slate-500">Fresh</div><div className="mt-2 text-2xl font-semibold text-cyan-300">{freshSurface.length}</div></div>
+            <div className="rounded-xl border border-white/10 bg-black/20 p-3"><div className="text-[10px] uppercase tracking-[0.18em] text-slate-500">Live APIs</div><div className="mt-2 text-2xl font-semibold text-orange-300">{liveApi.length}</div></div>
+            <div className="rounded-xl border border-white/10 bg-black/20 p-3"><div className="text-[10px] uppercase tracking-[0.18em] text-slate-500">Dormant → Live</div><div className="mt-2 text-2xl font-semibold text-red-300">{dormantToLive.length}</div></div>
+            <div className="rounded-xl border border-white/10 bg-black/20 p-3"><div className="text-[10px] uppercase tracking-[0.18em] text-slate-500">Live → Dormant</div><div className="mt-2 text-2xl font-semibold text-slate-300">{liveToDormant.length}</div></div>
+          </div>
+
+          {dormantToLive.length > 0 && (
+            <div className="mt-4 space-y-2">
+              <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Activated surfaces</div>
+              {dormantToLive.slice(0, 10).map((item: any) => (
+                <div key={`${item.kind}-${item.route}`} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-red-500/20 bg-red-500/[0.04] px-4 py-3">
+                  <div className="font-mono text-xs text-slate-200">{item.route}</div>
+                  <div className="flex gap-2 text-[10px]">
+                    <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-slate-300">{item.kind}</span>
+                    <span className="rounded-full border border-red-500/20 bg-red-500/10 px-2 py-1 text-red-300">HTTP {item.lastStatus ?? "runtime"}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {freshSurface.length > 0 && dormantToLive.length === 0 && (
+            <div className="mt-4 flex flex-wrap gap-2 text-[10px]">
+              {freshSurface.slice(0, 12).map((item: any) => (
+                <span key={`${item.kind}-${item.route}`} className="rounded-full border border-cyan-500/20 bg-cyan-500/10 px-2 py-1 font-mono text-cyan-300">{item.kind} {item.route}</span>
+              ))}
+            </div>
+          )}
+
+          <div className="mt-3 text-[11px] leading-5 text-slate-500">{routeApi.interpretation || "No transition summary available."} API probes use HEAD unless the endpoint was already observed in runtime traffic; dynamic templates are recorded but not actively probed.</div>
+        </div>
+      )}
 
       {semanticChange && (
         <div className="mt-4 rounded-2xl border border-fuchsia-500/20 bg-fuchsia-500/[0.03] p-4">
@@ -156,7 +208,7 @@ export function FeatureActivationPanel({ data }: { data?: RadarData | null }) {
 
       {!!dormantRoutes.length && <div className="mt-4"><div className="mb-2 text-[11px] uppercase tracking-[0.22em] text-slate-500">Dormant Routes</div><div className="space-y-2">{dormantRoutes.map((route, index) => <div key={`${route.route || "unknown"}-${index}`} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/10 bg-black/20 px-4 py-3"><div className="font-mono text-sm text-slate-200">{route.route || "Unknown route"}</div><div className="flex items-center gap-2"><span className="text-xs text-slate-500">HTTP</span><span className="rounded-full border border-slate-500/20 bg-slate-500/10 px-2 py-1 font-mono text-xs text-slate-300">{route.status ?? "—"}</span></div></div>)}</div></div>}
 
-      <div className="mt-4 rounded-xl border border-white/10 bg-black/20 p-3 text-xs text-slate-500">Semantic and bundle-diff evidence is observational. It does not directly affect Radar Score yet; it is designed to distinguish routine frontend churn from changes carrying stronger activation context.</div>
+      <div className="mt-4 rounded-xl border border-white/10 bg-black/20 p-3 text-xs text-slate-500">Route/API, semantic, and bundle-diff evidence is observational. Reachability or code references do not by themselves prove activation, claim readiness, or launch readiness.</div>
     </div>
   )
 }
