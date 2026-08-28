@@ -1,0 +1,77 @@
+{
+  "version": 1,
+  "generatedAt": "2026-08-28T14:32:59.133Z",
+  "sampleCount": 200,
+  "profiles": {
+    "SENSITIVE": {
+      "thresholds": {
+        "criticalActivation": 60,
+        "criticalCorrelation": 55,
+        "criticalConfidence": 78,
+        "criticalDomains": 3,
+        "highCorrelation": 45,
+        "highConfidence": 72,
+        "highDomains": 2,
+        "runtimeConfidence": 65,
+        "structuralSemantic": 25,
+        "strongSemantic": 50
+      },
+      "distribution": {
+        "QUIET": 200
+      },
+      "nonQuietCount": 0,
+      "runtimeOrHigherCount": 0
+    },
+    "DEFAULT": {
+      "thresholds": {
+        "criticalActivation": 70,
+        "criticalCorrelation": 65,
+        "criticalConfidence": 85,
+        "criticalDomains": 4,
+        "highCorrelation": 55,
+        "highConfidence": 80,
+        "highDomains": 3,
+        "runtimeConfidence": 70,
+        "structuralSemantic": 35,
+        "strongSemantic": 60
+      },
+      "distribution": {
+        "QUIET": 200
+      },
+      "nonQuietCount": 0,
+      "runtimeOrHigherCount": 0
+    },
+    "CONSERVATIVE": {
+      "thresholds": {
+        "criticalActivation": 80,
+        "criticalCorrelation": 75,
+        "criticalConfidence": 92,
+        "criticalDomains": 5,
+        "highCorrelation": 65,
+        "highConfidence": 88,
+        "highDomains": 4,
+        "runtimeConfidence": 80,
+        "structuralSemantic": 45,
+        "strongSemantic": 70
+      },
+      "distribution": {
+        "QUIET": 200
+      },
+      "nonQuietCount": 0,
+      "runtimeOrHigherCount": 0
+    }
+  },
+  "comparison": {
+    "sensitiveVsDefaultExtraSignals": 0,
+    "defaultVsConservativeExtraSignals": 0
+  },
+  "recommendation": "KEEP_DEFAULT_UNTIL_GROUND_TRUTH_LABELS",
+  "groundTruth": {
+    "available": false,
+    "precision": null,
+    "recall": null,
+    "falsePositiveRate": null,
+    "note": "Threshold sensitivity can be measured now, but precision/recall and false-positive rate require labeled historical outcomes. The engine will not invent ground truth."
+  },
+  "caution": "Calibration is observational sensitivity analysis, not proof that a threshold predicts a launch or reward event."
+}
