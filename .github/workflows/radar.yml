@@ -1,12 +1,13 @@
 name: Pond0x Radar
 
 on:
-  schedule:
-    # Primary hourly sweep.
-    - cron: "17 * * * *"
-    # Redundant fallback sweep 30 minutes later.
-    - cron: "47 * * * *"
   workflow_dispatch:
+    inputs:
+      trigger_source:
+        description: "Scheduler or operator that started this sweep"
+        required: false
+        default: "external-cron"
+        type: string
 
 concurrency:
   group: pond0x-radar-data-writer
@@ -63,6 +64,12 @@ jobs:
           fi
 
       - name: Write heartbeat start
+        env:
+          RADAR_TRIGGER_SOURCE: ${{ inputs.trigger_source || 'external-cron' }}
+          RADAR_EVENT_NAME: ${{ github.event_name }}
+          RADAR_RUN_ID: ${{ github.run_id }}
+          RADAR_RUN_NUMBER: ${{ github.run_number }}
+          RADAR_ACTOR: ${{ github.actor }}
         run: |
           node -e '
           const fs = require("fs");
@@ -71,7 +78,11 @@ jobs:
           const now = new Date().toISOString();
 
           const data = {
-            source: "github-actions",
+            source: process.env.RADAR_TRIGGER_SOURCE || "external-cron",
+            triggerEvent: process.env.RADAR_EVENT_NAME || "workflow_dispatch",
+            workflowRunId: process.env.RADAR_RUN_ID || null,
+            workflowRunNumber: Number(process.env.RADAR_RUN_NUMBER || 0) || null,
+            actor: process.env.RADAR_ACTOR || null,
             lastRunAt: now,
             lastSuccessAt: null,
             status: "running",
@@ -116,6 +127,12 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
 
       - name: Write heartbeat success
+        env:
+          RADAR_TRIGGER_SOURCE: ${{ inputs.trigger_source || 'external-cron' }}
+          RADAR_EVENT_NAME: ${{ github.event_name }}
+          RADAR_RUN_ID: ${{ github.run_id }}
+          RADAR_RUN_NUMBER: ${{ github.run_number }}
+          RADAR_ACTOR: ${{ github.actor }}
         run: |
           node -e '
           const fs = require("fs");
@@ -124,7 +141,11 @@ jobs:
           const now = new Date().toISOString();
 
           const data = {
-            source: "github-actions",
+            source: process.env.RADAR_TRIGGER_SOURCE || "external-cron",
+            triggerEvent: process.env.RADAR_EVENT_NAME || "workflow_dispatch",
+            workflowRunId: process.env.RADAR_RUN_ID || null,
+            workflowRunNumber: Number(process.env.RADAR_RUN_NUMBER || 0) || null,
+            actor: process.env.RADAR_ACTOR || null,
             lastRunAt: now,
             lastSuccessAt: now,
             status: "success",
