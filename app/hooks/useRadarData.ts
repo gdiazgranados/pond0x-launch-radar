@@ -22,6 +22,8 @@ type RadarApiResponse = {
   meta?: RadarApiSyncMeta
   chainIntelligence?: any
   chainBaseline?: any
+  systemHealth?: any
+  telegramHealth?: any
 }
 
 function apiRadarUrl(cacheBust: number) {
@@ -161,6 +163,8 @@ export function useRadarData() {
 
   const [chainIntelligence, setChainIntelligence] = useState<any>(null)
   const [chainBaseline, setChainBaseline] = useState<any>(null)
+  const [systemHealth, setSystemHealth] = useState<any>(null)
+  const [telegramHealth, setTelegramHealth] = useState<any>(null)
 
   const loadRemoteRadar = useCallback(async (signal?: AbortSignal) => {
     const cacheBust = Date.now()
@@ -254,6 +258,9 @@ export function useRadarData() {
     setChainBaseline(
       json?.chainBaseline || null
     )
+
+    setSystemHealth(json?.systemHealth || null)
+    setTelegramHealth(json?.telegramHealth || null)
   }, [])
 
   const refresh = useCallback(
@@ -368,6 +375,8 @@ export function useRadarData() {
 
     chainIntelligence,
     chainBaseline,
+    systemHealth,
+    telegramHealth,
 
     refresh,
   }
