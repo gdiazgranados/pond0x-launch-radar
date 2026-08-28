@@ -73,10 +73,8 @@ jobs:
         run: |
           node -e '
           const fs = require("fs");
-
           const path = "public/data/heartbeat.json";
           const now = new Date().toISOString();
-
           const data = {
             source: process.env.RADAR_TRIGGER_SOURCE || "external-cron",
             triggerEvent: process.env.RADAR_EVENT_NAME || "workflow_dispatch",
@@ -88,7 +86,6 @@ jobs:
             status: "running",
             scheduleMinutes: 60
           };
-
           fs.mkdirSync("public/data", { recursive: true });
           fs.writeFileSync(path, JSON.stringify(data, null, 2));
           console.log(`Heartbeat started: ${now}`);
@@ -132,6 +129,9 @@ jobs:
       - name: Build activation decision v1
         run: node watcher/activation-decision.js
 
+      - name: Run historical replay and calibration v1
+        run: node watcher/historical-replay.js
+
       - name: Prune old snapshots
         run: node watcher/prune-snapshots.js
 
@@ -151,10 +151,8 @@ jobs:
         run: |
           node -e '
           const fs = require("fs");
-
           const path = "public/data/heartbeat.json";
           const now = new Date().toISOString();
-
           const data = {
             source: process.env.RADAR_TRIGGER_SOURCE || "external-cron",
             triggerEvent: process.env.RADAR_EVENT_NAME || "workflow_dispatch",
@@ -166,7 +164,6 @@ jobs:
             status: "success",
             scheduleMinutes: 60
           };
-
           fs.writeFileSync(path, JSON.stringify(data, null, 2));
           console.log(`Heartbeat success written: ${now}`);
           '
@@ -178,31 +175,17 @@ jobs:
         run: |
           node -e '
           const fs = require("fs");
-
           const heartbeatPath = "public/data/heartbeat.json";
           const latestPath = "public/data/latest.json";
-
           if (!fs.existsSync(heartbeatPath)) throw new Error("heartbeat.json is missing before publish");
           if (!fs.existsSync(latestPath)) throw new Error("latest.json is missing before publish");
-
           const heartbeat = JSON.parse(fs.readFileSync(heartbeatPath, "utf8"));
           const latest = JSON.parse(fs.readFileSync(latestPath, "utf8"));
-
-          if (heartbeat.status !== "success") {
-            throw new Error(`Heartbeat status is not success: ${heartbeat.status}`);
-          }
-
+          if (heartbeat.status !== "success") throw new Error(`Heartbeat status is not success: ${heartbeat.status}`);
           const heartbeatTime = new Date(heartbeat.lastSuccessAt).getTime();
           const latestTime = new Date(latest.generatedAt).getTime();
-
-          if (!Number.isFinite(heartbeatTime) || !Number.isFinite(latestTime)) {
-            throw new Error("Invalid heartbeat or latest timestamp");
-          }
-
-          if (heartbeatTime < latestTime) {
-            throw new Error(`Heartbeat ${heartbeat.lastSuccessAt} is older than latest ${latest.generatedAt}`);
-          }
-
+          if (!Number.isFinite(heartbeatTime) || !Number.isFinite(latestTime)) throw new Error("Invalid heartbeat or latest timestamp");
+          if (heartbeatTime < latestTime) throw new Error(`Heartbeat ${heartbeat.lastSuccessAt} is older than latest ${latest.generatedAt}`);
           console.log(`Heartbeat verified: ${heartbeat.lastSuccessAt}`);
           console.log(`Latest verified: ${latest.generatedAt}`);
           '
@@ -212,9 +195,7 @@ jobs:
           rm -rf .publish
           mkdir -p .publish/data
           mkdir -p .publish/snapshots
-
           cp public/data/*.json .publish/data/
-
           if [ -d snapshots ]; then
             rsync -a --delete snapshots/ .publish/snapshots/
           fi
@@ -223,24 +204,14 @@ jobs:
         run: |
           node -e '
           const fs = require("fs");
-
           const sourcePath = "public/data/heartbeat.json";
           const bundlePath = ".publish/data/heartbeat.json";
-
           if (!fs.existsSync(sourcePath)) throw new Error("Source heartbeat.json is missing");
           if (!fs.existsSync(bundlePath)) throw new Error("Bundled heartbeat.json is missing");
-
           const source = JSON.parse(fs.readFileSync(sourcePath, "utf8"));
           const bundled = JSON.parse(fs.readFileSync(bundlePath, "utf8"));
-
-          if (source.lastSuccessAt !== bundled.lastSuccessAt) {
-            throw new Error(`Heartbeat bundle mismatch: source=${source.lastSuccessAt}, bundled=${bundled.lastSuccessAt}`);
-          }
-
-          if (bundled.status !== "success") {
-            throw new Error(`Bundled heartbeat status is not success: ${bundled.status}`);
-          }
-
+          if (source.lastSuccessAt !== bundled.lastSuccessAt) throw new Error(`Heartbeat bundle mismatch: source=${source.lastSuccessAt}, bundled=${bundled.lastSuccessAt}`);
+          if (bundled.status !== "success") throw new Error(`Bundled heartbeat status is not success: ${bundled.status}`);
           console.log(`Publish heartbeat verified: ${bundled.lastSuccessAt}`);
           '
 
@@ -249,56 +220,35 @@ jobs:
           git fetch origin radar-data || true
           git worktree prune
           rm -rf /tmp/radar-data
-
           if git ls-remote --exit-code --heads origin radar-data; then
             git worktree add /tmp/radar-data origin/radar-data
           else
             git worktree add -b radar-data /tmp/radar-data
           fi
-
           mkdir -p /tmp/radar-data/data
           mkdir -p /tmp/radar-data/snapshots
-
-          # Publish the full current chain state generated by this sweep.
-          # Keep chain-baseline protected because it is produced by backfill.
           rsync -a --delete \
             --exclude='chain-baseline.json' \
             .publish/data/ \
             /tmp/radar-data/data/
-
           rsync -a --delete .publish/snapshots/ /tmp/radar-data/snapshots/
-
           cd /tmp/radar-data
-
           cp "$GITHUB_WORKSPACE/.publish/data/heartbeat.json" data/heartbeat.json
           cp "$GITHUB_WORKSPACE/.publish/data/latest.json" data/latest.json
-
           git config user.name "radar-bot"
           git config user.email "bot@radar.ai"
-
           git add data snapshots
           git add -f data/heartbeat.json data/latest.json
-
-          cmp -s data/heartbeat.json "$GITHUB_WORKSPACE/.publish/data/heartbeat.json" \
-            || { echo "heartbeat mismatch before commit"; exit 1; }
-          cmp -s data/latest.json "$GITHUB_WORKSPACE/.publish/data/latest.json" \
-            || { echo "latest mismatch before commit"; exit 1; }
-
+          cmp -s data/heartbeat.json "$GITHUB_WORKSPACE/.publish/data/heartbeat.json" || { echo "heartbeat mismatch before commit"; exit 1; }
+          cmp -s data/latest.json "$GITHUB_WORKSPACE/.publish/data/latest.json" || { echo "latest mismatch before commit"; exit 1; }
           echo "Staged freshness files:"
           git diff --cached -- data/heartbeat.json data/latest.json || true
-
           git commit -m "Auto radar data update" || echo "No changes"
-
           git show HEAD:data/heartbeat.json > /tmp/committed-heartbeat.json
           git show HEAD:data/latest.json > /tmp/committed-latest.json
-
-          cmp -s /tmp/committed-heartbeat.json "$GITHUB_WORKSPACE/.publish/data/heartbeat.json" \
-            || { echo "committed heartbeat mismatch"; exit 1; }
-          cmp -s /tmp/committed-latest.json "$GITHUB_WORKSPACE/.publish/data/latest.json" \
-            || { echo "committed latest mismatch"; exit 1; }
-
+          cmp -s /tmp/committed-heartbeat.json "$GITHUB_WORKSPACE/.publish/data/heartbeat.json" || { echo "committed heartbeat mismatch"; exit 1; }
+          cmp -s /tmp/committed-latest.json "$GITHUB_WORKSPACE/.publish/data/latest.json" || { echo "committed latest mismatch"; exit 1; }
           git push origin HEAD:radar-data
-
           cd -
           git worktree remove /tmp/radar-data --force || true
           rm -rf /tmp/radar-data || true
