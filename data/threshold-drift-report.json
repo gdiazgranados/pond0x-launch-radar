@@ -1,0 +1,147 @@
+{
+  "version": 1,
+  "generatedAt": "2026-08-28T18:33:00.145Z",
+  "mode": "EXACT_SWEEPS_ONLY",
+  "automaticThresholdChanges": false,
+  "exactSweepCount": 2,
+  "exactCoverage": {
+    "firstObservedAt": "2026-08-28T17:33:00.830Z",
+    "lastObservedAt": "2026-08-28T18:32:59.912Z"
+  },
+  "groundTruth": {
+    "registryEventCount": 4,
+    "coveredByExactArchive": 0
+  },
+  "readiness": {
+    "minExactSweepsForTuning": 72,
+    "minCoveredEventsForTuning": 3,
+    "enoughExactSweeps": false,
+    "enoughCoveredEvents": false,
+    "readyForThresholdReview": false
+  },
+  "profiles": {
+    "SENSITIVE": {
+      "thresholds": {
+        "criticalActivation": 60,
+        "criticalCorrelation": 55,
+        "criticalConfidence": 78,
+        "criticalDomains": 3,
+        "highCorrelation": 45,
+        "highConfidence": 72,
+        "highDomains": 2,
+        "runtimeConfidence": 65,
+        "structuralSemantic": 25,
+        "strongSemantic": 50
+      },
+      "deltaFromDefault": {
+        "criticalActivation": -10,
+        "criticalCorrelation": -10,
+        "criticalConfidence": -7,
+        "criticalDomains": -1,
+        "highCorrelation": -10,
+        "highConfidence": -8,
+        "highDomains": -1,
+        "runtimeConfidence": -5,
+        "structuralSemantic": -10,
+        "strongSemantic": -10
+      },
+      "metrics": {
+        "exactSweepCount": 2,
+        "coveredGroundTruthEvents": 0,
+        "signalCount": 0,
+        "detectedCoveredEvents": 0,
+        "falseSignalCount": 0,
+        "precision": null,
+        "recall": null,
+        "falseSignalRate": 0,
+        "medianLeadMinutes": null,
+        "eventResults": []
+      }
+    },
+    "DEFAULT": {
+      "thresholds": {
+        "criticalActivation": 70,
+        "criticalCorrelation": 65,
+        "criticalConfidence": 85,
+        "criticalDomains": 4,
+        "highCorrelation": 55,
+        "highConfidence": 80,
+        "highDomains": 3,
+        "runtimeConfidence": 70,
+        "structuralSemantic": 35,
+        "strongSemantic": 60
+      },
+      "deltaFromDefault": {
+        "criticalActivation": 0,
+        "criticalCorrelation": 0,
+        "criticalConfidence": 0,
+        "criticalDomains": 0,
+        "highCorrelation": 0,
+        "highConfidence": 0,
+        "highDomains": 0,
+        "runtimeConfidence": 0,
+        "structuralSemantic": 0,
+        "strongSemantic": 0
+      },
+      "metrics": {
+        "exactSweepCount": 2,
+        "coveredGroundTruthEvents": 0,
+        "signalCount": 0,
+        "detectedCoveredEvents": 0,
+        "falseSignalCount": 0,
+        "precision": null,
+        "recall": null,
+        "falseSignalRate": 0,
+        "medianLeadMinutes": null,
+        "eventResults": []
+      }
+    },
+    "CONSERVATIVE": {
+      "thresholds": {
+        "criticalActivation": 80,
+        "criticalCorrelation": 75,
+        "criticalConfidence": 92,
+        "criticalDomains": 5,
+        "highCorrelation": 65,
+        "highConfidence": 88,
+        "highDomains": 4,
+        "runtimeConfidence": 80,
+        "structuralSemantic": 45,
+        "strongSemantic": 70
+      },
+      "deltaFromDefault": {
+        "criticalActivation": 10,
+        "criticalCorrelation": 10,
+        "criticalConfidence": 7,
+        "criticalDomains": 1,
+        "highCorrelation": 10,
+        "highConfidence": 8,
+        "highDomains": 1,
+        "runtimeConfidence": 10,
+        "structuralSemantic": 10,
+        "strongSemantic": 10
+      },
+      "metrics": {
+        "exactSweepCount": 2,
+        "coveredGroundTruthEvents": 0,
+        "signalCount": 0,
+        "detectedCoveredEvents": 0,
+        "falseSignalCount": 0,
+        "precision": null,
+        "recall": null,
+        "falseSignalRate": 0,
+        "medianLeadMinutes": null,
+        "eventResults": []
+      }
+    }
+  },
+  "comparison": {
+    "sensitiveExtraSignalsVsDefault": 0,
+    "conservativeSignalReductionVsDefault": 0,
+    "sensitiveRecallDelta": null,
+    "conservativeRecallDelta": null
+  },
+  "recommendation": "ACCUMULATE_EXACT_SWEEPS",
+  "interpretation": "This report compares threshold profiles using only exact archived sweeps. It never changes live thresholds automatically. Old compatibility-replay rows are excluded from learning metrics.",
+  "caution": "Performance metrics are meaningful only for ground-truth events covered by the exact archive window. Absence of covered events is not evidence that a profile is accurate or inaccurate."
+}
