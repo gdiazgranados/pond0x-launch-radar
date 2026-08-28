@@ -123,6 +123,9 @@ jobs:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
 
+      - name: Build activation timeline v2
+        run: node watcher/activation-timeline.js
+
       - name: Run radar
         run: node watcher/radar.js
 
