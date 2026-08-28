@@ -35,14 +35,12 @@ function clampPercent(value: number) {
 function normalizeScoreToPercent(rawScore: number) {
   const n = Number(rawScore || 0)
   if (!Number.isFinite(n) || n <= 0) return 0
-
   const normalized = Math.log10(n + 1) * 50
   return clampPercent(normalized)
 }
 
 function classifyIntensity(rawScore: number) {
   const n = Number(rawScore || 0)
-
   if (n >= 100) return "EXTREME"
   if (n >= 70) return "VERY HIGH"
   if (n >= 40) return "HIGH"
@@ -52,7 +50,6 @@ function classifyIntensity(rawScore: number) {
 
 function normalizeRadarItem(item: any) {
   const rawScore = Number(item?.rawScore ?? item?.score ?? 0)
-
   return {
     ...item,
     rawScore,
@@ -80,6 +77,7 @@ export async function GET() {
       systemHealth,
       telegramHealth,
       distributorIntelligence,
+      routeApiIntelligence,
     ] = await Promise.all([
       loadRemoteJson("latest.json"),
       loadRemoteJson("history.json"),
@@ -92,17 +90,22 @@ export async function GET() {
       loadRemoteJson("system-health.json"),
       loadRemoteJson("telegram-health.json"),
       loadRemoteJson("distributor-intelligence.json"),
+      loadRemoteJson("route-api-intelligence.json"),
     ])
 
-    const normalizedLatest = latest ? normalizeRadarItem(latest) : null
+    const normalizedLatest = latest
+      ? {
+          ...normalizeRadarItem(latest),
+          routeApiIntelligence: routeApiIntelligence || null,
+        }
+      : routeApiIntelligence
+        ? { routeApiIntelligence }
+        : null
 
     const normalizedHistory = Array.isArray(history)
       ? history.filter(Boolean).map(normalizeRadarItem)
       : []
 
-    // reward-recipients.json is the canonical persistent recipient ledger.
-    // Merge it into chain intelligence so the existing UI always renders the
-    // freshest ledger even if chain-intelligence.json was published earlier.
     const mergedChainIntelligence = chainIntelligence
       ? {
           ...chainIntelligence,
@@ -128,12 +131,12 @@ export async function GET() {
       systemHealth,
       telegramHealth,
       distributorIntelligence,
+      routeApiIntelligence,
       source: "remote-radar-data",
       fetchedAt: new Date().toISOString(),
     })
   } catch (err) {
     console.error("Radar API error:", err)
-
     return NextResponse.json(
       {
         error: "Radar API failed",
