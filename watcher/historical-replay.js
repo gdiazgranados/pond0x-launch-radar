@@ -8,7 +8,11 @@ const PUBLIC_DATA = path.join(__dirname, "..", "public", "data");
 const HISTORY_FILE = path.join(PUBLIC_DATA, "history.json");
 const REPLAY_FILE = path.join(PUBLIC_DATA, "historical-replay.json");
 const CALIBRATION_FILE = path.join(PUBLIC_DATA, "calibration-report.json");
+const GROUND_TRUTH_SOURCE = path.join(__dirname, "ground-truth-events.json");
+const GROUND_TRUTH_OUTPUT = path.join(PUBLIC_DATA, "ground-truth-events.json");
 const MAX_REPLAY = 500;
+const LOOKBACK_MINUTES = 24 * 60;
+const POST_EVENT_GRACE_MINUTES = 60;
 
 const PROFILES = {
   SENSITIVE: {
@@ -43,6 +47,13 @@ async function readJson(file, fallback) {
 }
 function arr(v) { return Array.isArray(v) ? v : []; }
 function bool(v) { return v === true; }
+function pct(numerator, denominator) {
+  if (!denominator) return null;
+  return Math.round((numerator / denominator) * 10000) / 100;
+}
+function minutesBetween(a, b) {
+  return (new Date(b).getTime() - new Date(a).getTime()) / 60000;
+}
 
 function reconstructEvidence(item) {
   const feature = item?.featureActivationEvidence || {};
@@ -130,11 +141,70 @@ function replayProfile(items, profileName, thresholds) {
   });
 }
 
+function evaluateGroundTruth(rows, groundTruthEvents) {
+  const truth = arr(groundTruthEvents).filter((event) => event?.occurredAt);
+  const signals = rows.filter((row) => row.state !== "QUIET" && row.generatedAt);
+  const eventResults = truth.map((event) => {
+    const candidates = signals
+      .map((row) => ({ row, leadMinutes: minutesBetween(row.generatedAt, event.occurredAt) }))
+      .filter(({ leadMinutes }) => leadMinutes >= -POST_EVENT_GRACE_MINUTES && leadMinutes <= LOOKBACK_MINUTES)
+      .sort((a, b) => Math.abs(a.leadMinutes) - Math.abs(b.leadMinutes));
+    const match = candidates[0] || null;
+    return {
+      id: event.id,
+      type: event.type,
+      occurredAt: event.occurredAt,
+      detected: Boolean(match),
+      matchedSnapshotId: match?.row?.snapshotId || null,
+      matchedState: match?.row?.state || null,
+      leadMinutes: match ? Math.round(match.leadMinutes * 100) / 100 : null,
+    };
+  });
+
+  const matchedSignalIds = new Set();
+  for (const signal of signals) {
+    const matched = truth.some((event) => {
+      const lead = minutesBetween(signal.generatedAt, event.occurredAt);
+      return lead >= -POST_EVENT_GRACE_MINUTES && lead <= LOOKBACK_MINUTES;
+    });
+    if (matched) matchedSignalIds.add(signal.snapshotId || signal.generatedAt);
+  }
+
+  const truePositiveSignals = matchedSignalIds.size;
+  const falsePositiveSignals = Math.max(0, signals.length - truePositiveSignals);
+  const detectedEvents = eventResults.filter((event) => event.detected).length;
+  const leadTimes = eventResults.map((event) => event.leadMinutes).filter((value) => Number.isFinite(value) && value >= 0).sort((a, b) => a - b);
+  const medianLeadMinutes = leadTimes.length
+    ? leadTimes.length % 2
+      ? leadTimes[Math.floor(leadTimes.length / 2)]
+      : Math.round(((leadTimes[leadTimes.length / 2 - 1] + leadTimes[leadTimes.length / 2]) / 2) * 100) / 100
+    : null;
+
+  return {
+    eventCount: truth.length,
+    signalCount: signals.length,
+    detectedEvents,
+    missedEvents: Math.max(0, truth.length - detectedEvents),
+    truePositiveSignals,
+    falsePositiveSignals,
+    precision: pct(truePositiveSignals, signals.length),
+    recall: pct(detectedEvents, truth.length),
+    missRate: pct(Math.max(0, truth.length - detectedEvents), truth.length),
+    falsePositiveRate: pct(falsePositiveSignals, rows.length),
+    medianLeadMinutes,
+    lookbackMinutes: LOOKBACK_MINUTES,
+    postEventGraceMinutes: POST_EVENT_GRACE_MINUTES,
+    eventResults,
+  };
+}
+
 async function main() {
   const history = arr(await readJson(HISTORY_FILE, []))
     .filter((item) => item?.generatedAt)
     .sort((a, b) => new Date(a.generatedAt) - new Date(b.generatedAt))
     .slice(-MAX_REPLAY);
+  const groundTruthRegistry = await readJson(GROUND_TRUTH_SOURCE, { version: 1, events: [] });
+  const groundTruthEvents = arr(groundTruthRegistry?.events);
 
   const profiles = {};
   for (const [name, thresholds] of Object.entries(PROFILES)) {
@@ -144,13 +214,15 @@ async function main() {
       distribution: distribution(rows),
       nonQuietCount: rows.filter((r) => r.state !== "QUIET").length,
       runtimeOrHigherCount: rows.filter((r) => ["RUNTIME_ACTIVATION", "HIGH_CONFIDENCE_CONVERGENCE", "CRITICAL_ACTIVATION_CANDIDATE"].includes(r.state)).length,
+      reconstructibleCount: rows.filter((r) => r.replayQuality === "RECONSTRUCTED_FROM_RECORDED_EVIDENCE").length,
+      groundTruthMetrics: evaluateGroundTruth(rows, groundTruthEvents),
       rows,
     };
   }
 
   const defaultRows = profiles.DEFAULT.rows;
   const replay = {
-    version: 1,
+    version: 2,
     generatedAt: new Date().toISOString(),
     sampleCount: history.length,
     firstObservedAt: history[0]?.generatedAt || null,
@@ -161,46 +233,63 @@ async function main() {
       distribution: profiles.DEFAULT.distribution,
       nonQuietCount: profiles.DEFAULT.nonQuietCount,
       runtimeOrHigherCount: profiles.DEFAULT.runtimeOrHigherCount,
+      reconstructibleCount: profiles.DEFAULT.reconstructibleCount,
       maxDecisionStrength: defaultRows.reduce((m, r) => Math.max(m, r.decisionStrength || 0), 0),
     },
+    groundTruth: {
+      registryVersion: groundTruthRegistry?.version || 1,
+      eventCount: groundTruthEvents.length,
+      eventTypes: [...new Set(groundTruthEvents.map((event) => event.type).filter(Boolean))],
+      defaultMetrics: profiles.DEFAULT.groundTruthMetrics,
+    },
     coverage: {
-      mode: "COMPATIBILITY_REPLAY",
+      mode: "COMPATIBILITY_REPLAY_WITH_GROUND_TRUTH",
       exactHistoricalTimelineAvailable: false,
-      note: "Historical entries predate persistent Activation Timeline/Evidence Confidence storage. Replay reconstructs only evidence preserved in history.json; absence of reconstructed evidence is not proof it did not exist at the time.",
+      note: "Ground truth is exact for registered on-chain events, but historical decision evidence is reconstructed only from fields preserved in history.json. A missed replay event may reflect missing historical telemetry rather than a true model miss.",
     },
   };
 
+  const enoughGroundTruth = groundTruthEvents.length >= 3;
+  const enoughReplayEvidence = profiles.DEFAULT.reconstructibleCount >= 12;
   const calibration = {
-    version: 1,
+    version: 2,
     generatedAt: replay.generatedAt,
     sampleCount: history.length,
+    groundTruthEventCount: groundTruthEvents.length,
     profiles: Object.fromEntries(Object.entries(profiles).map(([name, value]) => [name, {
       thresholds: value.thresholds,
       distribution: value.distribution,
       nonQuietCount: value.nonQuietCount,
       runtimeOrHigherCount: value.runtimeOrHigherCount,
+      reconstructibleCount: value.reconstructibleCount,
+      groundTruthMetrics: value.groundTruthMetrics,
     }])),
     comparison: {
       sensitiveVsDefaultExtraSignals: profiles.SENSITIVE.nonQuietCount - profiles.DEFAULT.nonQuietCount,
       defaultVsConservativeExtraSignals: profiles.DEFAULT.nonQuietCount - profiles.CONSERVATIVE.nonQuietCount,
+      sensitiveRecallDelta: profiles.SENSITIVE.groundTruthMetrics.recall == null || profiles.DEFAULT.groundTruthMetrics.recall == null ? null : Math.round((profiles.SENSITIVE.groundTruthMetrics.recall - profiles.DEFAULT.groundTruthMetrics.recall) * 100) / 100,
+      conservativeRecallDelta: profiles.CONSERVATIVE.groundTruthMetrics.recall == null || profiles.DEFAULT.groundTruthMetrics.recall == null ? null : Math.round((profiles.CONSERVATIVE.groundTruthMetrics.recall - profiles.DEFAULT.groundTruthMetrics.recall) * 100) / 100,
     },
-    recommendation: history.length < 24
-      ? "COLLECT_MORE_HISTORY"
-      : "KEEP_DEFAULT_UNTIL_GROUND_TRUTH_LABELS",
+    recommendation: !enoughGroundTruth
+      ? "COLLECT_MORE_GROUND_TRUTH"
+      : !enoughReplayEvidence
+        ? "INSUFFICIENT_REPLAY_EVIDENCE_COVERAGE"
+        : "KEEP_DEFAULT_PENDING_MORE_LABELED_EVENTS",
     groundTruth: {
-      available: false,
-      precision: null,
-      recall: null,
-      falsePositiveRate: null,
-      note: "Threshold sensitivity can be measured now, but precision/recall and false-positive rate require labeled historical outcomes. The engine will not invent ground truth.",
+      available: groundTruthEvents.length > 0,
+      scope: "CONFIRMED_EXTERNAL_DISTRIBUTOR_TRANSFERS_ONLY",
+      eventCount: groundTruthEvents.length,
+      defaultMetrics: profiles.DEFAULT.groundTruthMetrics,
+      note: "These metrics evaluate whether replayed decision states appeared near confirmed external distributor transfers. They do not measure launch prediction accuracy or reward eligibility.",
     },
-    caution: "Calibration is observational sensitivity analysis, not proof that a threshold predicts a launch or reward event.",
+    caution: "Calibration v2 combines exact registered on-chain outcomes with compatibility replay. Precision/recall are coverage-sensitive until richer historical evidence accumulates.",
   };
 
   await fs.ensureDir(PUBLIC_DATA);
   await fs.writeJson(REPLAY_FILE, replay, { spaces: 2 });
   await fs.writeJson(CALIBRATION_FILE, calibration, { spaces: 2 });
-  console.log(`Historical Replay v1 | samples=${history.length} defaultNonQuiet=${profiles.DEFAULT.nonQuietCount} sensitive=${profiles.SENSITIVE.nonQuietCount} conservative=${profiles.CONSERVATIVE.nonQuietCount}`);
+  await fs.writeJson(GROUND_TRUTH_OUTPUT, groundTruthRegistry, { spaces: 2 });
+  console.log(`Historical Replay v2 | samples=${history.length} truth=${groundTruthEvents.length} reconstructible=${profiles.DEFAULT.reconstructibleCount} defaultRecall=${profiles.DEFAULT.groundTruthMetrics.recall}`);
 }
 
 main().catch((error) => {
