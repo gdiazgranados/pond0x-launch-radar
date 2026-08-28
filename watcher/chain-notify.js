@@ -2,6 +2,8 @@ const fs = require("fs-extra");
 const path = require("path");
 require("dotenv").config();
 
+const { buildDistributorBehavior } = require("./lib/distributor-behavior");
+
 const TOKEN = process.env.TELEGRAM_TOKEN;
 const CHAT = process.env.TELEGRAM_CHAT_ID;
 
@@ -9,6 +11,7 @@ const dataDir = path.join(__dirname, "..", "public", "data");
 const chainFile = path.join(dataDir, "chain-intelligence.json");
 const recipientLedgerFile = path.join(dataDir, "reward-recipients.json");
 const stateFile = path.join(dataDir, "chain-notify-state.json");
+const distributorBehaviorFile = path.join(dataDir, "distributor-intelligence.json");
 
 function esc(s) {
   return String(s ?? "")
@@ -63,6 +66,15 @@ async function main() {
   try {
     ledger = await fs.readJson(recipientLedgerFile);
   } catch {}
+
+  const distributorBehavior = buildDistributorBehavior(c, ledger);
+  await fs.writeJson(distributorBehaviorFile, distributorBehavior, { spaces: 2 });
+  console.log(
+    `Distributor Intelligence v${distributorBehavior.version}: ${distributorBehavior.activityState}` +
+      ` | 1h=${distributorBehavior.windows?.["1h"]?.transfers || 0} transfers` +
+      ` | bursts=${distributorBehavior.bursts?.count || 0}` +
+      ` | anomalies=${distributorBehavior.transferProfile?.amountAnomalyCount || 0}`
+  );
 
   let prev = {};
 
@@ -241,6 +253,11 @@ async function main() {
         ledger?.totalTransfers ??
         c?.recipientLedger?.totalTransfers ??
         0
+      ),
+      distributorBehaviorState: distributorBehavior.activityState,
+      distributorBurstCount: Number(distributorBehavior.bursts?.count || 0),
+      distributorAnomalyCount: Number(
+        distributorBehavior.transferProfile?.amountAnomalyCount || 0
       ),
     },
     {
