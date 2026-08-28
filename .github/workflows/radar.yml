@@ -132,6 +132,9 @@ jobs:
       - name: Archive exact sweep evidence v1
         run: node watcher/historical-evidence-archive.js
 
+      - name: Auto-label ground truth and correlate pre-event evidence v1
+        run: node watcher/ground-truth-auto-label.js
+
       - name: Run historical replay and calibration v3
         run: node watcher/historical-replay.js
 
