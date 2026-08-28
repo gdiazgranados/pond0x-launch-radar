@@ -77,6 +77,8 @@ export async function GET() {
       chainIntelligence,
       chainBaseline,
       rewardRecipients,
+      systemHealth,
+      telegramHealth,
     ] = await Promise.all([
       loadRemoteJson("latest.json"),
       loadRemoteJson("history.json"),
@@ -86,6 +88,8 @@ export async function GET() {
       loadRemoteJson("chain-intelligence.json"),
       loadRemoteJson("chain-baseline.json"),
       loadRemoteJson("reward-recipients.json"),
+      loadRemoteJson("system-health.json"),
+      loadRemoteJson("telegram-health.json"),
     ])
 
     const normalizedLatest = latest ? normalizeRadarItem(latest) : null
@@ -115,6 +119,8 @@ export async function GET() {
       chainIntelligence: mergedChainIntelligence,
       chainBaseline,
       rewardRecipients,
+      systemHealth,
+      telegramHealth,
       source: "remote-radar-data",
       fetchedAt: new Date().toISOString(),
     })
