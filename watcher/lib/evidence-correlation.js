@@ -33,26 +33,47 @@ function buildEvidenceCorrelation({
   }
 
   const semanticChange = featureActivationEvidence?.semanticChange || {};
-  const semanticScore = n(semanticChange.score);
+  const semanticProxyScore = Math.min(
+    100,
+    discoveryCriticalKeywords.length * 10 +
+      discoveryNewApiRoutes.length * 12 +
+      discoveryNewLiveApiRoutes.length * 18 +
+      freshBackendSignals.length * 10 +
+      (hasFreshSurfaceMovement ? 8 : 0)
+  );
+  const semanticScore = Math.max(n(semanticChange.score), semanticProxyScore);
   const semanticMaterial =
-    semanticChange.material === true || semanticScore >= 35;
+    semanticChange.material === true ||
+    semanticScore >= 35;
   const activationRelevantSemantic =
     semanticChange.classification === "ACTIVATION_RELEVANT_CHANGE" ||
     semanticScore >= 60;
 
   const recipientLedger = chainIntelligence?.recipientLedger || {};
-  const newExternalTransfers = n(recipientLedger.newTransfersThisSweep);
-  const newExternalRecipients = n(recipientLedger.newRecipientsThisSweep);
-  const externalClaimTransfer = newExternalTransfers > 0;
+  const newExternalTransfers = Math.max(
+    n(recipientLedger.newTransfersThisSweep),
+    n(normalizedOnchain.newExternalTransfers)
+  );
+  const newExternalRecipients = Math.max(
+    n(recipientLedger.newRecipientsThisSweep),
+    n(normalizedOnchain.newExternalRecipients)
+  );
+  const externalClaimTransfer =
+    normalizedOnchain.externalClaimTransfer === true ||
+    newExternalTransfers > 0;
   const newRecipient = newExternalRecipients > 0;
 
   const fundingActive =
+    normalizedOnchain.fundingActive15m === true ||
     chainIntelligence?.fundingStatus?.active15m === true ||
     chainIntelligence?.fundingDetected === true;
 
-  const rewardTransfers5m = n(
-    chainIntelligence?.windows?.["5m"]?.rewardTransfers ??
-      chainIntelligence?.windows?.["5m"]?.rewards
+  const rewardTransfers5m = Math.max(
+    n(normalizedOnchain.rewardTransfers5m),
+    n(
+      chainIntelligence?.windows?.["5m"]?.rewardTransfers ??
+        chainIntelligence?.windows?.["5m"]?.rewards
+    )
   );
   const rewardActivity = rewardTransfers5m > 0;
 
@@ -174,7 +195,17 @@ function buildEvidenceCorrelation({
     componentScores,
     convergenceBonus,
     semanticScore,
-    semanticClassification: semanticChange.classification || null,
+    semanticScoreSource:
+      n(semanticChange.score) >= semanticProxyScore
+        ? "FEATURE_SEMANTIC_ENGINE"
+        : "DISCOVERY_PROXY",
+    semanticClassification:
+      semanticChange.classification ||
+      (semanticScore >= 60
+        ? "ACTIVATION_RELEVANT_PROXY"
+        : semanticScore >= 35
+          ? "SEMANTICALLY_MEANINGFUL_PROXY"
+          : null),
     newExternalTransfers,
     newExternalRecipients,
     classification:
@@ -211,7 +242,7 @@ function buildEvidenceCorrelation({
     "semantic",
     correlationDomains.semantic,
     generatedAt,
-    semanticChange.classification || null
+    semanticChange.classification || evidenceCorrelation.semanticClassification || null
   );
   pushCurrent("webSurface", correlationDomains.webSurface, generatedAt);
   pushCurrent(
@@ -222,6 +253,7 @@ function buildEvidenceCorrelation({
 
   const externalObservedAt =
     recipientLedger.lastObservedAt ||
+    normalizedOnchain.externalClaimLastObservedAt ||
     chainIntelligence?.recentExternalClaims?.[0]?.time ||
     chainIntelligence?.recentExternalClaims?.[0]?.timestamp ||
     generatedAt;
