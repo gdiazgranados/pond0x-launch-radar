@@ -6,7 +6,8 @@ const { buildDecision, DEFAULT_THRESHOLDS, clamp100 } = require("./lib/activatio
 
 const PUBLIC_DATA = path.join(__dirname, "..", "public", "data");
 const ARCHIVE_FILE = path.join(PUBLIC_DATA, "historical-evidence-archive.json");
-const GROUND_TRUTH_SOURCE = path.join(__dirname, "ground-truth-events.json");
+const GROUND_TRUTH_SOURCE = path.join(PUBLIC_DATA, "ground-truth-events.json");
+const GROUND_TRUTH_FALLBACK = path.join(__dirname, "ground-truth-events.json");
 const OUTPUT_FILE = path.join(PUBLIC_DATA, "threshold-drift-report.json");
 const LOOKBACK_MINUTES = 24 * 60;
 const POST_EVENT_GRACE_MINUTES = 60;
@@ -115,7 +116,8 @@ async function main() {
   const archive = await readJson(ARCHIVE_FILE, { entries: [] });
   const entries = arr(archive?.entries).filter((e) => e?.generatedAt && e?.provenance?.mode === "EXACT_SWEEP_ARCHIVE")
     .sort((a, b) => new Date(a.generatedAt) - new Date(b.generatedAt));
-  const registry = await readJson(GROUND_TRUTH_SOURCE, { events: [] });
+  const fallbackRegistry = await readJson(GROUND_TRUTH_FALLBACK, { events: [] });
+  const registry = await readJson(GROUND_TRUTH_SOURCE, fallbackRegistry);
   const truth = arr(registry?.events).filter((e) => e?.occurredAt);
 
   const profiles = {};
@@ -135,6 +137,7 @@ async function main() {
     version: 1,
     generatedAt: new Date().toISOString(),
     mode: "EXACT_SWEEPS_ONLY",
+    groundTruthSource: registry?.autoLabeling?.enabled ? "AUTO_LABELED_RUNTIME_REGISTRY" : "STATIC_FALLBACK_REGISTRY",
     automaticThresholdChanges: false,
     exactSweepCount: entries.length,
     exactCoverage: { firstObservedAt: entries[0]?.generatedAt || null, lastObservedAt: entries.at(-1)?.generatedAt || null },
@@ -154,13 +157,13 @@ async function main() {
       conservativeRecallDelta: profiles.CONSERVATIVE.metrics.recall == null || defaultMetrics.recall == null ? null : Math.round((profiles.CONSERVATIVE.metrics.recall - defaultMetrics.recall) * 100) / 100,
     },
     recommendation,
-    interpretation: "This report compares threshold profiles using only exact archived sweeps. It never changes live thresholds automatically. Old compatibility-replay rows are excluded from learning metrics.",
+    interpretation: "This report compares threshold profiles using only exact archived sweeps and the runtime auto-labeled ground-truth registry when available. It never changes live thresholds automatically. Old compatibility-replay rows are excluded from learning metrics.",
     caution: "Performance metrics are meaningful only for ground-truth events covered by the exact archive window. Absence of covered events is not evidence that a profile is accurate or inaccurate."
   };
 
   await fs.ensureDir(PUBLIC_DATA);
   await fs.writeJson(OUTPUT_FILE, report, { spaces: 2 });
-  console.log(`Calibration Learning v1 | exact=${entries.length} coveredTruth=${defaultMetrics.coveredGroundTruthEvents} recommendation=${recommendation}`);
+  console.log(`Calibration Learning v1 | exact=${entries.length} coveredTruth=${defaultMetrics.coveredGroundTruthEvents} source=${report.groundTruthSource} recommendation=${recommendation}`);
 }
 
 main().catch((error) => {
