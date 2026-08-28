@@ -76,6 +76,7 @@ export async function GET() {
       activationDecision,
       historicalReplay,
       calibrationReport,
+      groundTruthEvents,
     ] = await Promise.all([
       loadRemoteJson("latest.json"),
       loadRemoteJson("history.json"),
@@ -93,6 +94,7 @@ export async function GET() {
       loadRemoteJson("activation-decision.json"),
       loadRemoteJson("historical-replay.json"),
       loadRemoteJson("calibration-report.json"),
+      loadRemoteJson("ground-truth-events.json"),
     ])
 
     const normalizedLatest = latest
@@ -103,14 +105,16 @@ export async function GET() {
           activationDecision: activationDecision || null,
           historicalReplay: historicalReplay || null,
           calibrationReport: calibrationReport || null,
+          groundTruthEvents: groundTruthEvents || null,
         }
-      : routeApiIntelligence || activationTimeline || activationDecision || historicalReplay || calibrationReport
+      : routeApiIntelligence || activationTimeline || activationDecision || historicalReplay || calibrationReport || groundTruthEvents
         ? {
             routeApiIntelligence: routeApiIntelligence || null,
             activationTimeline: activationTimeline || null,
             activationDecision: activationDecision || null,
             historicalReplay: historicalReplay || null,
             calibrationReport: calibrationReport || null,
+            groundTruthEvents: groundTruthEvents || null,
           }
         : null
 
@@ -148,6 +152,7 @@ export async function GET() {
       activationDecision,
       historicalReplay,
       calibrationReport,
+      groundTruthEvents,
       source: "remote-radar-data",
       fetchedAt: new Date().toISOString(),
     })
