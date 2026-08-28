@@ -6,6 +6,7 @@ const { buildDecision, DEFAULT_THRESHOLDS, clamp100 } = require("./lib/activatio
 
 const PUBLIC_DATA = path.join(__dirname, "..", "public", "data");
 const HISTORY_FILE = path.join(PUBLIC_DATA, "history.json");
+const ARCHIVE_FILE = path.join(PUBLIC_DATA, "historical-evidence-archive.json");
 const REPLAY_FILE = path.join(PUBLIC_DATA, "historical-replay.json");
 const CALIBRATION_FILE = path.join(PUBLIC_DATA, "calibration-report.json");
 const GROUND_TRUTH_SOURCE = path.join(__dirname, "ground-truth-events.json");
@@ -119,26 +120,72 @@ function reconstructEvidence(item) {
   };
 }
 
+function exactEvidenceFromArchive(entry) {
+  return {
+    semantic: clamp100(entry?.scores?.semantic),
+    correlation: clamp100(entry?.scores?.correlation),
+    confidence: clamp100(entry?.scores?.evidenceConfidence),
+    activation: clamp100(entry?.scores?.activationTimeline),
+    timeline: {
+      snapshotId: entry?.snapshotId || null,
+      recent: {
+        events: arr(entry?.evidence?.recentEvents),
+        domains: arr(entry?.evidence?.recentDomains),
+        domainCount: Number(entry?.gates?.domainCount || arr(entry?.evidence?.recentDomains).length || 0),
+      },
+      evidenceConfidence: {
+        score: clamp100(entry?.scores?.evidenceConfidence),
+        highConfidenceCount: Number(entry?.gates?.highConfidenceEvidence || 0),
+        strongestEvidence: arr(entry?.evidence?.strongestEvidence),
+      },
+    },
+    replayQuality: "EXACT_SWEEP_ARCHIVE",
+  };
+}
+
 function distribution(rows) {
   return rows.reduce((acc, row) => { acc[row.state] = (acc[row.state] || 0) + 1; return acc; }, {});
 }
 
-function replayProfile(items, profileName, thresholds) {
-  return items.map((item) => {
-    const r = reconstructEvidence(item);
-    const decision = buildDecision({ semantic: r.semantic, correlation: r.correlation, confidence: r.confidence, activation: r.activation, timeline: r.timeline, latest: item, thresholds });
-    return {
-      generatedAt: item?.generatedAt || null,
-      snapshotId: item?.snapshotId || null,
-      state: decision.state,
-      severity: decision.severity,
-      decisionStrength: decision.decisionStrength,
-      scores: decision.scores,
-      gates: decision.gates,
-      replayQuality: r.replayQuality,
-      profile: profileName,
-    };
+function replayRow(item, profileName, thresholds, evidence) {
+  const latestLike = { snapshotId: item?.snapshotId || null };
+  const decision = buildDecision({
+    semantic: evidence.semantic,
+    correlation: evidence.correlation,
+    confidence: evidence.confidence,
+    activation: evidence.activation,
+    timeline: evidence.timeline,
+    latest: latestLike,
+    thresholds,
   });
+
+  return {
+    generatedAt: item?.generatedAt || null,
+    snapshotId: item?.snapshotId || null,
+    state: decision.state,
+    severity: decision.severity,
+    decisionStrength: decision.decisionStrength,
+    scores: decision.scores,
+    gates: decision.gates,
+    replayQuality: evidence.replayQuality,
+    profile: profileName,
+  };
+}
+
+function replayProfile(historyItems, archiveEntries, profileName, thresholds) {
+  const exactSnapshotIds = new Set(arr(archiveEntries).map((entry) => entry?.snapshotId).filter(Boolean));
+  const compatibilityRows = arr(historyItems)
+    .filter((item) => !item?.snapshotId || !exactSnapshotIds.has(item.snapshotId))
+    .map((item) => replayRow(item, profileName, thresholds, reconstructEvidence(item)));
+
+  const exactRows = arr(archiveEntries).map((entry) =>
+    replayRow(entry, profileName, thresholds, exactEvidenceFromArchive(entry))
+  );
+
+  return [...compatibilityRows, ...exactRows]
+    .filter((row) => row.generatedAt)
+    .sort((a, b) => new Date(a.generatedAt) - new Date(b.generatedAt))
+    .slice(-MAX_REPLAY);
 }
 
 function evaluateGroundTruth(rows, groundTruthEvents) {
@@ -157,6 +204,7 @@ function evaluateGroundTruth(rows, groundTruthEvents) {
       detected: Boolean(match),
       matchedSnapshotId: match?.row?.snapshotId || null,
       matchedState: match?.row?.state || null,
+      matchedReplayQuality: match?.row?.replayQuality || null,
       leadMinutes: match ? Math.round(match.leadMinutes * 100) / 100 : null,
     };
   });
@@ -203,18 +251,25 @@ async function main() {
     .filter((item) => item?.generatedAt)
     .sort((a, b) => new Date(a.generatedAt) - new Date(b.generatedAt))
     .slice(-MAX_REPLAY);
+  const archive = await readJson(ARCHIVE_FILE, { entries: [] });
+  const archiveEntries = arr(archive?.entries)
+    .filter((entry) => entry?.generatedAt)
+    .sort((a, b) => new Date(a.generatedAt) - new Date(b.generatedAt))
+    .slice(-MAX_REPLAY);
   const groundTruthRegistry = await readJson(GROUND_TRUTH_SOURCE, { version: 1, events: [] });
   const groundTruthEvents = arr(groundTruthRegistry?.events);
 
   const profiles = {};
   for (const [name, thresholds] of Object.entries(PROFILES)) {
-    const rows = replayProfile(history, name, thresholds);
+    const rows = replayProfile(history, archiveEntries, name, thresholds);
     profiles[name] = {
       thresholds,
       distribution: distribution(rows),
       nonQuietCount: rows.filter((r) => r.state !== "QUIET").length,
       runtimeOrHigherCount: rows.filter((r) => ["RUNTIME_ACTIVATION", "HIGH_CONFIDENCE_CONVERGENCE", "CRITICAL_ACTIVATION_CANDIDATE"].includes(r.state)).length,
-      reconstructibleCount: rows.filter((r) => r.replayQuality === "RECONSTRUCTED_FROM_RECORDED_EVIDENCE").length,
+      exactSweepCount: rows.filter((r) => r.replayQuality === "EXACT_SWEEP_ARCHIVE").length,
+      reconstructedEvidenceCount: rows.filter((r) => r.replayQuality === "RECONSTRUCTED_FROM_RECORDED_EVIDENCE").length,
+      usableEvidenceCount: rows.filter((r) => ["EXACT_SWEEP_ARCHIVE", "RECONSTRUCTED_FROM_RECORDED_EVIDENCE"].includes(r.replayQuality)).length,
       groundTruthMetrics: evaluateGroundTruth(rows, groundTruthEvents),
       rows,
     };
@@ -222,18 +277,22 @@ async function main() {
 
   const defaultRows = profiles.DEFAULT.rows;
   const replay = {
-    version: 2,
+    version: 3,
     generatedAt: new Date().toISOString(),
-    sampleCount: history.length,
-    firstObservedAt: history[0]?.generatedAt || null,
-    lastObservedAt: history.at(-1)?.generatedAt || null,
+    sampleCount: defaultRows.length,
+    historySampleCount: history.length,
+    exactArchiveEntryCount: archiveEntries.length,
+    firstObservedAt: defaultRows[0]?.generatedAt || null,
+    lastObservedAt: defaultRows.at(-1)?.generatedAt || null,
     defaultProfile: "DEFAULT",
     rows: defaultRows,
     summary: {
       distribution: profiles.DEFAULT.distribution,
       nonQuietCount: profiles.DEFAULT.nonQuietCount,
       runtimeOrHigherCount: profiles.DEFAULT.runtimeOrHigherCount,
-      reconstructibleCount: profiles.DEFAULT.reconstructibleCount,
+      exactSweepCount: profiles.DEFAULT.exactSweepCount,
+      reconstructedEvidenceCount: profiles.DEFAULT.reconstructedEvidenceCount,
+      usableEvidenceCount: profiles.DEFAULT.usableEvidenceCount,
       maxDecisionStrength: defaultRows.reduce((m, r) => Math.max(m, r.decisionStrength || 0), 0),
     },
     groundTruth: {
@@ -243,25 +302,29 @@ async function main() {
       defaultMetrics: profiles.DEFAULT.groundTruthMetrics,
     },
     coverage: {
-      mode: "COMPATIBILITY_REPLAY_WITH_GROUND_TRUTH",
-      exactHistoricalTimelineAvailable: false,
-      note: "Ground truth is exact for registered on-chain events, but historical decision evidence is reconstructed only from fields preserved in history.json. A missed replay event may reflect missing historical telemetry rather than a true model miss.",
+      mode: "HYBRID_EXACT_AND_COMPATIBILITY_REPLAY",
+      exactHistoricalTimelineAvailable: archiveEntries.length > 0,
+      exactSweepCount: profiles.DEFAULT.exactSweepCount,
+      note: "New sweeps use exact archived decision evidence. Older periods fall back to compatibility reconstruction from history.json. Ground-truth metrics remain coverage-sensitive for events that predate the exact archive.",
     },
   };
 
   const enoughGroundTruth = groundTruthEvents.length >= 3;
-  const enoughReplayEvidence = profiles.DEFAULT.reconstructibleCount >= 12;
+  const enoughReplayEvidence = profiles.DEFAULT.usableEvidenceCount >= 12;
   const calibration = {
-    version: 2,
+    version: 3,
     generatedAt: replay.generatedAt,
-    sampleCount: history.length,
+    sampleCount: defaultRows.length,
     groundTruthEventCount: groundTruthEvents.length,
+    exactSweepCount: profiles.DEFAULT.exactSweepCount,
     profiles: Object.fromEntries(Object.entries(profiles).map(([name, value]) => [name, {
       thresholds: value.thresholds,
       distribution: value.distribution,
       nonQuietCount: value.nonQuietCount,
       runtimeOrHigherCount: value.runtimeOrHigherCount,
-      reconstructibleCount: value.reconstructibleCount,
+      exactSweepCount: value.exactSweepCount,
+      reconstructedEvidenceCount: value.reconstructedEvidenceCount,
+      usableEvidenceCount: value.usableEvidenceCount,
       groundTruthMetrics: value.groundTruthMetrics,
     }])),
     comparison: {
@@ -273,7 +336,7 @@ async function main() {
     recommendation: !enoughGroundTruth
       ? "COLLECT_MORE_GROUND_TRUTH"
       : !enoughReplayEvidence
-        ? "INSUFFICIENT_REPLAY_EVIDENCE_COVERAGE"
+        ? "ACCUMULATE_EXACT_SWEEP_EVIDENCE"
         : "KEEP_DEFAULT_PENDING_MORE_LABELED_EVENTS",
     groundTruth: {
       available: groundTruthEvents.length > 0,
@@ -282,14 +345,21 @@ async function main() {
       defaultMetrics: profiles.DEFAULT.groundTruthMetrics,
       note: "These metrics evaluate whether replayed decision states appeared near confirmed external distributor transfers. They do not measure launch prediction accuracy or reward eligibility.",
     },
-    caution: "Calibration v2 combines exact registered on-chain outcomes with compatibility replay. Precision/recall are coverage-sensitive until richer historical evidence accumulates.",
+    archive: {
+      available: archiveEntries.length > 0,
+      entryCount: archiveEntries.length,
+      firstObservedAt: archiveEntries[0]?.generatedAt || null,
+      lastObservedAt: archiveEntries.at(-1)?.generatedAt || null,
+      note: "Exact sweep evidence will gradually replace compatibility reconstruction as the archive grows.",
+    },
+    caution: "Calibration v3 combines exact registered on-chain outcomes, exact sweep evidence, and compatibility replay for older periods. Precision/recall remain coverage-sensitive for events predating the archive.",
   };
 
   await fs.ensureDir(PUBLIC_DATA);
   await fs.writeJson(REPLAY_FILE, replay, { spaces: 2 });
   await fs.writeJson(CALIBRATION_FILE, calibration, { spaces: 2 });
   await fs.writeJson(GROUND_TRUTH_OUTPUT, groundTruthRegistry, { spaces: 2 });
-  console.log(`Historical Replay v2 | samples=${history.length} truth=${groundTruthEvents.length} reconstructible=${profiles.DEFAULT.reconstructibleCount} defaultRecall=${profiles.DEFAULT.groundTruthMetrics.recall}`);
+  console.log(`Historical Replay v3 | samples=${defaultRows.length} exact=${profiles.DEFAULT.exactSweepCount} usable=${profiles.DEFAULT.usableEvidenceCount} truth=${groundTruthEvents.length} defaultRecall=${profiles.DEFAULT.groundTruthMetrics.recall}`);
 }
 
 main().catch((error) => {
