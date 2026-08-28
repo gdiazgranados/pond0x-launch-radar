@@ -369,6 +369,10 @@ export type SentinelEvent = {
 
 export type HeartbeatData = {
   source?: string
+  triggerEvent?: string | null
+  workflowRunId?: string | null
+  workflowRunNumber?: number | null
+  actor?: string | null
   lastRunAt?: string | null
   lastSuccessAt?: string | null
   status?: string
