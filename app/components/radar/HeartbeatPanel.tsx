@@ -1,4 +1,8 @@
+"use client"
+
+import { useEffect, useState } from "react"
 import { SectionTitle } from "./SectionTitle"
+import { SystemHealthPanel } from "./SystemHealthPanel"
 import { formatRelativeMinutes } from "../../lib/date"
 
 type HeartbeatTone = {
@@ -36,77 +40,121 @@ export function HeartbeatPanel({
   source,
   freshnessDate,
 }: HeartbeatPanelProps) {
+  const [systemHealth, setSystemHealth] = useState<any>(null)
+  const [telegramHealth, setTelegramHealth] = useState<any>(null)
+
   const isOverdue = nextSweepCountdown === "overdue"
   const isAwaitingRunner =
     isOverdue && heartbeat.label === "FRESH"
 
+  useEffect(() => {
+    let active = true
+
+    async function loadHealth() {
+      try {
+        const response = await fetch(`/api/radar?health=${Date.now()}`, {
+          cache: "no-store",
+          headers: {
+            "Cache-Control": "no-cache",
+            Pragma: "no-cache",
+          },
+        })
+
+        if (!response.ok) return
+        const json = await response.json()
+
+        if (active) {
+          setSystemHealth(json?.systemHealth || null)
+          setTelegramHealth(json?.telegramHealth || null)
+        }
+      } catch {
+        // Keep the last known health telemetry visible if a refresh fails.
+      }
+    }
+
+    loadHealth()
+    const interval = setInterval(loadHealth, 60_000)
+
+    return () => {
+      active = false
+      clearInterval(interval)
+    }
+  }, [])
+
   return (
-    <div className="rounded-2xl border border-white/10 bg-[#05070a] p-5">
-      <SectionTitle
-        title="Radar Heartbeat"
-        subtitle="Monitoring freshness and expected sweep timing"
-      />
+    <div className="space-y-4">
+      <div className="rounded-2xl border border-white/10 bg-[#05070a] p-5">
+        <SectionTitle
+          title="Radar Heartbeat"
+          subtitle="Monitoring freshness and expected sweep timing"
+        />
 
-      <div className="flex items-center gap-3">
-        <span className={`h-3 w-3 rounded-full ${heartbeat.dot}`} />
-        <div className={`text-2xl font-semibold ${heartbeat.tone}`}>{heartbeat.label}</div>
-        <span
-          className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${heartbeat.badge}`}
-        >
-          {heartbeat.label === "FRESH"
-            ? "within schedule"
-            : heartbeat.label === "LAGGING"
-              ? "delayed sweep"
-              : heartbeat.label === "STALE"
-                ? "active monitor"
-                : "no signal"}
-        </span>
-      </div>
-
-      <div className="mt-4 grid gap-3 sm:grid-cols-2">
-        <div className="rounded-xl border border-white/10 bg-black/20 p-4">
-          <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">
-            Next expected sweep
-          </div>
-          <div className="mt-2 text-sm font-medium text-white">{formatMexicoCityDate(nextPollAt)}</div>
-          <div
-            className={`mt-2 text-xs ${
-              isOverdue && !isAwaitingRunner
-                ? "animate-pulse text-yellow-400"
-                : "text-slate-500"
-            }`}
+        <div className="flex items-center gap-3">
+          <span className={`h-3 w-3 rounded-full ${heartbeat.dot}`} />
+          <div className={`text-2xl font-semibold ${heartbeat.tone}`}>{heartbeat.label}</div>
+          <span
+            className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${heartbeat.badge}`}
           >
-            {isAwaitingRunner
-              ? "Awaiting scheduled runner"
-              : isOverdue
-                ? "Next sweep overdue"
-                : `Next sweep in: ${nextSweepCountdown ?? "—"}`}
-          </div>
+            {heartbeat.label === "FRESH"
+              ? "within schedule"
+              : heartbeat.label === "LAGGING"
+                ? "delayed sweep"
+                : heartbeat.label === "STALE"
+                  ? "active monitor"
+                  : "no signal"}
+          </span>
         </div>
 
-        <div className="rounded-xl border border-white/10 bg-black/20 p-4">
-          <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">
-            Last success
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <div className="rounded-xl border border-white/10 bg-black/20 p-4">
+            <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">
+              Next expected sweep
+            </div>
+            <div className="mt-2 text-sm font-medium text-white">{formatMexicoCityDate(nextPollAt)}</div>
+            <div
+              className={`mt-2 text-xs ${
+                isOverdue && !isAwaitingRunner
+                  ? "animate-pulse text-yellow-400"
+                  : "text-slate-500"
+              }`}
+            >
+              {isAwaitingRunner
+                ? "Awaiting external scheduler"
+                : isOverdue
+                  ? "Next sweep overdue"
+                  : `Next sweep in: ${nextSweepCountdown ?? "—"}`}
+            </div>
           </div>
-          <div className="mt-2 text-sm font-medium text-white">
-            {formatMexicoCityDate(previousPollAt)}
-          </div>
-        </div>
 
-        <div className="rounded-xl border border-white/10 bg-black/20 p-4">
-          <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">Freshness</div>
-          <div className="mt-2 text-sm font-medium text-white">
-            {formatRelativeMinutes(freshnessDate)}
+          <div className="rounded-xl border border-white/10 bg-black/20 p-4">
+            <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">
+              Last success
+            </div>
+            <div className="mt-2 text-sm font-medium text-white">
+              {formatMexicoCityDate(previousPollAt)}
+            </div>
           </div>
-        </div>
 
-        <div className="rounded-xl border border-white/10 bg-black/20 p-4">
-          <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">Source</div>
-          <div className="mt-2 break-words text-sm font-medium text-cyan-300">
-            {source || "github-actions"}
+          <div className="rounded-xl border border-white/10 bg-black/20 p-4">
+            <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">Freshness</div>
+            <div className="mt-2 text-sm font-medium text-white">
+              {formatRelativeMinutes(freshnessDate)}
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-white/10 bg-black/20 p-4">
+            <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">Source</div>
+            <div className="mt-2 break-words text-sm font-medium text-cyan-300">
+              {source || "external-cron"}
+            </div>
           </div>
         </div>
       </div>
+
+      <SystemHealthPanel
+        systemHealth={systemHealth}
+        telegramHealth={telegramHealth}
+      />
     </div>
   )
 }
