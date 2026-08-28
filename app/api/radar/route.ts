@@ -11,14 +11,8 @@ function remoteJsonUrl(file: string) {
 
 async function loadRemoteJson(file: string) {
   try {
-    const res = await fetch(remoteJsonUrl(file), {
-      cache: "no-store",
-    })
-
-    if (!res.ok) {
-      throw new Error(`${file} failed (${res.status})`)
-    }
-
+    const res = await fetch(remoteJsonUrl(file), { cache: "no-store" })
+    if (!res.ok) throw new Error(`${file} failed (${res.status})`)
     return await res.json()
   } catch (err) {
     console.error(`Error loading ${file}:`, err)
@@ -79,6 +73,7 @@ export async function GET() {
       distributorIntelligence,
       routeApiIntelligence,
       activationTimeline,
+      activationDecision,
     ] = await Promise.all([
       loadRemoteJson("latest.json"),
       loadRemoteJson("history.json"),
@@ -93,6 +88,7 @@ export async function GET() {
       loadRemoteJson("distributor-intelligence.json"),
       loadRemoteJson("route-api-intelligence.json"),
       loadRemoteJson("activation-timeline.json"),
+      loadRemoteJson("activation-decision.json"),
     ])
 
     const normalizedLatest = latest
@@ -100,11 +96,13 @@ export async function GET() {
           ...normalizeRadarItem(latest),
           routeApiIntelligence: routeApiIntelligence || null,
           activationTimeline: activationTimeline || null,
+          activationDecision: activationDecision || null,
         }
-      : routeApiIntelligence || activationTimeline
+      : routeApiIntelligence || activationTimeline || activationDecision
         ? {
             routeApiIntelligence: routeApiIntelligence || null,
             activationTimeline: activationTimeline || null,
+            activationDecision: activationDecision || null,
           }
         : null
 
@@ -139,6 +137,7 @@ export async function GET() {
       distributorIntelligence,
       routeApiIntelligence,
       activationTimeline,
+      activationDecision,
       source: "remote-radar-data",
       fetchedAt: new Date().toISOString(),
     })
