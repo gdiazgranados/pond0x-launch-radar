@@ -79,6 +79,7 @@ export async function GET() {
       rewardRecipients,
       systemHealth,
       telegramHealth,
+      distributorIntelligence,
     ] = await Promise.all([
       loadRemoteJson("latest.json"),
       loadRemoteJson("history.json"),
@@ -90,6 +91,7 @@ export async function GET() {
       loadRemoteJson("reward-recipients.json"),
       loadRemoteJson("system-health.json"),
       loadRemoteJson("telegram-health.json"),
+      loadRemoteJson("distributor-intelligence.json"),
     ])
 
     const normalizedLatest = latest ? normalizeRadarItem(latest) : null
@@ -105,9 +107,13 @@ export async function GET() {
       ? {
           ...chainIntelligence,
           recipientLedger: rewardRecipients || chainIntelligence?.recipientLedger || null,
+          distributorIntelligence: distributorIntelligence || null,
         }
-      : rewardRecipients
-        ? { recipientLedger: rewardRecipients }
+      : rewardRecipients || distributorIntelligence
+        ? {
+            recipientLedger: rewardRecipients || null,
+            distributorIntelligence: distributorIntelligence || null,
+          }
         : null
 
     return NextResponse.json({
@@ -121,6 +127,7 @@ export async function GET() {
       rewardRecipients,
       systemHealth,
       telegramHealth,
+      distributorIntelligence,
       source: "remote-radar-data",
       fetchedAt: new Date().toISOString(),
     })
