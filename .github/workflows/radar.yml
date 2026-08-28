@@ -47,16 +47,12 @@ jobs:
       - name: Restore previous state from radar-data
         run: |
           git fetch origin radar-data || true
-
           if git ls-remote --exit-code --heads origin radar-data; then
             git worktree prune
             rm -rf /tmp/radar-restore
-
             git worktree add /tmp/radar-restore origin/radar-data
-
             cp -R /tmp/radar-restore/data/. public/data/ 2>/dev/null || true
             cp -R /tmp/radar-restore/snapshots/. snapshots/ 2>/dev/null || true
-
             git worktree remove /tmp/radar-restore --force || true
             rm -rf /tmp/radar-restore || true
           else
@@ -73,77 +69,51 @@ jobs:
         run: |
           node -e '
           const fs = require("fs");
-          const path = "public/data/heartbeat.json";
           const now = new Date().toISOString();
-          const data = {
-            source: process.env.RADAR_TRIGGER_SOURCE || "external-cron",
-            triggerEvent: process.env.RADAR_EVENT_NAME || "workflow_dispatch",
-            workflowRunId: process.env.RADAR_RUN_ID || null,
-            workflowRunNumber: Number(process.env.RADAR_RUN_NUMBER || 0) || null,
-            actor: process.env.RADAR_ACTOR || null,
-            lastRunAt: now,
-            lastSuccessAt: null,
-            status: "running",
-            scheduleMinutes: 60
-          };
+          const data = { source: process.env.RADAR_TRIGGER_SOURCE || "external-cron", triggerEvent: process.env.RADAR_EVENT_NAME || "workflow_dispatch", workflowRunId: process.env.RADAR_RUN_ID || null, workflowRunNumber: Number(process.env.RADAR_RUN_NUMBER || 0) || null, actor: process.env.RADAR_ACTOR || null, lastRunAt: now, lastSuccessAt: null, status: "running", scheduleMinutes: 60 };
           fs.mkdirSync("public/data", { recursive: true });
-          fs.writeFileSync(path, JSON.stringify(data, null, 2));
+          fs.writeFileSync("public/data/heartbeat.json", JSON.stringify(data, null, 2));
           console.log(`Heartbeat started: ${now}`);
           '
 
       - name: Run sentinel
         run: node watcher/sentinel.js
-
       - name: Run capture
         run: node watcher/capture.js
-
       - name: Run discovery
         run: node watcher/discovery.js
-
       - name: Run route and API discovery v2
         run: node watcher/route-api-discovery.js
-
       - name: Run chain intelligence
         run: node watcher/chain-intelligence.js
         env:
           HELIUS_API_KEY: ${{ secrets.HELIUS_API_KEY }}
-
       - name: Probe Telegram health
         run: node watcher/telegram-health.js
         env:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-
       - name: Run chain notify
         run: node watcher/chain-notify.js
         env:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-
       - name: Build activation timeline v2
         run: node watcher/activation-timeline.js
-
       - name: Run radar
         run: node watcher/radar.js
-
       - name: Build activation decision v1
         run: node watcher/activation-decision.js
-
       - name: Archive exact sweep evidence v1
         run: node watcher/historical-evidence-archive.js
-
-      - name: Auto-label ground truth and correlate pre-event evidence v1
-        run: node watcher/ground-truth-auto-label.js
-
       - name: Run historical replay and calibration v3
         run: node watcher/historical-replay.js
-
+      - name: Auto-label ground truth and correlate pre-event evidence v1
+        run: node watcher/ground-truth-auto-label.js
       - name: Run calibration learning v1
         run: node watcher/calibration-learning.js
-
       - name: Prune old snapshots
         run: node watcher/prune-snapshots.js
-
       - name: Run notify
         run: node watcher/notify.js
         env:
@@ -160,20 +130,9 @@ jobs:
         run: |
           node -e '
           const fs = require("fs");
-          const path = "public/data/heartbeat.json";
           const now = new Date().toISOString();
-          const data = {
-            source: process.env.RADAR_TRIGGER_SOURCE || "external-cron",
-            triggerEvent: process.env.RADAR_EVENT_NAME || "workflow_dispatch",
-            workflowRunId: process.env.RADAR_RUN_ID || null,
-            workflowRunNumber: Number(process.env.RADAR_RUN_NUMBER || 0) || null,
-            actor: process.env.RADAR_ACTOR || null,
-            lastRunAt: now,
-            lastSuccessAt: now,
-            status: "success",
-            scheduleMinutes: 60
-          };
-          fs.writeFileSync(path, JSON.stringify(data, null, 2));
+          const data = { source: process.env.RADAR_TRIGGER_SOURCE || "external-cron", triggerEvent: process.env.RADAR_EVENT_NAME || "workflow_dispatch", workflowRunId: process.env.RADAR_RUN_ID || null, workflowRunNumber: Number(process.env.RADAR_RUN_NUMBER || 0) || null, actor: process.env.RADAR_ACTOR || null, lastRunAt: now, lastSuccessAt: now, status: "success", scheduleMinutes: 60 };
+          fs.writeFileSync("public/data/heartbeat.json", JSON.stringify(data, null, 2));
           console.log(`Heartbeat success written: ${now}`);
           '
 
@@ -236,10 +195,7 @@ jobs:
           fi
           mkdir -p /tmp/radar-data/data
           mkdir -p /tmp/radar-data/snapshots
-          rsync -a --delete \
-            --exclude='chain-baseline.json' \
-            .publish/data/ \
-            /tmp/radar-data/data/
+          rsync -a --delete --exclude='chain-baseline.json' .publish/data/ /tmp/radar-data/data/
           rsync -a --delete .publish/snapshots/ /tmp/radar-data/snapshots/
           cd /tmp/radar-data
           cp "$GITHUB_WORKSPACE/.publish/data/heartbeat.json" data/heartbeat.json
