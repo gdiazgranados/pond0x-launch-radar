@@ -1,5 +1,191 @@
 [
   {
+    "id": "2026-08-30_233247__2026-08-30T23:33:03.080Z",
+    "snapshotId": "2026-08-30_233247",
+    "sentAt": "2026-08-30T23:33:04.367Z",
+    "priority": "CRITICAL",
+    "reason": "Critical field change detected",
+    "signature": "c099b24eb5865b1d8515569a0270f86bb2eccfa588b3c336d83b14c04b2382c2",
+    "alertSignature": "c099b24eb5865b1d8515569a0270f86bb2eccfa588b3c336d83b14c04b2382c2",
+    "legacySignature": "CRITICAL::140::AUTH|BEHAVIOR_SPIKE|CHAIN|LAUNCH_IMMINENT|PRE-ACTIVATION|REWARDS|REWARD_PREP|SYSTEM|UI_ARMING::BEHAVIOR_SPIKE|LAUNCH_IMMINENT|PRE-ACTIVATION|REWARD_PREP|UI_ARMING",
+    "changeSeverity": "CRITICAL_FIELD_CHANGE",
+    "criticalChanges": [
+      "Priority: VERY HIGH → CRITICAL",
+      "Level: VERY HIGH → CRITICAL",
+      "Alpha Class: ∅ → CRITICAL",
+      "Alpha Trigger: ∅ → TRIGGERED",
+      "Activation State: ∅ → IDLE",
+      "Event Type: ∅ → REWARD ACTIVATION",
+      "Signal Fusion: ∅ → FULL ACTIVATION STACK",
+      "Signal Regime: ∅ → PRE-LAUNCH REAL",
+      "ETA: ∅ → < 2h",
+      "Signals added: account, active, airdrop, claim, connect, disabled, enabled, ethereum, launch, nonce, portal, reward, rewards, signin, signmessage, solana, verify, verifysignature, wallet",
+      "Tags added: LAUNCH_IMMINENT, REWARD_PREP",
+      "Patterns added: LAUNCH_IMMINENT, REWARD_PREP",
+      "Score: 82.5 → 144",
+      "Movement: 28.79% → 33.33%",
+      "Alpha Score: 0 → 100",
+      "Critical: claim signal appeared",
+      "Critical: enabled signal appeared",
+      "Critical: verify signal appeared"
+    ],
+    "score": 144,
+    "level": "CRITICAL",
+    "significance": "HIGH",
+    "trend": 100,
+    "trendDirection": "UP",
+    "movementPct": 33.33,
+    "eta": "< 2h",
+    "alphaScore": 100,
+    "alphaClass": "CRITICAL",
+    "triggerState": "TRIGGERED",
+    "suggestedAction": "Critical signal. Treat as imminent event candidate and escalate immediately.",
+    "activationState": "IDLE",
+    "activationAction": "No fresh activation event confirmed.",
+    "eventType": "REWARD ACTIVATION",
+    "signalRegime": "PRE-LAUNCH REAL",
+    "signalFusion": "FULL ACTIVATION STACK",
+    "launchImminent": false,
+    "portalArmed": false,
+    "tags": [
+      "AUTH",
+      "REWARDS",
+      "CHAIN",
+      "SYSTEM",
+      "PRE-ACTIVATION",
+      "REWARD_PREP",
+      "UI_ARMING",
+      "BEHAVIOR_SPIKE",
+      "LAUNCH_IMMINENT"
+    ],
+    "signals": [
+      "account",
+      "active",
+      "airdrop",
+      "claim",
+      "connect",
+      "disabled",
+      "enabled",
+      "ethereum",
+      "launch",
+      "nonce",
+      "portal",
+      "reward",
+      "rewards",
+      "signin",
+      "signmessage",
+      "solana",
+      "verify",
+      "verifysignature",
+      "wallet"
+    ],
+    "focusAreas": [
+      "REWARDS",
+      "AUTH",
+      "WALLET",
+      "ACCOUNT",
+      "SYSTEM",
+      "CLAIM",
+      "PORTAL"
+    ],
+    "sensitiveHits": [
+      "reward",
+      "rewards",
+      "airdrop",
+      "auth",
+      "verify",
+      "wallet",
+      "connect",
+      "signature",
+      "ethereum",
+      "solana",
+      "account",
+      "portal",
+      "launch",
+      "enabled",
+      "disabled",
+      "claim"
+    ],
+    "patterns": [
+      {
+        "tag": "PRE-ACTIVATION",
+        "boost": 15,
+        "confidence": "HIGH",
+        "reasons": [
+          "Wallet-related strings detected",
+          "Connect UI detected",
+          "UI still appears disabled"
+        ]
+      },
+      {
+        "tag": "REWARD_PREP",
+        "boost": 20,
+        "confidence": "HIGH",
+        "reasons": [
+          "Reward logic detected in code or strings",
+          "No confirming on-chain movement yet"
+        ]
+      },
+      {
+        "tag": "UI_ARMING",
+        "boost": 12,
+        "confidence": "HIGH",
+        "reasons": [
+          "Connect UI visible",
+          "CTA or interactive surface changed"
+        ]
+      },
+      {
+        "tag": "BEHAVIOR_SPIKE",
+        "boost": 10,
+        "confidence": "MEDIUM",
+        "reasons": [
+          "Behavioral signal convergence elevated (100/100)",
+          "21 fresh surface changes detected",
+          "Observed movement threshold exceeded (33.33%)"
+        ]
+      },
+      {
+        "tag": "LAUNCH_IMMINENT",
+        "boost": 30,
+        "confidence": "CRITICAL",
+        "reasons": [
+          "Frontend strongly active",
+          "Reward preparation strong",
+          "Behavioral cadence accelerated",
+          "Multiple fresh surface changes detected"
+        ]
+      }
+    ],
+    "changedFiles": [
+      "_next_static_chunks_16585-3b9086d78debb788.js",
+      "_next_static_chunks_203-40c90fbb5fcde429.js",
+      "_next_static_chunks_28872-b8da8c3b5358ef3b.js",
+      "_next_static_chunks_32569-e451c952a1850632.js",
+      "_next_static_chunks_39763-2d9eec76eb1383f8.js",
+      "_next_static_chunks_42125-ab6a6404300fe75e.js",
+      "_next_static_chunks_43518-0acd38bfca51d517.js",
+      "_next_static_chunks_45334-1ed62df79f36c05a.js",
+      "_next_static_chunks_50812-5a0dad9cf5cc81d4.js",
+      "_next_static_chunks_51972-162de8462c292a77.js",
+      "_next_static_chunks_59705-fa452cd829dee35a.js",
+      "_next_static_chunks_60221-3d402deb3fbad0af.js",
+      "_next_static_chunks_66033-789000c7e9486049.js",
+      "_next_static_chunks_66928-b16df7194252535d.js",
+      "_next_static_chunks_77750-186bbfe58f5199f0.js",
+      "_next_static_chunks_91405-c67be009d4271194.js",
+      "_next_static_chunks_94594.bdfaf4a11bdbae16.js",
+      "_next_static_chunks_9494-b9209e5d8f6d3a39.js",
+      "_next_static_chunks_app_page-fc2d741901bb0618.js",
+      "_next_static_chunks_webpack-d6ef00ab9864717f.js",
+      "_next_static_css_22c9d7526cf5e1dc.css"
+    ],
+    "summary": "21 of 63 files show movement (33.33%). 21 new (33.33%) and 0 modified (0). Signals: account, active, airdrop, claim, connect, disabled, enabled, ethereum, launch, nonce, portal, reward, rewards, signin, signmessage, solana, verify, verifysignature, wallet.",
+    "insight": "Wallet-auth-reward stack appears to be converging toward activation",
+    "whyItMatters": "Reward claim infrastructure appears to be activating. Wallet and authentication layers are being tightly integrated. Breakout detected after a period of inactivity. Reward systems are a primary focus of current changes.",
+    "generatedAt": "2026-08-30T23:33:03.080Z"
+  },
+  {
     "id": "2026-03-25_142421",
     "level": "VERY HIGH",
     "significance": "HIGH",
