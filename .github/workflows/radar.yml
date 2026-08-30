@@ -81,11 +81,6 @@ jobs:
         env:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-      - name: Run chain notify
-        run: node watcher/chain-notify.js
-        env:
-          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
       - name: Build activation timeline v2
         run: node watcher/activation-timeline.js
       - name: Run radar
@@ -104,11 +99,8 @@ jobs:
         run: node watcher/calibration-learning.js
       - name: Prune old snapshots
         run: node watcher/prune-snapshots.js
-      - name: Run notify
-        run: node watcher/notify.js
-        env:
-          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      - name: Evaluate shared evidence (observation only)
+        run: node watcher/evidence-observe.js
       - name: Write heartbeat success
         env:
           RADAR_TRIGGER_SOURCE: ${{ inputs.trigger_source || 'external-cron' }}
@@ -139,6 +131,7 @@ jobs:
           rm -rf .publish
           mkdir -p .publish/data .publish/snapshots
           cp public/data/*.json .publish/data/
+          cp -R public/data/evidence-events public/data/evidence-sweeps .publish/data/
           if [ -d snapshots ]; then rsync -a --delete snapshots/ .publish/snapshots/; fi
       - name: Verify heartbeat publish bundle
         run: |

@@ -8,7 +8,10 @@ import type {
   RadarApiSyncMeta,
 } from "../types/radar"
 
+import type { EvidenceLedger } from "../types/evidence"
+
 type RadarApiResponse = {
+  evidenceLedger?: EvidenceLedger | null
   data?: RadarData | null
   latest?: RadarData | null
   latestData?: RadarData | null
@@ -153,6 +156,7 @@ function sortAlerts(items: AlertItem[]) {
 }
 
 export function useRadarData() {
+  const [evidenceLedger, setEvidenceLedger] = useState<EvidenceLedger | null>(null)
   const [data, setData] = useState<RadarData | null>(null)
   const [history, setHistory] = useState<RadarData[]>([])
   const [alerts, setAlerts] = useState<AlertItem[]>([])
@@ -201,13 +205,9 @@ export function useRadarData() {
       json?.heartbeat ??
       null
 
-    const rawAlerts = Array.isArray(json?.alerts)
-      ? json.alerts
-      : Array.isArray(json?.sentinelEvents)
-        ? json.sentinelEvents
-        : Array.isArray(json?.alertsHistory)
-          ? json.alertsHistory
-          : []
+    // Never label Sentinel observations as delivered Telegram messages.
+    const rawAlerts = Array.isArray(json.alerts) ? json.alerts : []
+    setEvidenceLedger(json.evidenceLedger || null)
 
     const normalizedData =
       rawData
@@ -365,6 +365,7 @@ export function useRadarData() {
   }, [refresh])
 
   return {
+    evidenceLedger,
     data,
     history,
     alerts,

@@ -14,8 +14,8 @@ import { useSentinelData } from "./hooks/useSentinelData"
 import { SentinelPanel } from "./components/radar/SentinelPanel"
 import { ChainIntelligencePanel } from "./components/radar/ChainIntelligencePanel"
 import { FeatureActivationPanel } from "./components/radar/FeatureActivationPanel"
-import { evaluateAlpha } from "./lib/alpha"
-import { AlphaPanel } from "./components/AlphaPanel"
+
+import { EvidencePanel } from "./components/radar/EvidencePanel"
 import {
   clampPercent,
   getHeartbeatStatus,
@@ -26,7 +26,7 @@ import {
   probabilityFromLevel,
   getTickerTone,
   buildNarrative,
-  prioritizeLaunchSignals,
+
 } from "./lib/radar"
 
 type RadarPattern =
@@ -241,6 +241,7 @@ export default function Home() {
     heartbeatData,
     chainIntelligence,
     chainBaseline,
+    evidenceLedger,
   } = useRadarData()
   const { latestEvent } = useSentinelData()
   const [now, setNow] = useState(Date.now())
@@ -257,9 +258,8 @@ export default function Home() {
     return () => clearInterval(clockInterval)
   }, [])
 
-  const prioritizedData = useMemo(() => prioritizeLaunchSignals(data), [data])
-
-  const current = prioritizedData ?? data
+  // Preserve the producer assessment; the browser does not increase scores.
+  const current = data
 
   const uiScore = useMemo(() => Number(current?.score ?? 0), [current])
 
@@ -469,17 +469,6 @@ export default function Home() {
     return Math.max(0, Math.min(100, Math.round(raw)))
   }, [uiScorePercent, uiMovement, current])
 
-  const alpha = useMemo(() => {
-    return evaluateAlpha({
-      score: uiScorePercent,
-      movementPct: uiMovement,
-      trend: Number(current?.trend ?? 0),
-      tags: current?.tags ?? [],
-      signals: current?.signals ?? [],
-      activationProbability: Number(current?.activationProbability ?? 0),
-    })
-  }, [uiScorePercent, uiMovement, current, burstCount])
-
     const readinessState = useMemo(() => {
     const score = uiScorePercent
     const movement = uiMovement
@@ -639,14 +628,14 @@ export default function Home() {
                       ? "⚠️"
                       : "📡"}
                 </span>
-                <span className="font-semibold">{narrative?.headline || priorityMode.title}</span>
+                <span className="font-semibold">Legacy heuristic: {current?.level || "LOW"} — review recorded evidence</span>
               </div>
 
               <div className="flex flex-wrap items-center gap-3 text-xs">
                 <span>Score {uiScore}</span>
                 <span>Intensity {uiScorePercent}/100</span>
                 <span>Trend {current?.trendDirection ?? "FLAT"}</span>
-                <span>ETA {getEta(current)}</span>
+                <span>Timing estimate unverified</span>
                 {(narrative?.context || []).map((item, i) => (
                   <span key={i} className="opacity-80">
                     {item}
@@ -685,13 +674,13 @@ export default function Home() {
                       : "border-orange-500/30 bg-orange-500/10 text-orange-300"
                   }`}
                 >
-                  ETA {getEta(current)}
+                  Timing estimate unverified
                 </span>
               </div>
 
               <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-400">
                 Compact cockpit for frontend movement, launch indicators, reward flows,
-                wallet patterns, alert state, and activation probability across Pond0x surfaces.
+                wallet patterns, alert state, and historical heuristics across Pond0x surfaces. Heuristics are not claim or launch confirmations.
               </p>
 
               <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
@@ -712,7 +701,7 @@ export default function Home() {
                   valueClassName="text-cyan-300 text-[clamp(1.75rem,3vw,3rem)] leading-tight"
                 />
                 <MetricCard
-                  label="Launch Probability"
+                  label="Legacy heuristic signal"
                   value={
                     <div className="flex flex-col gap-2">
                       <span
@@ -874,12 +863,12 @@ export default function Home() {
             </div>
               <div className="rounded-2xl border border-orange-500/20 bg-orange-500/[0.05] p-4">
                 <div className="text-[11px] uppercase tracking-[0.24em] text-orange-300">
-                  Activation Probability
+                  Activation heuristic
                 </div>
                 <div className="mt-2 flex items-center justify-between gap-4">
                   <div className="text-2xl font-bold text-white">{activationProbability}%</div>
                   <div className="text-right text-xs text-slate-400">
-                    probability model output
+                    heuristic score, not a calibrated probability
                   </div>
                 </div>
                 <div className="mt-3 h-2 w-full rounded-full bg-white/10">
@@ -932,6 +921,8 @@ export default function Home() {
             </div>
           </div>
         </header>
+
+        <EvidencePanel ledger={evidenceLedger} />
 
         <section className="mb-5 grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
           <HeartbeatPanel
@@ -1037,7 +1028,7 @@ export default function Home() {
 
             <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
               <Gauge label="Radar Score" value={uiScorePercent} />
-              <Gauge label="Activation Probability" value={activationProbability} tone="orange" />
+              <Gauge label="Activation heuristic" value={activationProbability} tone="orange" />
               <Gauge
                 label="Changed %"
                 value={Number(current?.changedPercent ?? current?.changedPct ?? 0)}
@@ -1412,7 +1403,7 @@ export default function Home() {
 
               <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
                 <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">
-                  Readiness State
+                  Legacy heuristic state
                 </div>
                 <div className={`mt-2 text-lg font-semibold ${readinessState.tone}`}>
                   {readinessState.label}
@@ -1438,7 +1429,7 @@ export default function Home() {
               </div>
 
               <div className="sm:col-span-2 xl:col-span-2">
-                <AlphaPanel alpha={alpha} />
+                <p className="text-sm text-slate-400">Legacy heuristic context only. Notification decisions and transaction evidence are shown in Evidence &amp; Telegram.</p>
               </div>
 
               <div className="rounded-2xl border border-white/10 bg-black/20 p-4 sm:col-span-2 xl:col-span-2">

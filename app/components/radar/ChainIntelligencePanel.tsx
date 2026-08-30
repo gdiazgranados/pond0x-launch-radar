@@ -112,8 +112,7 @@ export function ChainIntelligencePanel({
 
   const freshTrigger =
     chain.fundingDetected === true ||
-    Number(w.rewardTransfers ?? w.rewards ?? 0) > 0 ||
-    p.status === "IN_FUNDING_WINDOW"
+    Number(w.rewardTransfers ?? w.rewards ?? 0) > 0
 
   const windowState = getWindowState(p)
   const distributorOneHour = d.windows?.["1h"] || {}
@@ -236,7 +235,7 @@ export function ChainIntelligencePanel({
           </div>
           <div className="mt-1 text-xs text-slate-500">
             {freshTrigger
-              ? "new on-chain evidence is active"
+              ? "transfers observed in the sampled rolling window; not a claim confirmation"
               : "no fresh on-chain evidence"}
           </div>
         </div>

@@ -22,8 +22,8 @@ export function RecentAlerts({
   return (
     <section className="mt-5 rounded-2xl border border-white/10 bg-[#05070a] p-5">
       <SectionTitle
-        title="Recent Alerts"
-        subtitle="Latest delivered alert events"
+        title="Legacy Telegram Delivery History"
+        subtitle="Recorded historical sends from the retired radar notifier; excludes the old chain notifier"
         right={
           <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-400">
             {alerts.length} total
