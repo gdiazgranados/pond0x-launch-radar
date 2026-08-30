@@ -1,6 +1,7 @@
 const fs = require('fs-extra');
 const path = require('path');
 require('dotenv').config();
+const { buildChainAlertWindow } = require('./lib/chain-alert-window');
 
 const HELIUS_API_KEY = process.env.HELIUS_API_KEY;
 
@@ -899,6 +900,12 @@ async function main() {
     existingRecipientLedger = await fs.readJson(recipientLedgerFile);
   } catch {}
 
+  let previousNotification = null;
+  try { previousNotification = await fs.readJson(path.join(dataDir, 'chain-notify-state.json')); } catch {}
+  // Use a common cutoff before requests begin, so activity during collection
+  // remains eligible for the next sweep.
+  const alertCutoff = new Date().toISOString();
+
   const [distResult, upstreamResult, rewardResult] =
   await Promise.all([
     fetchAddressTransactions(DISTRIBUTOR, {
@@ -1094,6 +1101,14 @@ const rewardTxs = rewardResult.transactions;
     },
 
     chainObservability,
+    alertWindow: buildChainAlertWindow({
+      rewardTransfers: rewardWalletTransfers,
+      funding,
+      previous: previousNotification,
+      endAt: alertCutoff,
+      coverageComplete: distResult.coverage?.coverageComplete === true &&
+        upstreamResult.coverage?.coverageComplete === true,
+    }),
     
     entities:{wpondMint:WPOND_MINT,claimDistributor:DISTRIBUTOR,upstream:UPSTREAM,rewardWallet:REWARD_WALLET},
     flowClassification: {
@@ -1205,3 +1220,4 @@ const rewardTxs = rewardResult.transactions;
 }
 
 main().catch(e=>{console.error('chain-intelligence failed:',e);process.exit(1);});
+

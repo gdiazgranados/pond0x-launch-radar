@@ -4,6 +4,8 @@ require("dotenv").config();
 
 const { buildDistributorBehavior } = require("./lib/distributor-behavior");
 
+const { inspectChainAlertWindow } = require("./lib/chain-alert-window");
+
 const TOKEN = process.env.TELEGRAM_TOKEN;
 const CHAT = process.env.TELEGRAM_CHAT_ID;
 
@@ -82,6 +84,15 @@ async function main() {
     prev = await fs.readJson(stateFile);
   } catch {}
 
+  const intervalDecision = inspectChainAlertWindow(c.alertWindow, prev);
+  if (intervalDecision.duplicate) {
+    console.log("Chain snapshot already processed; no duplicate alert");
+    return;
+  }
+  if (c.alertWindow.truncated) {
+    console.warn("Chain monitoring gap exceeded 24 hours; summary covers fetched history only");
+  }
+
   /*
    * Transition comparisons are only meaningful when the previous
    * observation is recent. Preserve lastSentAt so Telegram cooldown
@@ -117,6 +128,8 @@ async function main() {
     : 0;
 
   const mins = (now - lastSent) / 60000;
+
+  const intervalRewardActivity = intervalDecision.rewardActivity && mins >= 30;
 
   const newExternalTransfers = Number(
     ledger?.newTransfersThisSweep ??
@@ -173,6 +186,8 @@ async function main() {
     mins >= 30;
 
   const shouldSend =
+    intervalRewardActivity ||
+    intervalDecision.fundingActivity ||
     externalTransfer ||
     resumed ||
     spike ||
@@ -184,6 +199,10 @@ async function main() {
 
   const reason = externalTransfer
     ? "NEW EXTERNAL wPOND TRANSFER"
+    : intervalDecision.fundingActivity
+      ? "DISTRIBUTOR FUNDING SINCE PREVIOUS SWEEP"
+    : intervalRewardActivity
+      ? "REWARD TRANSFERS SINCE PREVIOUS SWEEP"
     : resumed
       ? "REWARD TRANSFER ACTIVITY RESUMED"
       : spike
@@ -212,7 +231,9 @@ async function main() {
     ? `\n\n🧬 <b>Pattern Match</b>\nMatch: <b>${fmt(m.historicalPatternMatchPct)}%</b>\nStatus: <b>${esc(String(m.status || "N/A").replaceAll("_", " "))}</b>\nBaseline confidence: <b>${esc(m.baselineConfidence ?? m.confidence ?? "LOW")}</b>\nLive trigger present: <b>${m.liveEvidence ? "YES" : "NO"}</b>`
     : "";
 
-  const msg = `⛓️ <b>POND0X RADAR — ${reason}</b>\n\n⛏️ <b>Last 5 minutes</b>\nReward transfers: <b>${fmt(w.rewardTransfers ?? w.rewards)}</b>\nwPOND distributed: <b>${fmt(w.wpondDistributed)}</b>\nAvg transfer: <b>${fmt(w.avgTransfer ?? w.avgReward)}</b>\nLargest transfer: <b>${fmt(w.largestTransfer ?? w.largestReward)}</b>\n\n📈 Reward transfer velocity: <b>${Number(c.rewardTransferVelocityPct ?? c.claimVelocityPct ?? 0) >= 0 ? "+" : ""}${fmt(c.rewardTransferVelocityPct ?? c.claimVelocityPct)}%</b>\n💧 Volume velocity: <b>${Number(c.volumeVelocityPct || 0) >= 0 ? "+" : ""}${fmt(c.volumeVelocityPct)}%</b>\n💰 Distributor funding: <b>${c.fundingDetected ? "DETECTED" : "not detected"}</b>\n🔗 Chain confirmation: <b>${fmt(c.chainConfirmationScore)}/100</b>\n🔥 Activity: <b>${esc(c.activityState)}</b>${externalBlock}${prediction}${match}\n\n<i>External recipient transfers are tracked as claim candidates; they are not automatically asserted to be rewards.</i>`;
+  const intervalBlock = `\n\n<b>Since previous successful sweep</b>\nFrom: ${esc(c.alertWindow.startAt)}\nThrough: ${esc(c.alertWindow.endAt)}\nReward transfers: <b>${fmt(c.alertWindow.rewardTransfers)}</b>\nwPOND distributed: <b>${fmt(c.alertWindow.wpondDistributed)}</b>\nFunding events: <b>${fmt(c.alertWindow.fundingEvents)}</b>${c.alertWindow.truncated ? "\nMonitoring gap exceeds available 24h history." : ""}`;
+
+  const msg = `⛓️ <b>POND0X RADAR — ${reason}</b>\n\n⛏️ <b>Last 5 minutes</b>\nReward transfers: <b>${fmt(w.rewardTransfers ?? w.rewards)}</b>\nwPOND distributed: <b>${fmt(w.wpondDistributed)}</b>\nAvg transfer: <b>${fmt(w.avgTransfer ?? w.avgReward)}</b>\nLargest transfer: <b>${fmt(w.largestTransfer ?? w.largestReward)}</b>\n\n📈 Reward transfer velocity: <b>${Number(c.rewardTransferVelocityPct ?? c.claimVelocityPct ?? 0) >= 0 ? "+" : ""}${fmt(c.rewardTransferVelocityPct ?? c.claimVelocityPct)}%</b>\n💧 Volume velocity: <b>${Number(c.volumeVelocityPct || 0) >= 0 ? "+" : ""}${fmt(c.volumeVelocityPct)}%</b>\n💰 Distributor funding: <b>${c.fundingDetected ? "DETECTED" : "not detected"}</b>\n🔗 Chain confirmation: <b>${fmt(c.chainConfirmationScore)}/100</b>\n🔥 Activity: <b>${esc(c.activityState)}</b>${intervalBlock}${externalBlock}${prediction}${match}\n\n<i>External recipient transfers are tracked as claim candidates; they are not automatically asserted to be rewards.</i>`;
 
   let lastSentAt = prev.lastSentAt || null;
 
@@ -220,6 +241,8 @@ async function main() {
     if (await send(msg)) {
       lastSentAt = new Date().toISOString();
       console.log("Chain alert sent");
+    } else {
+      throw new Error("Chain alert not delivered; cursor preserved");
     }
   } else {
     console.log("No material chain alert");
@@ -233,6 +256,8 @@ async function main() {
     stateFile,
     {
       observedAt: new Date().toISOString(),
+      processedThrough: c.alertWindow.endAt,
+      alertWindow: c.alertWindow,
       lastSentAt,
       activityState: c.activityState,
       fundingDetected: !!c.fundingDetected,
