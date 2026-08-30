@@ -35,11 +35,8 @@ jobs:
         run: node watcher/chain-intelligence.js
         env:
           HELIUS_API_KEY: ${{ secrets.HELIUS_API_KEY }}
-      - name: Notify Telegram intelligently
-        run: node watcher/chain-notify.js
-        env:
-          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      - name: Evaluate chain evidence (observation only)
+        run: node watcher/evidence-observe.js --chain-only
       - name: Publish chain data to radar-data
         run: |
           git fetch origin radar-data || true
@@ -50,6 +47,9 @@ jobs:
           cp public/data/reward-recipients.json /tmp/radar-data/data/ 2>/dev/null || true
           cp public/data/chain-history.json /tmp/radar-data/data/ 2>/dev/null || true
           cp public/data/chain-notify-state.json /tmp/radar-data/data/ 2>/dev/null || true
+          cp public/data/evidence-{ledger,state}.json /tmp/radar-data/data/
+          cp public/data/distributor-intelligence.json /tmp/radar-data/data/
+          cp -R public/data/evidence-events public/data/evidence-sweeps /tmp/radar-data/data/
           cd /tmp/radar-data
           git config user.name "radar-bot"
           git config user.email "bot@radar.ai"

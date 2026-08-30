@@ -2,7 +2,7 @@
 const HOUR = 60 * 60 * 1000;
 const MAX_LOOKBACK = 24 * HOUR;
 
-function buildChainAlertWindow({ rewardTransfers, funding, previous, endAt, coverageComplete }) {
+function buildChainAlertWindow({ rewardTransfers, funding, externalTransfers = [], previous, endAt, coverageComplete }) {
   const end = Date.parse(endAt);
   if (!Number.isFinite(end)) throw new Error('Invalid chain sample cutoff');
   const prior = previous?.processedThrough || previous?.observedAt;
@@ -26,6 +26,7 @@ function buildChainAlertWindow({ rewardTransfers, funding, previous, endAt, cove
     rewardTransfers: rewards.length,
     wpondDistributed: rewards.reduce((sum, row) => sum + Number(row.amount || 0), 0),
     fundingEvents: funds.length,
+    evidence: { rewards, funding: funds, external: select(externalTransfers) },
   };
 }
 
