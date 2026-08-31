@@ -4,6 +4,7 @@ const { chromium } = require("playwright");
 const fs = require("node:fs/promises");
 const path = require("node:path");
 const crypto = require("node:crypto");
+const { MAX_ITEMS, responseEvidence, buildDetails } = require("./lib/swap-details");
 
 const TARGET = "https://www.pond0x.com/swap/solana";
 const VERSION = 1;
@@ -40,6 +41,9 @@ async function main() {
   };
 
   let browser;
+  let controls = [];
+  const responses = new Set();
+  let detailsTruncated = false;
 
   try {
     browser = await chromium.launch({ headless: true });
@@ -51,6 +55,15 @@ async function main() {
     });
 
     const page = await context.newPage();
+
+    page.on("response", (response) => {
+      const request = response.request();
+      if (!["fetch", "xhr"].includes(request.resourceType())) return;
+      const evidence = responseEvidence(response.url(), TARGET, request.method(), response.status());
+      if (!evidence || responses.has(evidence)) return;
+      if (responses.size >= MAX_ITEMS) { detailsTruncated = true; return; }
+      responses.add(evidence);
+    });
 
     const response = await page.goto(TARGET, {
       waitUntil: "domcontentloaded",
@@ -136,10 +149,19 @@ async function main() {
           .filter(Boolean)
       )].sort();
 
-      return { markers, labels, links };
+      const controlElements = [...document.querySelectorAll('button, [role="button"], [role="tab"]')].filter(visible);
+      const controls = controlElements.slice(0, 100).map(element => ({
+        role: element.getAttribute("role") || "button",
+        label: element.getAttribute("aria-label") || element.innerText || element.getAttribute("title") || "",
+        disabled: element.matches(":disabled") || element.getAttribute("aria-disabled") === "true",
+        selected: element.getAttribute("aria-selected") || element.getAttribute("aria-pressed") || null,
+      }));
+      return { markers, labels, links, controls, controlsTruncated: controlElements.length > 100 };
     });
 
-    Object.assign(observation, surface);
+    controls = surface.controls;
+    detailsTruncated ||= surface.controlsTruncated;
+    Object.assign(observation, { markers: surface.markers, labels: surface.labels, links: surface.links });
 
     if (surface.markers.includes("aquaswap")) {
       observation.view = "SWAP_COMPONENT";
@@ -227,6 +249,7 @@ async function main() {
       "Public initial page after an 8-second wait. No clicks, wallet, iframe inspection, quotes, or transactions.",
     caution:
       "Visible text or components do not prove swap execution, route integration, rewards, or launch readiness.",
+    details: buildDetails(previous.details, observation, controls, [...responses], detailsTruncated),
     latest: observation,
     comparison,
     lastSuccessful:
