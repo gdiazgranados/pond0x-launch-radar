@@ -1,3 +1,4 @@
+import { IndicatorHelp } from "./IndicatorHelp"
 import { SectionTitle } from "./SectionTitle"
 
 type HealthStage = {
@@ -116,7 +117,7 @@ export function SystemHealthPanel({
 
       <div className="mt-4 grid gap-3 md:grid-cols-2">
         <div className="rounded-xl border border-white/10 bg-black/20 p-4">
-          <div className="text-[11px] uppercase tracking-[0.22em] text-slate-500">Scheduler</div>
+          <div className="text-[11px] uppercase tracking-[0.22em] text-slate-500">Scheduler <IndicatorHelp label="Scheduler" /></div>
           <div className="mt-2 text-sm font-medium text-cyan-300">
             {systemHealth?.run?.source || "—"}
           </div>
@@ -127,7 +128,7 @@ export function SystemHealthPanel({
 
         <div className="rounded-xl border border-white/10 bg-black/20 p-4">
           <div className="flex items-center justify-between gap-3">
-            <div className="text-[11px] uppercase tracking-[0.22em] text-slate-500">Telegram</div>
+            <div className="text-[11px] uppercase tracking-[0.22em] text-slate-500">Telegram <IndicatorHelp label="Telegram" /></div>
             <span className={`h-2.5 w-2.5 rounded-full ${tone(telegramHealth?.status).dot}`} />
           </div>
           <div className={`mt-2 text-sm font-semibold ${tone(telegramHealth?.status).text}`}>

@@ -1,5 +1,7 @@
 "use client"
 
+import Link from "next/link"
+import { IndicatorHelp } from "./components/radar/IndicatorHelp"
 import { useEffect, useMemo, useState } from "react"
 import { useRadarData } from "./hooks/useRadarData"
 import { formatDate, shortTime } from "./lib/date"
@@ -124,7 +126,7 @@ function Gauge({
   return (
     <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
       <div className="mb-2 flex items-center justify-between text-xs uppercase tracking-[0.22em] text-slate-500">
-        <span>{label}</span>
+        <span>{label}<IndicatorHelp label={label} /></span>
         <span className="text-slate-300">{value}%</span>
       </div>
       <div className="h-3 w-full rounded-full bg-white/10">
@@ -649,6 +651,7 @@ export default function Home() {
         <header
           className={`mb-5 rounded-3xl border p-5 transition-all duration-500 ${priorityMode.headerClass}`}
         >
+          <nav aria-label="Radar navigation" className="mb-5 flex gap-3"><Link href="/" aria-current="page" className="rounded-xl border border-cyan-500/40 bg-cyan-500/10 px-4 py-2 text-sm text-cyan-200">Dashboard</Link><Link href="/guide" className="rounded-xl border border-white/15 px-4 py-2 text-sm text-slate-200 hover:border-cyan-400 focus-visible:outline-2 focus-visible:outline-cyan-400">Guía / Q&amp;A</Link></nav>
           <div className="grid gap-5 xl:grid-cols-[1.35fr_0.65fr]">
             <div>
               <div className="text-[11px] font-semibold uppercase tracking-[0.32em] text-cyan-400">
@@ -773,28 +776,28 @@ export default function Home() {
 
                 <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-slate-400">
                   <div>
-                    <div className="text-slate-500">Navigation</div>
+                    <div className="text-slate-500">Navigation <IndicatorHelp label="Navigation" /></div>
                     <div className="mt-1 text-slate-200">
                       {current?.observability?.navigationOk ? "OK" : "FAILED"}
                     </div>
                   </div>
 
                   <div>
-                    <div className="text-slate-500">Document</div>
+                    <div className="text-slate-500">Document <IndicatorHelp label="Document" /></div>
                     <div className="mt-1 text-slate-200">
                       {current?.observability?.documentCaptured ? "CAPTURED" : "MISSING"}
                     </div>
                   </div>
 
                   <div>
-                    <div className="text-slate-500">First-party</div>
+                    <div className="text-slate-500">First-party <IndicatorHelp label="First-party" /></div>
                     <div className="mt-1 text-slate-200">
                       {current?.observability?.firstPartyResponseCount ?? 0} responses
                     </div>
                   </div>
 
                   <div>
-                    <div className="text-slate-500">First-party APIs</div>
+                    <div className="text-slate-500">First-party APIs <IndicatorHelp label="First-party APIs" /></div>
                     <div className="mt-1 text-slate-200">
                       {current?.observability?.firstPartyApiCount ?? 0}
                     </div>
@@ -1238,21 +1241,21 @@ export default function Home() {
             <div className="grid gap-4 lg:grid-cols-[0.8fr_1.2fr]">
               <div className="grid grid-cols-3 gap-3">
                 <div className="rounded-2xl border border-white/10 bg-black/25 p-4">
-                  <div className="text-[11px] uppercase tracking-[0.22em] text-slate-500">Window</div>
+                  <div className="text-[11px] uppercase tracking-[0.22em] text-slate-500">Window <IndicatorHelp label="Window" /></div>
                   <div className="mt-2 text-2xl font-semibold text-white">
                     {current?.temporalCorrelation?.windowMinutes ?? 60} min
                   </div>
                 </div>
 
                 <div className="rounded-2xl border border-white/10 bg-black/25 p-4">
-                  <div className="text-[11px] uppercase tracking-[0.22em] text-slate-500">Domains</div>
+                  <div className="text-[11px] uppercase tracking-[0.22em] text-slate-500">Domains <IndicatorHelp label="Domains" /></div>
                   <div className="mt-2 text-2xl font-semibold text-white">
                     {current?.temporalCorrelation?.domainCount ?? 0}
                   </div>
                 </div>
 
                 <div className="rounded-2xl border border-white/10 bg-black/25 p-4">
-                  <div className="text-[11px] uppercase tracking-[0.22em] text-slate-500">Span</div>
+                  <div className="text-[11px] uppercase tracking-[0.22em] text-slate-500">Span <IndicatorHelp label="Span" /></div>
                   <div className="mt-2 text-2xl font-semibold text-white">
                     {current?.temporalCorrelation?.spanMinutes == null
                       ? "--"
@@ -1262,7 +1265,7 @@ export default function Home() {
               </div>
 
               <div className="rounded-2xl border border-white/10 bg-black/25 p-4">
-                <div className="text-[11px] uppercase tracking-[0.22em] text-slate-500">Sequence</div>
+                <div className="text-[11px] uppercase tracking-[0.22em] text-slate-500">Sequence <IndicatorHelp label="Sequence" /></div>
 
                 {current?.temporalCorrelation?.sequence?.length ? (
                   <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -1445,7 +1448,7 @@ export default function Home() {
 
           <div className="grid gap-4 sm:grid-cols-3 xl:col-span-12">
             <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-              <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">Velocity</div>
+              <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">Velocity <IndicatorHelp label="Velocity" /></div>
               <div className="mt-2 text-2xl font-semibold text-cyan-300">
                 {velocity > 0 ? `+${velocity}` : velocity}
               </div>
@@ -1453,13 +1456,13 @@ export default function Home() {
             </div>
 
             <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-              <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">Burst / 5m</div>
+              <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">Burst / 5m <IndicatorHelp label="Burst / 5m" /></div>
               <div className="mt-2 text-2xl font-semibold text-orange-300">{burstCount}</div>
               <div className="mt-1 text-xs text-slate-400">recent events in last 5 minutes</div>
             </div>
 
             <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-              <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">Confidence</div>
+              <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">Confidence <IndicatorHelp label="Confidence" /></div>
               <div className="mt-2 text-2xl font-semibold text-emerald-300">{confidenceScore}%</div>
               <div className="mt-1 text-xs text-slate-400">weighted launch confidence</div>
             </div>
