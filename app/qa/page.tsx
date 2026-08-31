@@ -1,4 +1,4 @@
-import Link from "next/link"
+import EcosystemNavigation from "../../components/ecosystem-navigation"
 
 const sections = [
   {
@@ -127,24 +127,7 @@ export default function RadarQAPage() {
   return (
     <main className="min-h-screen bg-[#020406] text-slate-100">
       <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
-        <nav
-          aria-label="Radar navigation"
-          className="mb-6 flex gap-3 text-sm"
-        >
-          <Link
-            href="/"
-            className="rounded-xl border border-white/15 px-4 py-2 hover:bg-white/10"
-          >
-            Radar Dashboard
-          </Link>
-          <Link
-            href="/qa"
-            aria-current="page"
-            className="rounded-xl border border-cyan-400/40 bg-cyan-400/10 px-4 py-2 text-cyan-200"
-          >
-            Indicators Q&A
-          </Link>
-        </nav>
+        <EcosystemNavigation current="qa" site="radar" />
 
         <header className="rounded-3xl border border-white/10 bg-white/[0.03] p-6">
           <p className="text-xs font-semibold uppercase tracking-widest text-cyan-400">
