@@ -1,3 +1,4 @@
+import { IndicatorHelp } from "./IndicatorHelp"
 import type { RadarData } from "../../types/radar"
 import { SectionTitle } from "./SectionTitle"
 
@@ -45,22 +46,22 @@ export function CalibrationLearningPanel({ data }: { data?: RadarData | null }) 
 
       <div className="grid gap-4 lg:grid-cols-4">
         <div className="rounded-2xl border border-white/10 bg-black/25 p-4">
-          <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Exact Evidence</div>
+          <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Exact Evidence <IndicatorHelp label="Exact Evidence" /></div>
           <div className="mt-2 text-3xl font-semibold text-violet-300">{exact} / {minExact}</div>
           <div className="mt-3 h-2 rounded-full bg-white/10"><div className="h-2 rounded-full bg-violet-400" style={{ width: `${exactProgress}%` }} /></div>
         </div>
         <div className="rounded-2xl border border-white/10 bg-black/25 p-4">
-          <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Ground Truth Covered</div>
+          <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Ground Truth Covered <IndicatorHelp label="Ground Truth Covered" /></div>
           <div className="mt-2 text-3xl font-semibold text-cyan-300">{covered} / {minCovered}</div>
           <div className="mt-3 h-2 rounded-full bg-white/10"><div className="h-2 rounded-full bg-cyan-400" style={{ width: `${truthProgress}%` }} /></div>
         </div>
         <div className="rounded-2xl border border-white/10 bg-black/25 p-4">
-          <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Threshold Changes</div>
+          <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Threshold Changes <IndicatorHelp label="Threshold Changes" /></div>
           <div className="mt-2 text-2xl font-semibold text-emerald-300">LOCKED</div>
           <div className="mt-1 text-xs text-slate-500">No automatic tuning</div>
         </div>
         <div className="rounded-2xl border border-white/10 bg-black/25 p-4">
-          <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Recommendation</div>
+          <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Recommendation <IndicatorHelp label="Recommendation" /></div>
           <div className="mt-2 break-words text-sm font-semibold text-amber-300">{String(report?.recommendation || "ACCUMULATE_EXACT_SWEEPS").replaceAll("_", " ")}</div>
         </div>
       </div>
@@ -76,12 +77,12 @@ export function CalibrationLearningPanel({ data }: { data?: RadarData | null }) 
                 {isDefault && <span className="rounded-full border border-violet-500/30 bg-violet-500/10 px-2 py-0.5 text-[10px] text-violet-300">LIVE BASELINE</span>}
               </div>
               <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
-                <div className="rounded-xl border border-white/10 bg-black/20 p-3"><div className="text-slate-500">Signals</div><div className="mt-1 text-lg font-semibold text-white">{metric(m?.signalCount)}</div></div>
-                <div className="rounded-xl border border-white/10 bg-black/20 p-3"><div className="text-slate-500">False Signals</div><div className="mt-1 text-lg font-semibold text-white">{metric(m?.falseSignalCount)}</div></div>
-                <div className="rounded-xl border border-white/10 bg-black/20 p-3"><div className="text-slate-500">Precision</div><div className="mt-1 text-lg font-semibold text-white">{metric(m?.precision, "%")}</div></div>
-                <div className="rounded-xl border border-white/10 bg-black/20 p-3"><div className="text-slate-500">Recall</div><div className="mt-1 text-lg font-semibold text-white">{metric(m?.recall, "%")}</div></div>
-                <div className="rounded-xl border border-white/10 bg-black/20 p-3"><div className="text-slate-500">False Signal Rate</div><div className="mt-1 text-lg font-semibold text-white">{metric(m?.falseSignalRate, "%")}</div></div>
-                <div className="rounded-xl border border-white/10 bg-black/20 p-3"><div className="text-slate-500">Median Lead</div><div className="mt-1 text-lg font-semibold text-white">{m?.medianLeadMinutes == null ? "—" : `${m.medianLeadMinutes}m`}</div></div>
+                <div className="rounded-xl border border-white/10 bg-black/20 p-3"><div className="text-slate-500">Signals <IndicatorHelp label="Signals" /></div><div className="mt-1 text-lg font-semibold text-white">{metric(m?.signalCount)}</div></div>
+                <div className="rounded-xl border border-white/10 bg-black/20 p-3"><div className="text-slate-500">False Signals <IndicatorHelp label="False Signals" /></div><div className="mt-1 text-lg font-semibold text-white">{metric(m?.falseSignalCount)}</div></div>
+                <div className="rounded-xl border border-white/10 bg-black/20 p-3"><div className="text-slate-500">Precision <IndicatorHelp label="Precision" /></div><div className="mt-1 text-lg font-semibold text-white">{metric(m?.precision, "%")}</div></div>
+                <div className="rounded-xl border border-white/10 bg-black/20 p-3"><div className="text-slate-500">Recall <IndicatorHelp label="Recall" /></div><div className="mt-1 text-lg font-semibold text-white">{metric(m?.recall, "%")}</div></div>
+                <div className="rounded-xl border border-white/10 bg-black/20 p-3"><div className="text-slate-500">False Signal Rate <IndicatorHelp label="False Signal Rate" /></div><div className="mt-1 text-lg font-semibold text-white">{metric(m?.falseSignalRate, "%")}</div></div>
+                <div className="rounded-xl border border-white/10 bg-black/20 p-3"><div className="text-slate-500">Median Lead <IndicatorHelp label="Median Lead" /></div><div className="mt-1 text-lg font-semibold text-white">{m?.medianLeadMinutes == null ? "—" : `${m.medianLeadMinutes}m`}</div></div>
               </div>
             </div>
           )
