@@ -44,7 +44,15 @@ export function RecentAlerts({
             const alertTimestamp = getAlertTimestamp(alert)
 
             const rawScore = Number(alert.rawScore ?? alert.score ?? 0)
-            const scorePercent = Number(alert.scorePercent ?? alert.score ?? 0)
+            const hasExplicitScorePercent =
+              alert.scorePercent !== undefined && alert.scorePercent !== null
+            const scorePercent = Math.max(
+              0,
+              Math.min(
+                100,
+                Number(hasExplicitScorePercent ? alert.scorePercent : rawScore)
+              )
+            )
 
             const movementPct = Number(alert.movementPct ?? 0)
             const movementPercent = Number(
@@ -93,8 +101,10 @@ export function RecentAlerts({
                   </div>
 
                   <div>
-                    Score: <span className="text-white">{scorePercent}/100</span>
-                    <span className="ml-2 text-xs text-slate-500">raw: {rawScore}</span>
+                    Intensity: <span className="text-white">{scorePercent}/100</span>
+                    <span className="ml-2 text-xs text-slate-500">
+                      historical activity points: {rawScore}
+                    </span>
                   </div>
 
                   <div>
