@@ -1,3 +1,4 @@
+import { IndicatorHelp } from "./IndicatorHelp"
 import type { ReactNode } from "react"
 
 export function SectionTitle({
@@ -13,7 +14,7 @@ export function SectionTitle({
     <div className="mb-4 flex items-start justify-between gap-4 border-b border-white/10 pb-3">
       <div className="min-w-0">
         <div className="text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-500">
-          {title}
+          {title} <IndicatorHelp label={title} />
         </div>
 
         {subtitle ? <div className="mt-1 text-sm text-slate-400">{subtitle}</div> : null}

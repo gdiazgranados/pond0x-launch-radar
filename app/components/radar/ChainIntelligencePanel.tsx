@@ -1,3 +1,4 @@
+import { IndicatorHelp } from "./IndicatorHelp"
 function fmt(v: any, digits = 1) {
   const n = Number(v)
   return Number.isFinite(n)
@@ -132,7 +133,7 @@ export function ChainIntelligencePanel({
           </div>
 
           <h2 className="mt-1 text-xl font-semibold sm:text-2xl">
-            wPOND Distribution Cycle Predictor
+            wPOND Distribution Cycle Predictor <IndicatorHelp label="wPOND Distribution Cycle Predictor" />
           </h2>
         </div>
 
@@ -280,7 +281,7 @@ export function ChainIntelligencePanel({
         </div>
 
         <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-          <div className="text-xs text-slate-500">Pattern Components</div>
+          <div className="text-xs text-slate-500">Pattern Components <IndicatorHelp label="Pattern Components" /></div>
           <div className="mt-1 text-sm text-white">
             Cadence similarity {fmt(m.components?.cadenceSimilarityPct)}%
           </div>
@@ -293,7 +294,7 @@ export function ChainIntelligencePanel({
         </div>
 
         <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-          <div className="text-xs text-slate-500">Last 5 Minutes</div>
+          <div className="text-xs text-slate-500">Last 5 Minutes <IndicatorHelp label="Last 5 Minutes" /></div>
           <div className="mt-1 text-lg">
             {fmt(w.rewardTransfers ?? w.rewards, 0)} reward transfers · {fmt(w.wpondDistributed)} wPOND
           </div>
@@ -303,7 +304,7 @@ export function ChainIntelligencePanel({
         </div>
 
         <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-          <div className="text-xs text-slate-500">Historical Baseline</div>
+          <div className="text-xs text-slate-500">Historical Baseline <IndicatorHelp label="Historical Baseline" /></div>
           <div className="mt-1 text-lg">
             {baseline ? `${fmt(baseline.cyclesAnalyzed, 0)} cycles` : "Not built yet"}
           </div>
@@ -369,7 +370,7 @@ export function ChainIntelligencePanel({
 
           <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-8">
             <div className="rounded-xl border border-white/10 bg-black/20 p-3">
-              <div className="text-[10px] uppercase tracking-wider text-slate-500">1h Flow</div>
+              <div className="text-[10px] uppercase tracking-wider text-slate-500">1h Flow <IndicatorHelp label="1h Flow" /></div>
               <div className="mt-1 text-lg font-semibold text-white">
                 {fmt(distributorOneHour.wpondDistributed)}
               </div>
@@ -379,7 +380,7 @@ export function ChainIntelligencePanel({
             </div>
 
             <div className="rounded-xl border border-white/10 bg-black/20 p-3">
-              <div className="text-[10px] uppercase tracking-wider text-slate-500">6h Flow</div>
+              <div className="text-[10px] uppercase tracking-wider text-slate-500">6h Flow <IndicatorHelp label="6h Flow" /></div>
               <div className="mt-1 text-lg font-semibold text-white">
                 {fmt(distributorSixHours.wpondDistributed)}
               </div>
@@ -389,7 +390,7 @@ export function ChainIntelligencePanel({
             </div>
 
             <div className="rounded-xl border border-white/10 bg-black/20 p-3">
-              <div className="text-[10px] uppercase tracking-wider text-slate-500">24h Flow</div>
+              <div className="text-[10px] uppercase tracking-wider text-slate-500">24h Flow <IndicatorHelp label="24h Flow" /></div>
               <div className="mt-1 text-lg font-semibold text-cyan-300">
                 {fmt(distributorTwentyFourHours.wpondDistributed)}
               </div>
@@ -399,7 +400,7 @@ export function ChainIntelligencePanel({
             </div>
 
             <div className="rounded-xl border border-white/10 bg-black/20 p-3">
-              <div className="text-[10px] uppercase tracking-wider text-slate-500">1h Velocity</div>
+              <div className="text-[10px] uppercase tracking-wider text-slate-500">1h Velocity <IndicatorHelp label="1h Velocity" /></div>
               <div className={`mt-1 text-lg font-semibold ${Number(velocity.volumeVelocityPct || 0) > 0 ? "text-emerald-300" : Number(velocity.volumeVelocityPct || 0) < 0 ? "text-red-300" : "text-slate-300"}`}>
                 {Number(velocity.volumeVelocityPct || 0) > 0 ? "+" : ""}{fmt(velocity.volumeVelocityPct)}%
               </div>
@@ -409,7 +410,7 @@ export function ChainIntelligencePanel({
             </div>
 
             <div className="rounded-xl border border-white/10 bg-black/20 p-3">
-              <div className="text-[10px] uppercase tracking-wider text-slate-500">Recipient Mix</div>
+              <div className="text-[10px] uppercase tracking-wider text-slate-500">Recipient Mix <IndicatorHelp label="Recipient Mix" /></div>
               <div className="mt-1 text-lg font-semibold text-white">
                 {fmt(recipientMix.totalRecipients, 0)}
               </div>
@@ -419,7 +420,7 @@ export function ChainIntelligencePanel({
             </div>
 
             <div className="rounded-xl border border-white/10 bg-black/20 p-3">
-              <div className="text-[10px] uppercase tracking-wider text-slate-500">Bursts</div>
+              <div className="text-[10px] uppercase tracking-wider text-slate-500">Bursts <IndicatorHelp label="Bursts" /></div>
               <div className={`mt-1 text-lg font-semibold ${Number(burstInfo.count || 0) > 0 ? "text-orange-300" : "text-slate-300"}`}>
                 {fmt(burstInfo.count, 0)}
               </div>
@@ -429,7 +430,7 @@ export function ChainIntelligencePanel({
             </div>
 
             <div className="rounded-xl border border-white/10 bg-black/20 p-3">
-              <div className="text-[10px] uppercase tracking-wider text-slate-500">Median Transfer</div>
+              <div className="text-[10px] uppercase tracking-wider text-slate-500">Median Transfer <IndicatorHelp label="Median Transfer" /></div>
               <div className="mt-1 text-lg font-semibold text-white">
                 {fmt(transferProfile.medianTransfer)}
               </div>
@@ -439,7 +440,7 @@ export function ChainIntelligencePanel({
             </div>
 
             <div className="rounded-xl border border-white/10 bg-black/20 p-3">
-              <div className="text-[10px] uppercase tracking-wider text-slate-500">Anomalies</div>
+              <div className="text-[10px] uppercase tracking-wider text-slate-500">Anomalies <IndicatorHelp label="Anomalies" /></div>
               <div className={`mt-1 text-lg font-semibold ${Number(transferProfile.amountAnomalyCount || 0) > 0 ? "text-red-300" : "text-emerald-300"}`}>
                 {fmt(transferProfile.amountAnomalyCount, 0)}
               </div>
