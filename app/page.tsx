@@ -686,6 +686,25 @@ export default function Home() {
                 wallet patterns, alert state, and historical heuristics across Pond0x surfaces. Heuristics are not claim or launch confirmations.
               </p>
 
+              <nav
+                aria-label="Radar navigation"
+                className="mt-4 flex flex-wrap gap-3 text-sm"
+              >
+                <Link
+                  href="/"
+                  aria-current="page"
+                  className="rounded-xl border border-cyan-400/40 bg-cyan-400/10 px-4 py-2 text-cyan-200"
+                >
+                  Radar Dashboard
+                </Link>
+                <Link
+                  href="/qa"
+                  className="rounded-xl border border-white/15 px-4 py-2 text-slate-200 hover:bg-white/10"
+                >
+                  Indicators Q&A
+                </Link>
+              </nav>
+
               <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                 <MetricCard
                   label="Snapshot"
