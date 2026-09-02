@@ -17,6 +17,7 @@ import { useSentinelData } from "./hooks/useSentinelData"
 import { SentinelPanel } from "./components/radar/SentinelPanel"
 import { ChainIntelligencePanel } from "./components/radar/ChainIntelligencePanel"
 import { FeatureActivationPanel } from "./components/radar/FeatureActivationPanel"
+import { MiningIntelligencePanel } from "./components/radar/MiningIntelligencePanel"
 
 import { EvidencePanel } from "./components/radar/EvidencePanel"
 import {
@@ -244,6 +245,7 @@ export default function Home() {
     heartbeatData,
     chainIntelligence,
     chainBaseline,
+    miningIntelligence,
     evidenceLedger,
   } = useRadarData()
   const { latestEvent } = useSentinelData()
@@ -1484,6 +1486,8 @@ export default function Home() {
               chain={chainIntelligence}
               baseline={chainBaseline}
             />
+
+            <MiningIntelligencePanel mining={miningIntelligence} />
           </div>
 
           <div className="min-w-0 xl:col-span-12">

@@ -1,6 +1,29 @@
 export const methodologyRevision = "f3196b0003a13cb22db350a7795e8bf8538bfa13"
 export const indicators = [
   {
+    "id": "mining-intelligence",
+    "group": "On-chain activity",
+    "title": "What does Mining Intelligence measure?",
+    "labels": [
+      "Mining Intelligence",
+      "Observed wPOND Claim Activity",
+      "Feed Age",
+      "Repeat Share",
+      "Top 5 Share",
+      "Observed Median"
+    ],
+    "meaning": "Summarizes direct wPOND transfers observed by Radar itself and conservatively classified as claim candidates.",
+    "calculation": "Shows 1h, 6h and 24h windows, age of the latest candidate, repeat recipients, Top 5 concentration and P25/median/P75 quantiles. Amounts come from the observed sample; no externally borrowed fixed claim band is imposed.",
+    "example": "Top 5 Share 70% means the five highest-volume wallets account for 70% of wPOND in the persistent ledger, not that they control 70% of all miners.",
+    "limits": "A candidate may be a distribution, relay or infrastructure transfer. Vanity-family and pool-or-relay relationships remain unconfirmed until instruction-level evidence exists.",
+    "sources": [
+      "watcher/lib/mining-intelligence.js",
+      "watcher/chain-intelligence.js",
+      "public/data/reward-recipients.json"
+    ],
+    "role": "Score-neutral observation; it does not change Radar Score, Activation Decision or alerts."
+  },
+  {
     "id": "score",
     "group": "Actividad web",
     "title": "¿Por qué el Score puede superar 100?",

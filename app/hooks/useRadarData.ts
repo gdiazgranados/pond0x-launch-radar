@@ -9,6 +9,7 @@ import type {
 } from "../types/radar"
 
 import type { EvidenceLedger } from "../types/evidence"
+import type { MiningIntelligence } from "../components/radar/MiningIntelligencePanel"
 
 type RadarApiResponse = {
   evidenceLedger?: EvidenceLedger | null
@@ -27,6 +28,7 @@ type RadarApiResponse = {
   chainBaseline?: any
   systemHealth?: any
   telegramHealth?: any
+  miningIntelligence?: MiningIntelligence | null
 }
 
 function apiRadarUrl(cacheBust: number) {
@@ -169,6 +171,7 @@ export function useRadarData() {
   const [chainBaseline, setChainBaseline] = useState<any>(null)
   const [systemHealth, setSystemHealth] = useState<any>(null)
   const [telegramHealth, setTelegramHealth] = useState<any>(null)
+  const [miningIntelligence, setMiningIntelligence] = useState<MiningIntelligence | null>(null)
 
   const loadRemoteRadar = useCallback(async (signal?: AbortSignal) => {
     const cacheBust = Date.now()
@@ -261,6 +264,7 @@ export function useRadarData() {
 
     setSystemHealth(json?.systemHealth || null)
     setTelegramHealth(json?.telegramHealth || null)
+    setMiningIntelligence(json?.miningIntelligence || null)
   }, [])
 
   const refresh = useCallback(
@@ -378,6 +382,7 @@ export function useRadarData() {
     chainBaseline,
     systemHealth,
     telegramHealth,
+    miningIntelligence,
 
     refresh,
   }
