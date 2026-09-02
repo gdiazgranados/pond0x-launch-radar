@@ -1,0 +1,127 @@
+{
+  "version": "1.0.0",
+  "generatedAt": "2026-09-02T17:49:34.379Z",
+  "classification": "OBSERVED_MINING_ACTIVITY_CANDIDATES",
+  "scoreNeutral": true,
+  "freshness": {
+    "status": "INACTIVE",
+    "ageMinutes": 8769.5,
+    "feedHealthy": false
+  },
+  "windows": {
+    "1h": {
+      "minutes": 60,
+      "transfers": 0,
+      "uniqueRecipients": 0,
+      "wpondDistributed": 0,
+      "avgTransfer": 0,
+      "largestTransfer": 0
+    },
+    "6h": {
+      "minutes": 360,
+      "transfers": 0,
+      "uniqueRecipients": 0,
+      "wpondDistributed": 0,
+      "avgTransfer": 0,
+      "largestTransfer": 0
+    },
+    "24h": {
+      "minutes": 1440,
+      "transfers": 0,
+      "uniqueRecipients": 0,
+      "wpondDistributed": 0,
+      "avgTransfer": 0,
+      "largestTransfer": 0
+    }
+  },
+  "velocity1h": {
+    "windowMinutes": 60,
+    "currentTransfers": 0,
+    "previousTransfers": 0,
+    "currentVolume": 0,
+    "previousVolume": 0,
+    "transferVelocityPct": 0,
+    "volumeVelocityPct": 0
+  },
+  "activityState": "QUIET",
+  "lifetime": {
+    "candidateRecipients": 4,
+    "candidateTransfers": 4,
+    "wpondObserved": 1119750000,
+    "repeatRecipientPct": 0,
+    "repeatTransferPct": 0
+  },
+  "concentration": {
+    "top1SharePct": 37.3,
+    "top5SharePct": 100,
+    "hhi": 2772,
+    "concentrationClass": "HIGH",
+    "topRecipients": [
+      {
+        "wallet": "97hSoC4at9wiCfyg2VRRv9BZSNmtLydjyxqzoaoKGEXy",
+        "totalWPOND": 417400000,
+        "transferCount": 1
+      },
+      {
+        "wallet": "86cV9BCHVhB4Yyh5dGhu1pt1rP2npvD32ZvRcLaRVXPo",
+        "totalWPOND": 309250000,
+        "transferCount": 1
+      },
+      {
+        "wallet": "APLnshf28vXHDGSqzgozqExMCvsNsxNPKxyzV4wrestF",
+        "totalWPOND": 211550000,
+        "transferCount": 1
+      },
+      {
+        "wallet": "8AXVKrdzjMhypA9KhSxdnV6bma4GqWAGXsCM5eRj1CLg",
+        "totalWPOND": 181550000,
+        "transferCount": 1
+      }
+    ]
+  },
+  "amountProfile": {
+    "sampleSize": 0,
+    "p25": null,
+    "median": null,
+    "p75": null,
+    "largest": null,
+    "method": "Observed quantiles; no fixed claim-size band is assumed."
+  },
+  "entities": [
+    {
+      "address": "AYg4dKoZJudVkD7Eu3ZaJjkzfoaATUqfiv8w8pS53opT",
+      "role": "CLAIM_DISTRIBUTOR",
+      "status": "CONFIRMED_OBSERVED",
+      "evidence": "Direct wPOND outflows are observed by chain-intelligence.",
+      "observedInCurrentChainModel": true
+    },
+    {
+      "address": "1orFCnFfgwPzSgUaoK6Wr3MjgXZ7mtk8NGz9Hh4iWWL",
+      "role": "REWARD_AGGREGATION_WALLET",
+      "status": "CONFIRMED_OBSERVED",
+      "evidence": "Receives repeated wPOND transfers from the monitored distributor.",
+      "observedInCurrentChainModel": true
+    },
+    {
+      "address": "HdM9481g5mXApUUsMSMxwVcRVcTde7nqLjGsgqMMf4P2",
+      "role": "POOL_OR_RELAY",
+      "status": "AMBIGUOUS",
+      "evidence": "Previously observed as the wPOND/SOL Raydium CLMM address; do not treat as a mining payer without instruction-level proof.",
+      "observedInCurrentChainModel": false
+    },
+    {
+      "address": "1orBuM2wX9oSZy2Rxd9VZqcX5f93J5GbSS1T6AoSWWL",
+      "role": "VANITY_FAMILY_CANDIDATE",
+      "status": "UNCONFIRMED_RELATION",
+      "evidence": "Shares the 1or…WWL vanity pattern with the reward wallet and has an observed graph edge; common control is not established.",
+      "observedInCurrentChainModel": false
+    }
+  ],
+  "coverage": {
+    "complete": true,
+    "sampleLimited": false,
+    "horizonMinutes": 1440,
+    "analyzedTransferSample": 0
+  },
+  "methodology": "Derived only from Pond0x Radar's own observed wPOND transfers and persistent recipient ledger. Direct distributor outflows to external recipients remain claim candidates, not confirmed mining rewards. This module does not affect Radar Score, activation decisions, or alerts."
+}
