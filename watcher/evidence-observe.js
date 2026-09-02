@@ -3,6 +3,7 @@ const fs = require("node:fs/promises");
 const path = require("node:path");
 const { evaluateEvidence } = require("./lib/evidence-events");
 const { buildDistributorBehavior } = require("./lib/distributor-behavior");
+const { buildMiningIntelligence } = require("./lib/mining-intelligence");
 async function read(file, fallback) {
   try { return JSON.parse(await fs.readFile(file, "utf8")); }
   catch (error) { if (error.code === "ENOENT") return fallback; throw error; }
@@ -39,7 +40,12 @@ async function run({ dataDir = path.join(__dirname, "..", "public", "data"), now
     .sort((a, b) => Date.parse(b.observedAt) - Date.parse(a.observedAt)).slice(0, 200);
   await write("evidence-ledger.json", { version: 1, mode: result.mode, generatedAt: result.generatedAt,
     context: result.context, issues: result.issues, events });
-  await write("distributor-intelligence.json", buildDistributorBehavior(chain, recipients));
+  const distributorIntelligence = buildDistributorBehavior(chain, recipients);
+  await write("distributor-intelligence.json", distributorIntelligence);
+  await write(
+    "mining-intelligence.json",
+    buildMiningIntelligence(chain, recipients, distributorIntelligence, new Date(now))
+  );
   await write("evidence-state.json", result.state);
   console.log(`Observation only: ${result.events.length} new events; ${result.events.filter(event => event.decision.eligible).length} would notify; 0 sent`);
   return result;
