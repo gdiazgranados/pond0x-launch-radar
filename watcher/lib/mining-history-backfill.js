@@ -19,6 +19,16 @@ function transferKey(transfer) {
   return `${transfer.signature}:${transfer.to}:${number(transfer.amount)}`;
 }
 
+function percentile(values, fraction) {
+  const ordered = values.map(number).filter((value) => value > 0).sort((a, b) => a - b);
+  if (!ordered.length) return null;
+  const index = (ordered.length - 1) * fraction;
+  const lower = Math.floor(index);
+  const upper = Math.ceil(index);
+  if (lower === upper) return round(ordered[lower]);
+  return round(ordered[lower] + (ordered[upper] - ordered[lower]) * (index - lower));
+}
+
 function extractExternalClaims(transactions, { distributor, rewardWallet, wpondMint }) {
   const claims = [];
 
@@ -145,7 +155,35 @@ function buildAuditReport(existingLedger, claims, generatedAt, context = {}) {
         transferKey: transferKey(claim),
       }))
     : [];
-  const orderedClaims = normalizedClaims.sort((a, b) => b.timestamp - a.timestamp);
+  const sourceCounts = normalizedClaims.reduce((counts, claim) => {
+    counts[claim.source] = number(counts[claim.source]) + 1;
+    return counts;
+  }, {});
+  const rankedSources = Object.entries(sourceCounts).sort((a, b) => b[1] - a[1]);
+  const dominantSource = rankedSources[0]?.[1] > normalizedClaims.length / 2
+    ? rankedSources[0][0]
+    : null;
+  const amounts = normalizedClaims.map((claim) => claim.amount).filter((amount) => amount > 0);
+  const p25 = percentile(amounts, 0.25);
+  const median = percentile(amounts, 0.5);
+  const p75 = percentile(amounts, 0.75);
+  const iqr = p25 !== null && p75 !== null ? round(p75 - p25) : null;
+  const lowerFence = amounts.length >= 4 && iqr !== null ? round(Math.max(0, p25 - 1.5 * iqr)) : null;
+  const upperFence = amounts.length >= 4 && iqr !== null ? round(p75 + 1.5 * iqr) : null;
+  const orderedClaims = normalizedClaims
+    .map((claim) => ({
+      ...claim,
+      qualityFlags: [
+        ...(lowerFence !== null && upperFence !== null &&
+        (claim.amount < lowerFence || claim.amount > upperFence)
+          ? ["AMOUNT_IQR_OUTLIER"]
+          : []),
+        ...(dominantSource && claim.source !== dominantSource
+          ? ["MINORITY_SOURCE"]
+          : []),
+      ],
+    }))
+    .sort((a, b) => b.timestamp - a.timestamp);
   const uniqueKeys = new Set(orderedClaims.map((claim) => claim.transferKey));
   const validTimes = orderedClaims
     .map((claim) => claim.time)
@@ -154,7 +192,7 @@ function buildAuditReport(existingLedger, claims, generatedAt, context = {}) {
   const simulation = simulateLedgerMerge(existingLedger, orderedClaims, generatedAt);
 
   return {
-    version: "1.0.0",
+    version: "1.1.0",
     generatedAt,
     mode: "DRY_RUN_AUDIT",
     scoreNeutral: true,
@@ -169,6 +207,24 @@ function buildAuditReport(existingLedger, claims, generatedAt, context = {}) {
       nonPositiveAmountClaims: orderedClaims.filter((claim) => claim.amount <= 0).length,
       oldestObservedAt: validTimes.at(0) || null,
       newestObservedAt: validTimes.at(-1) || null,
+      sourceDistribution: sourceCounts,
+      dominantSource,
+      minoritySourceClaims: orderedClaims.filter((claim) =>
+        claim.qualityFlags.includes("MINORITY_SOURCE")
+      ).length,
+      amountProfile: {
+        sampleSize: amounts.length,
+        p25,
+        median,
+        p75,
+        iqr,
+        lowerFence,
+        upperFence,
+        outlierClaims: orderedClaims.filter((claim) =>
+          claim.qualityFlags.includes("AMOUNT_IQR_OUTLIER")
+        ).length,
+        method: "Descriptive IQR flags only; no candidate is excluded or reclassified.",
+      },
     },
     summary: simulation.summary,
     candidates: orderedClaims,
