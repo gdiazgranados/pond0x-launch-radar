@@ -114,3 +114,25 @@ test("builds an auditable report with bounded coverage and normalized keys", () 
   assert.equal(report.coverage.pageLimitReached, true);
   assert.equal(report.projectedLedger.totalTransfers, 2);
 });
+
+test("flags statistical outliers and minority sources without removing evidence", () => {
+  const amounts = [10, 100, 110, 120, 130];
+  const claims = amounts.map((amount, index) => ({
+    signature: `signature-${index}`,
+    timestamp: 1_700_000_000 + index,
+    from: "distributor",
+    to: `wallet-${index}`,
+    amount,
+    source: index === 0 ? "SYSTEM_PROGRAM" : "SOLANA_PROGRAM_LIBRARY",
+  }));
+  const report = buildAuditReport({}, claims, "2026-01-01T00:00:00.000Z");
+  const flagged = report.candidates.find((claim) => claim.signature === "signature-0");
+
+  assert.equal(report.candidates.length, claims.length);
+  assert.equal(report.summary.candidateClaims, claims.length);
+  assert.equal(report.integrity.dominantSource, "SOLANA_PROGRAM_LIBRARY");
+  assert.equal(report.integrity.minoritySourceClaims, 1);
+  assert.equal(report.integrity.amountProfile.outlierClaims, 1);
+  assert.deepEqual(flagged.qualityFlags, ["AMOUNT_IQR_OUTLIER", "MINORITY_SOURCE"]);
+  assert.match(report.integrity.amountProfile.method, /no candidate is excluded/);
+});
