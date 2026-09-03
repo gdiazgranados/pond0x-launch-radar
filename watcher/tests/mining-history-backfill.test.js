@@ -3,6 +3,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const {
+  buildAuditReport,
   extractExternalClaims,
   simulateLedgerMerge,
 } = require("../lib/mining-history-backfill");
@@ -74,4 +75,42 @@ test("is idempotent when the projected ledger is simulated again", () => {
   assert.equal(second.summary.duplicates, 1);
   assert.equal(second.summary.projectedTransfers, 1);
   assert.equal(second.summary.projectedWPOND, 50);
+});
+
+test("builds an auditable report with bounded coverage and normalized keys", () => {
+  const claims = [
+    {
+      signature: "newer",
+      timestamp: 1_700_000_100,
+      time: "2023-11-14T22:15:00.000Z",
+      from: "distributor",
+      to: "wallet-b",
+      amount: 20,
+      source: "SYSTEM_PROGRAM",
+    },
+    {
+      signature: "older",
+      timestamp: 1_700_000_000,
+      time: "2023-11-14T22:13:20.000Z",
+      from: "distributor",
+      to: "wallet-a",
+      amount: 10,
+      source: "SYSTEM_PROGRAM",
+    },
+  ];
+  const report = buildAuditReport({}, claims, "2026-01-01T00:00:00.000Z", {
+    request: { pages: 20, transactionsFetched: 2000 },
+    coverage: { historyExhausted: false, pageLimitReached: true },
+  });
+
+  assert.equal(report.mode, "DRY_RUN_AUDIT");
+  assert.equal(report.ledgerWritesPerformed, false);
+  assert.equal(report.integrity.normalizedClaims, 2);
+  assert.equal(report.integrity.uniqueTransferKeys, 2);
+  assert.equal(report.integrity.duplicateCandidateKeys, 0);
+  assert.equal(report.integrity.nonPositiveAmountClaims, 0);
+  assert.equal(report.candidates[0].signature, "newer");
+  assert.equal(report.candidates[1].transferKey, "older:wallet-a:10");
+  assert.equal(report.coverage.pageLimitReached, true);
+  assert.equal(report.projectedLedger.totalTransfers, 2);
 });

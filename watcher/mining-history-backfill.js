@@ -2,9 +2,10 @@
 
 const fs = require("fs-extra");
 const path = require("path");
+const crypto = require("node:crypto");
 require("dotenv").config();
 
-const { extractExternalClaims, simulateLedgerMerge } = require("./lib/mining-history-backfill");
+const { buildAuditReport, extractExternalClaims } = require("./lib/mining-history-backfill");
 
 const HELIUS_API_KEY = process.env.HELIUS_API_KEY;
 const DISTRIBUTOR = "AYg4dKoZJudVkD7Eu3ZaJjkzfoaATUqfiv8w8pS53opT";
@@ -93,6 +94,11 @@ async function main() {
   const ledgerPath = path.resolve(
     option("ledger") || path.join(__dirname, "..", "public", "data", "reward-recipients.json")
   );
+  const reportOption = option("report");
+  const reportPath = reportOption ? path.resolve(reportOption) : null;
+  if (reportPath === ledgerPath) {
+    throw new Error("Audit report path must not overwrite the input ledger");
+  }
   const ledger = await fs.readJson(ledgerPath);
   const { transactions, exhausted } = await fetchHistory(pages);
   const claims = extractExternalClaims(transactions, {
@@ -101,17 +107,29 @@ async function main() {
     wpondMint: WPOND_MINT,
   });
   const generatedAt = new Date().toISOString();
-  const simulation = simulateLedgerMerge(ledger, claims, generatedAt);
+  const request = { pages, pageSize: PAGE_SIZE, transactionsFetched: transactions.length };
+  const coverage = { historyExhausted: exhausted, pageLimitReached: !exhausted };
+  const report = buildAuditReport(ledger, claims, generatedAt, { request, coverage });
+  let reportSha256 = null;
+
+  if (reportPath) {
+    const serialized = `${JSON.stringify(report, null, 2)}\n`;
+    await fs.outputFile(reportPath, serialized, "utf8");
+    reportSha256 = crypto.createHash("sha256").update(serialized).digest("hex");
+  }
 
   console.log(JSON.stringify({
-    version: "1.0.0",
+    version: report.version,
     generatedAt,
-    mode: "DRY_RUN",
+    mode: report.mode,
     scoreNeutral: true,
-    writesPerformed: false,
-    request: { pages, pageSize: PAGE_SIZE, transactionsFetched: transactions.length },
-    coverage: { historyExhausted: exhausted, pageLimitReached: !exhausted },
-    ...simulation.summary,
+    ledgerWritesPerformed: false,
+    auditReportWritten: Boolean(reportPath),
+    auditReportSha256: reportSha256,
+    request,
+    coverage,
+    integrity: report.integrity,
+    ...report.summary,
   }, null, 2));
 }
 
