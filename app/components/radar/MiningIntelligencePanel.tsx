@@ -13,7 +13,7 @@ type MiningEntity = {
 }
 
 export type MiningIntelligence = {
-  freshness?: { status?: string; ageMinutes?: number | null }
+  freshness?: { status?: string; ageMinutes?: number | null; hasRecentActivity?: boolean }
   windows?: Record<string, MiningWindow>
   lifetime?: {
     candidateRecipients?: number
@@ -24,10 +24,18 @@ export type MiningIntelligence = {
   concentration?: { top5SharePct?: number; concentrationClass?: string }
   amountProfile?: { p25?: number | null; median?: number | null; p75?: number | null }
   entities?: MiningEntity[]
-  coverage?: { sampleLimited?: boolean; analyzedTransferSample?: number }
+  coverage?: {
+    sampleLimited?: boolean
+    analyzedTransferSample?: number
+    sourceStatus?: string
+    lifetimeSampleLimited?: boolean
+    lifetimeTransferSample?: number
+    minimumReliableLifetimeSample?: number
+  }
 }
 
 function fmt(value: unknown, digits = 1) {
+  if (value === null || value === undefined || value === "") return "—"
   const parsed = Number(value)
   return Number.isFinite(parsed)
     ? parsed.toLocaleString("en-US", { maximumFractionDigits: digits })
@@ -43,7 +51,7 @@ function freshnessTone(status?: string) {
     case "LIVE": return "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
     case "COOLING": return "border-cyan-500/30 bg-cyan-500/10 text-cyan-300"
     case "STALE": return "border-amber-500/30 bg-amber-500/10 text-amber-300"
-    case "INACTIVE": return "border-red-500/30 bg-red-500/10 text-red-300"
+    case "INACTIVE": return "border-white/10 bg-white/5 text-slate-300"
     default: return "border-white/10 bg-white/5 text-slate-300"
   }
 }
@@ -63,6 +71,9 @@ export function MiningIntelligencePanel({ mining }: { mining?: MiningIntelligenc
   const concentration = mining.concentration || {}
   const profile = mining.amountProfile || {}
   const entities = Array.isArray(mining.entities) ? mining.entities : []
+  const coverage = mining.coverage || {}
+  const sourceHealthy = coverage.sourceStatus === "HEALTHY"
+  const lifetimeSampleLimited = coverage.lifetimeSampleLimited === true
 
   return (
     <section className="mb-5 rounded-3xl border border-emerald-500/20 bg-emerald-950/[0.08] p-4 shadow-[0_0_30px_rgba(16,185,129,0.05)] sm:p-5">
@@ -81,7 +92,10 @@ export function MiningIntelligencePanel({ mining }: { mining?: MiningIntelligenc
 
         <div className="flex flex-wrap gap-2 text-[10px]">
           <span className={`rounded-full border px-3 py-1 font-semibold ${freshnessTone(freshness.status)}`}>
-            FEED: {freshness.status || "UNKNOWN"}
+            ACTIVITY: {freshness.status || "UNKNOWN"}
+          </span>
+          <span className={`rounded-full border px-3 py-1 font-semibold ${sourceHealthy ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300" : "border-amber-500/30 bg-amber-500/10 text-amber-300"}`}>
+            SOURCE: {coverage.sourceStatus || "UNKNOWN"}
           </span>
           <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-slate-300">
             SCORE-NEUTRAL
@@ -94,10 +108,10 @@ export function MiningIntelligencePanel({ mining }: { mining?: MiningIntelligenc
           ["1h Candidates", windows["1h"]?.transfers, "", `${fmt(windows["1h"]?.wpondDistributed)} wPOND`],
           ["6h Candidates", windows["6h"]?.transfers, "", `${fmt(windows["6h"]?.uniqueRecipients, 0)} wallets`],
           ["24h Candidates", windows["24h"]?.transfers, "", `${fmt(windows["24h"]?.wpondDistributed)} wPOND`],
-          ["Feed Age", freshness.ageMinutes, " min", "since last candidate"],
+          ["Activity Age", freshness.ageMinutes, " min", "since last candidate"],
           ["Lifetime Recipients", lifetime.candidateRecipients, "", `${fmt(lifetime.candidateTransfers, 0)} transfers`],
           ["Repeat Share", lifetime.repeatTransferPct, "%", `${fmt(lifetime.repeatRecipientPct)}% recipients`],
-          ["Top 5 Share", concentration.top5SharePct, "%", `${concentration.concentrationClass || "—"} concentration`],
+          ["Top 5 Share", concentration.top5SharePct, "%", lifetimeSampleLimited ? "LIMITED SAMPLE" : `${concentration.concentrationClass || "—"} concentration`],
           ["Observed Median", profile.median, "", `P25 ${fmt(profile.p25)} · P75 ${fmt(profile.p75)}`],
         ].map(([label, value, suffix, note]) => (
           <div key={String(label)} className="rounded-xl border border-white/10 bg-black/20 p-3">
@@ -147,10 +161,12 @@ export function MiningIntelligencePanel({ mining }: { mining?: MiningIntelligenc
         </div>
       </div>
 
-      <div className={`mt-3 rounded-xl border p-3 text-[11px] ${mining.coverage?.sampleLimited ? "border-amber-500/20 bg-amber-500/[0.05] text-amber-200" : "border-white/10 bg-black/20 text-slate-500"}`}>
-        {mining.coverage?.sampleLimited
-          ? `Recent calculations use a bounded sample of ${fmt(mining.coverage.analyzedTransferSample, 0)} transfers; lifetime ledger totals remain authoritative.`
-          : "Mining activity coverage is derived from the current Radar chain sample and persistent recipient ledger."}
+      <div className={`mt-3 rounded-xl border p-3 text-[11px] ${coverage.sampleLimited || lifetimeSampleLimited ? "border-amber-500/20 bg-amber-500/[0.05] text-amber-200" : "border-white/10 bg-black/20 text-slate-500"}`}>
+        {coverage.sampleLimited
+          ? `Recent calculations use a bounded sample of ${fmt(coverage.analyzedTransferSample, 0)} transfers; lifetime ledger totals remain authoritative.`
+          : lifetimeSampleLimited
+            ? `Lifetime concentration and repeat-share statistics use only ${fmt(coverage.lifetimeTransferSample, 0)} observed transfers. Treat them as preliminary until at least ${fmt(coverage.minimumReliableLifetimeSample, 0)} transfers are available.`
+            : "Mining activity coverage is derived from the current Radar chain sample and persistent recipient ledger."}
       </div>
     </section>
   )

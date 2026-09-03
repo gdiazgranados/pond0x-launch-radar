@@ -52,6 +52,10 @@ test("builds score-neutral mining activity from Radar-owned evidence", () => {
   assert.equal(result.classification, "OBSERVED_MINING_ACTIVITY_CANDIDATES");
   assert.equal(result.freshness.status, "LIVE");
   assert.equal(result.freshness.ageMinutes, 30);
+  assert.equal(result.freshness.hasRecentActivity, true);
+  assert.equal(result.coverage.sourceStatus, "HEALTHY");
+  assert.equal(result.coverage.lifetimeSampleLimited, true);
+  assert.equal(result.coverage.lifetimeTransferSample, 6);
   assert.equal(result.lifetime.candidateTransfers, 6);
   assert.equal(result.lifetime.repeatRecipientPct, 66.7);
   assert.equal(result.lifetime.repeatTransferPct, 83.3);
@@ -73,15 +77,36 @@ test("keeps ambiguous and vanity-family entities explicitly unconfirmed", () => 
   assert.match(result.methodology, /does not affect Radar Score/);
 });
 
-test("marks an old claim feed inactive without interpreting launch state", () => {
+test("marks old claim activity inactive without treating the source as unhealthy", () => {
   const result = buildMiningIntelligence(
     {},
     { lastObservedAt: "2026-08-27T09:40:00.000Z", recipients: [] },
-    {},
+    { coverage: { coverageComplete: true } },
     now
   );
 
   assert.equal(result.freshness.status, "INACTIVE");
-  assert.equal(result.freshness.feedHealthy, false);
+  assert.equal(result.freshness.hasRecentActivity, false);
+  assert.equal("feedHealthy" in result.freshness, false);
+  assert.equal(result.coverage.sourceStatus, "HEALTHY");
+  assert.equal(result.coverage.lifetimeSampleLimited, true);
   assert.equal("launchImminent" in result, false);
+});
+
+test("marks lifetime statistics supported only after the explicit sample threshold", () => {
+  const recipients = Array.from({ length: 20 }, (_, index) => ({
+    wallet: `wallet-${index}`,
+    totalWPOND: 100,
+    transferCount: 1,
+  }));
+  const result = buildMiningIntelligence(
+    {},
+    { recipients, totalWPOND: 2000 },
+    { coverage: { coverageComplete: true } },
+    now
+  );
+
+  assert.equal(result.coverage.lifetimeTransferSample, 20);
+  assert.equal(result.coverage.minimumReliableLifetimeSample, 20);
+  assert.equal(result.coverage.lifetimeSampleLimited, false);
 });
