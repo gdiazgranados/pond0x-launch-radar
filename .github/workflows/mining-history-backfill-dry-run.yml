@@ -1,0 +1,60 @@
+name: Mining History Backfill Dry Run
+
+on:
+  workflow_dispatch:
+    inputs:
+      pages:
+        description: Helius pages to inspect (100 transactions per page)
+        required: true
+        default: "1"
+        type: choice
+        options:
+          - "1"
+          - "4"
+          - "8"
+          - "12"
+          - "20"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mining-history-backfill-dry-run
+  cancel-in-progress: false
+
+jobs:
+  dry-run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out selected branch
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: watcher/package-lock.json
+
+      - name: Install watcher dependencies
+        run: npm ci --prefix watcher
+
+      - name: Load current recipient ledger
+        shell: bash
+        run: |
+          git fetch --depth=1 origin radar-data
+          git show origin/radar-data:data/reward-recipients.json > "$RUNNER_TEMP/reward-recipients.json"
+
+      - name: Verify backfill safeguards
+        run: node --test watcher/tests/mining-history-backfill.test.js
+
+      - name: Simulate historical ledger merge
+        env:
+          HELIUS_API_KEY: ${{ secrets.HELIUS_API_KEY }}
+        run: >-
+          node watcher/mining-history-backfill.js
+          --ledger="$RUNNER_TEMP/reward-recipients.json"
+          --pages="${{ inputs.pages }}"
