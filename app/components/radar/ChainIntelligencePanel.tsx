@@ -12,6 +12,14 @@ function when(v?: string | null) {
   return Number.isNaN(d.getTime()) ? "—" : d.toLocaleString()
 }
 
+const RECIPIENT_DISPLAY_LIMIT = 10
+
+function recipientPriority(recipient: any) {
+  if (recipient?.frequencyClass === "FREQUENT") return 3
+  if (recipient?.frequencyClass === "REPEAT") return 2
+  return 1
+}
+
 function matchTone(v: number) {
   if (v >= 80) return "text-emerald-300"
   if (v >= 65) return "text-yellow-300"
@@ -108,6 +116,32 @@ export function ChainIntelligencePanel({
   const recipients = Array.isArray(recipientLedger.recipients)
     ? recipientLedger.recipients
     : []
+
+  const priorityRecipients = [...recipients]
+    .sort((left: any, right: any) => {
+      const statusDifference = recipientPriority(right) - recipientPriority(left)
+      if (statusDifference) return statusDifference
+
+      const transferDifference =
+        Number(right?.transferCount || 0) - Number(left?.transferCount || 0)
+      if (transferDifference) return transferDifference
+
+      const amountDifference =
+        Number(right?.totalWPOND || 0) - Number(left?.totalWPOND || 0)
+      if (amountDifference) return amountDifference
+
+      const recentDifference =
+        Date.parse(right?.lastSeenAt || "") - Date.parse(left?.lastSeenAt || "")
+      if (Number.isFinite(recentDifference) && recentDifference) return recentDifference
+
+      return String(left?.wallet || "").localeCompare(String(right?.wallet || ""))
+    })
+    .slice(0, RECIPIENT_DISPLAY_LIMIT)
+
+  const hiddenRecipientCount = Math.max(
+    0,
+    recipients.length - priorityRecipients.length
+  )
 
   const match = Number(m.historicalPatternMatchPct || 0)
 
@@ -476,11 +510,11 @@ export function ChainIntelligencePanel({
         <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <div className="text-xs font-semibold uppercase tracking-wider text-cyan-300">
-              Observed Reward Recipients
+              Prioritized Observed Recipients
             </div>
 
             <div className="mt-1 text-xs text-slate-500">
-              Persistent ledger of observed external claim candidates
+              Highest-priority external claim candidates by recurrence, transfer count, volume, and recency
             </div>
           </div>
 
@@ -501,6 +535,13 @@ export function ChainIntelligencePanel({
 
         {recipients.length > 0 ? (
           <div className="mt-4 overflow-x-auto">
+            <div className="mb-3 text-[11px] text-slate-500">
+              Showing {fmt(priorityRecipients.length, 0)} of {fmt(recipients.length, 0)} prioritized recipients
+              {hiddenRecipientCount > 0
+                ? ` · ${fmt(hiddenRecipientCount, 0)} additional wallets remain available in the underlying ledger`
+                : ""}
+            </div>
+
             <table className="w-full min-w-[720px] text-left text-xs">
               <thead className="border-b border-white/10 text-slate-500">
                 <tr>
@@ -515,7 +556,7 @@ export function ChainIntelligencePanel({
               </thead>
 
               <tbody>
-                {recipients.map((recipient: any) => (
+                {priorityRecipients.map((recipient: any) => (
                   <tr
                     key={recipient.wallet}
                     className="border-b border-white/5 text-slate-300 last:border-0"
