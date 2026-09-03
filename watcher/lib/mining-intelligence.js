@@ -50,7 +50,7 @@ function percentile(values, fraction) {
 function freshness(lastObservedAt, nowMs) {
   const timestamp = Date.parse(lastObservedAt || "");
   if (!Number.isFinite(timestamp)) {
-    return { status: "UNKNOWN", ageMinutes: null, feedHealthy: false };
+    return { status: "UNKNOWN", ageMinutes: null, hasRecentActivity: false };
   }
 
   const ageMinutes = Math.max(0, round((nowMs - timestamp) / 60_000, 1));
@@ -63,7 +63,7 @@ function freshness(lastObservedAt, nowMs) {
   return {
     status,
     ageMinutes,
-    feedHealthy: status === "LIVE" || status === "COOLING",
+    hasRecentActivity: status === "LIVE" || status === "COOLING",
   };
 }
 
@@ -106,7 +106,7 @@ function buildMiningIntelligence(chain, ledger, distributor, now = new Date()) {
   const lastObservedAt = distributor?.latestTransfer?.time || ledger?.lastObservedAt || null;
 
   return {
-    version: "1.0.0",
+    version: "1.1.0",
     generatedAt: now.toISOString(),
     classification: "OBSERVED_MINING_ACTIVITY_CANDIDATES",
     scoreNeutral: true,
@@ -143,6 +143,10 @@ function buildMiningIntelligence(chain, ledger, distributor, now = new Date()) {
       sampleLimited: distributor?.coverage?.sampleLimited === true,
       horizonMinutes: number(distributor?.coverage?.horizonMinutes),
       analyzedTransferSample: number(distributor?.coverage?.analyzedTransferSample),
+      sourceStatus: distributor?.coverage?.coverageComplete === true ? "HEALTHY" : "LIMITED",
+      lifetimeSampleLimited: totalTransfers < 20,
+      lifetimeTransferSample: totalTransfers,
+      minimumReliableLifetimeSample: 20,
     },
     methodology:
       "Derived only from Pond0x Radar's own observed wPOND transfers and persistent recipient ledger. Direct distributor outflows to external recipients remain claim candidates, not confirmed mining rewards. This module does not affect Radar Score, activation decisions, or alerts.",
