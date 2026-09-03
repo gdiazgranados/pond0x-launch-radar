@@ -132,4 +132,53 @@ function simulateLedgerMerge(existingLedger, claims, generatedAt) {
   };
 }
 
-module.exports = { extractExternalClaims, simulateLedgerMerge, transferKey };
+function buildAuditReport(existingLedger, claims, generatedAt, context = {}) {
+  const normalizedClaims = Array.isArray(claims)
+    ? claims.map((claim) => ({
+        signature: claim.signature,
+        timestamp: number(claim.timestamp),
+        time: claim.time || iso(claim.timestamp),
+        from: claim.from,
+        to: claim.to,
+        amount: number(claim.amount),
+        source: claim.source || "UNKNOWN",
+        transferKey: transferKey(claim),
+      }))
+    : [];
+  const orderedClaims = normalizedClaims.sort((a, b) => b.timestamp - a.timestamp);
+  const uniqueKeys = new Set(orderedClaims.map((claim) => claim.transferKey));
+  const validTimes = orderedClaims
+    .map((claim) => claim.time)
+    .filter(Boolean)
+    .sort();
+  const simulation = simulateLedgerMerge(existingLedger, orderedClaims, generatedAt);
+
+  return {
+    version: "1.0.0",
+    generatedAt,
+    mode: "DRY_RUN_AUDIT",
+    scoreNeutral: true,
+    ledgerWritesPerformed: false,
+    request: context.request || {},
+    coverage: context.coverage || {},
+    integrity: {
+      normalizedClaims: orderedClaims.length,
+      uniqueTransferKeys: uniqueKeys.size,
+      duplicateCandidateKeys: orderedClaims.length - uniqueKeys.size,
+      missingTimestampClaims: orderedClaims.filter((claim) => !claim.time).length,
+      nonPositiveAmountClaims: orderedClaims.filter((claim) => claim.amount <= 0).length,
+      oldestObservedAt: validTimes.at(0) || null,
+      newestObservedAt: validTimes.at(-1) || null,
+    },
+    summary: simulation.summary,
+    candidates: orderedClaims,
+    projectedLedger: simulation.projectedLedger,
+  };
+}
+
+module.exports = {
+  buildAuditReport,
+  extractExternalClaims,
+  simulateLedgerMerge,
+  transferKey,
+};

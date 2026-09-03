@@ -58,3 +58,12 @@ jobs:
           node watcher/mining-history-backfill.js
           --ledger="$RUNNER_TEMP/reward-recipients.json"
           --pages="${{ inputs.pages }}"
+          --report="$RUNNER_TEMP/mining-history-backfill-audit.json"
+
+      - name: Upload audit report
+        uses: actions/upload-artifact@v4
+        with:
+          name: mining-history-backfill-audit-${{ inputs.pages }}-pages
+          path: ${{ runner.temp }}/mining-history-backfill-audit.json
+          if-no-files-found: error
+          retention-days: 7
