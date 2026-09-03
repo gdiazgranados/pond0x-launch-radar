@@ -287,8 +287,14 @@ function buildRecipientLedger(existingLedger, externalClaims, generatedAt) {
     )
   );
 
+  const historicalBaseline =
+    existingLedger?.historicalBaseline &&
+    typeof existingLedger.historicalBaseline === 'object'
+      ? { ...existingLedger.historicalBaseline }
+      : null;
+
   return {
-    version: '1.0.0',
+    version: historicalBaseline ? '1.1.0' : '1.0.0',
     updatedAt: generatedAt,
 
     classification: 'EXTERNAL_CLAIM_CANDIDATES',
@@ -311,6 +317,8 @@ function buildRecipientLedger(existingLedger, externalClaims, generatedAt) {
     recipients,
 
     seenTransferKeys: [...seenTransferKeys].slice(-5000),
+
+    ...(historicalBaseline ? { historicalBaseline } : {}),
   };
 }
 
@@ -1227,5 +1235,9 @@ const rewardTxs = rewardResult.transactions;
   );
 }
 
-main().catch(e=>{console.error('chain-intelligence failed:',e);process.exit(1);});
+if (require.main === module) {
+  main().catch(e=>{console.error('chain-intelligence failed:',e);process.exit(1);});
+}
+
+module.exports = { buildRecipientLedger };
 
