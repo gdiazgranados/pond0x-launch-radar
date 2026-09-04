@@ -1,5 +1,625 @@
 [
   {
+    "id": "2026-09-04_103424__2026-09-04T10:34:47.618Z",
+    "snapshotId": "2026-09-04_103424",
+    "totalFiles": 63,
+    "added": 3,
+    "changed": 0,
+    "movementCount": 3,
+    "movementPct": 4.76,
+    "addedPct": 4.76,
+    "changedPct": 0,
+    "rawScore": 109,
+    "rawActivationProbability": 30,
+    "movementPercent": 4.76,
+    "addedPercent": 4.76,
+    "changedPercent": 0,
+    "scorePercent": 100,
+    "activationProbability": 30,
+    "score": 109,
+    "intensityClass": "EXTREME",
+    "overdrive": true,
+    "portalArmed": false,
+    "launchImminent": false,
+    "signals": [
+      "account",
+      "active",
+      "connect",
+      "launch",
+      "nonce",
+      "reward",
+      "rewards",
+      "solana",
+      "wallet"
+    ],
+    "backendSignals": [],
+    "patternScore": 60,
+    "patterns": [
+      {
+        "tag": "PRE-ACTIVATION",
+        "boost": 15,
+        "confidence": "HIGH",
+        "reasons": [
+          "Wallet-related strings detected",
+          "Connect UI detected",
+          "UI still appears disabled"
+        ]
+      },
+      {
+        "tag": "REWARD_PREP",
+        "boost": 20,
+        "confidence": "HIGH",
+        "reasons": [
+          "Reward logic detected in code or strings",
+          "No confirming on-chain movement yet"
+        ]
+      },
+      {
+        "tag": "UI_ARMING",
+        "boost": 12,
+        "confidence": "HIGH",
+        "reasons": [
+          "Connect UI visible",
+          "CTA or interactive surface changed"
+        ]
+      }
+    ],
+    "level": "CRITICAL",
+    "significance": "HIGH",
+    "rarityScore": 100,
+    "focusAreas": [
+      "REWARDS",
+      "AUTH",
+      "WALLET",
+      "ACCOUNT",
+      "SYSTEM"
+    ],
+    "sensitiveHits": [
+      "reward",
+      "rewards",
+      "auth",
+      "wallet",
+      "connect",
+      "solana",
+      "account",
+      "launch"
+    ],
+    "changeTypes": [
+      "route",
+      "asset"
+    ],
+    "insight": "No significant activity detected",
+    "confidence": 0.2,
+    "tags": [
+      "AUTH",
+      "REWARDS",
+      "CHAIN",
+      "SYSTEM",
+      "PRE-ACTIVATION",
+      "REWARD_PREP",
+      "UI_ARMING"
+    ],
+    "summary": "3 of 63 files show movement (4.76%). 3 new (4.76%) and 0 modified (0). Signals: account, active, connect, launch, nonce, reward, rewards, solana, wallet.",
+    "note": "Very strong signals of real activation or an imminent launch.",
+    "changedFiles": [
+      "_next_static_chunks_51972-ef64531ddf75884e.js",
+      "_next_static_chunks_app_page-b4cd6daaf9697a3c.js",
+      "_next_static_chunks_webpack-2389ed00e2279f21.js"
+    ],
+    "generatedAt": "2026-09-04T10:34:47.618Z",
+    "trend": 100,
+    "trendDirection": "UP",
+    "breakdown": {
+      "frontend": {
+        "raw": 100,
+        "weighted": 35,
+        "hits": [
+          "wallet_strings",
+          "connect_ui",
+          "disabled_state",
+          "enabled_state",
+          "cta_change",
+          "auth_flow"
+        ]
+      },
+      "infra": {
+        "raw": 40,
+        "weighted": 10,
+        "hits": [
+          "new_chunks",
+          "js_change"
+        ]
+      },
+      "rewards": {
+        "raw": 75,
+        "weighted": 18.75,
+        "hits": [
+          "reward_logic",
+          "reward_activation",
+          "active_signal"
+        ]
+      },
+      "behavior": {
+        "raw": 50,
+        "weighted": 7.5,
+        "hits": [
+          "recent_change_cluster",
+          "wallet_auth_reward_convergence"
+        ]
+      },
+      "onchain": {
+        "raw": 0,
+        "hits": []
+      },
+      "patternBoost": 47,
+      "weightedBoost": 9,
+      "discoveryApiCount": 0,
+      "discoveryKeywordCount": 0,
+      "backendSignalCount": 0
+    },
+    "featureActivationEvidence": {
+      "classification": "BUNDLE_SURFACE_DRIFT",
+      "comparable": true,
+      "buildChanged": true,
+      "previousBuildId": "1788325393343",
+      "currentBuildId": "1788514313014",
+      "buildIdSource": "FIRST_PARTY_JS_FINGERPRINT",
+      "bundleFingerprint": "85fb97057a7464de7273",
+      "bundleCount": 59,
+      "bundleChanged": true,
+      "bundleDiff": {
+        "comparable": true,
+        "status": "DRIFT",
+        "previousBundleCount": 59,
+        "currentBundleCount": 59,
+        "addedBundles": [
+          {
+            "key": "https://www.pond0x.com/_next/static/chunks/51972-ef64531ddf75884e.js",
+            "url": "https://www.pond0x.com/_next/static/chunks/51972-ef64531ddf75884e.js",
+            "sha256": "a5de0923b0e34c8f6e841bad5ab6111b171c5ee6655107e91eba658496b49638",
+            "size": 26310
+          },
+          {
+            "key": "https://www.pond0x.com/_next/static/chunks/app/page-b4cd6daaf9697a3c.js",
+            "url": "https://www.pond0x.com/_next/static/chunks/app/page-b4cd6daaf9697a3c.js",
+            "sha256": "f8b3f78eac70a6ca84fb46e1daf50fe9448e249da99bcd5fe38a9f08a12f3768",
+            "size": 21029
+          },
+          {
+            "key": "https://www.pond0x.com/_next/static/chunks/webpack-2389ed00e2279f21.js",
+            "url": "https://www.pond0x.com/_next/static/chunks/webpack-2389ed00e2279f21.js",
+            "sha256": "f0cadabca90eee1dd9493a61af21b4a1199e8cf8b45639694e3e26356147800e",
+            "size": 22728
+          }
+        ],
+        "removedBundles": [
+          {
+            "key": "https://www.pond0x.com/_next/static/chunks/51972-a235e3e80a016204.js",
+            "url": "https://www.pond0x.com/_next/static/chunks/51972-a235e3e80a016204.js",
+            "sha256": "85e163d4d977aa366a3650eac5e49b3dfb2182fdad92da2c7897cfc15f5b97dc",
+            "size": 26310
+          },
+          {
+            "key": "https://www.pond0x.com/_next/static/chunks/app/page-587441c619ba1cf1.js",
+            "url": "https://www.pond0x.com/_next/static/chunks/app/page-587441c619ba1cf1.js",
+            "sha256": "c8fc048de4a0fe9daad6613cfd631609b9deb9134bc2a0bcceabdb70da1ca4fd",
+            "size": 21029
+          },
+          {
+            "key": "https://www.pond0x.com/_next/static/chunks/webpack-d58479a9f25184ca.js",
+            "url": "https://www.pond0x.com/_next/static/chunks/webpack-d58479a9f25184ca.js",
+            "sha256": "8be6cc158137a04014f3072ea2c032f965a1df5eff4efd57e238c96e7dafe5fb",
+            "size": 22728
+          }
+        ],
+        "changedBundles": [],
+        "addedRoutes": [],
+        "removedRoutes": [],
+        "addedApiRoutes": [],
+        "removedApiRoutes": [],
+        "addedKeywords": [],
+        "removedKeywords": [],
+        "addedFlags": [],
+        "removedFlags": []
+      },
+      "semanticChange": {
+        "comparable": true,
+        "score": 10.5,
+        "level": "TRIVIAL",
+        "classification": "STRUCTURAL_BUNDLE_CHANGE",
+        "material": false,
+        "highValueEvidence": [],
+        "reasons": [
+          "0 changed, 3 added, 3 removed bundles."
+        ],
+        "components": {
+          "structural": 10.5,
+          "semantic": 0,
+          "activation": 0,
+          "convergenceBonus": 0
+        },
+        "counts": {
+          "changedBundles": 0,
+          "addedBundles": 3,
+          "removedBundles": 3,
+          "addedRoutes": 0,
+          "addedApiRoutes": 0,
+          "addedKeywords": 0,
+          "addedFlags": 0,
+          "flagTransitions": 0,
+          "routeTransitions": 0
+        }
+      },
+      "unlockedFlags": [],
+      "lockedFlags": [],
+      "activatedRoutes": [],
+      "deactivatedRoutes": [],
+      "observedDormantRoutes": [
+        {
+          "route": "/leaderboard",
+          "status": 404,
+          "finalUrl": "https://www.pond0x.com/leaderboard"
+        }
+      ],
+      "convergence": false,
+      "activationCluster": false
+    },
+    "advancedSignals": {
+      "frontend": [
+        "wallet_strings",
+        "connect_ui",
+        "disabled_state",
+        "enabled_state",
+        "cta_change",
+        "auth_flow"
+      ],
+      "infra": [
+        "new_chunks",
+        "js_change"
+      ],
+      "rewards": [
+        "reward_logic",
+        "reward_activation",
+        "active_signal"
+      ],
+      "behavior": [
+        "recent_change_cluster",
+        "wallet_auth_reward_convergence"
+      ],
+      "frontendScore": 100,
+      "infraScore": 40,
+      "rewardsScore": 75,
+      "behaviorScore": 50,
+      "movementPct": 4.76,
+      "recentChangesCount": 3,
+      "onchainStatus": "QUIET",
+      "onchainAvailable": true,
+      "onchainFresh": true,
+      "hasOnchainMovement": false,
+      "onchainScore": 0,
+      "onchain": [],
+      "hasWalletStrings": true,
+      "hasConnectUI": true,
+      "hasDisabledState": true,
+      "hasEnabledState": true,
+      "hasRewardLogic": true,
+      "hasRewardActivation": true,
+      "hasAuthSignals": true,
+      "hasClaimSignal": false,
+      "hasEligibilitySignal": false,
+      "hasActiveSignal": true,
+      "hasApiSurface": false,
+      "hasClaimApi": false,
+      "hasRewardApi": false,
+      "hasAuthApi": false,
+      "hasAccountApi": false,
+      "hasEligibleTrue": false,
+      "hasCanClaimTrue": false,
+      "hasEnabledTrue": false,
+      "hasActiveTrue": false,
+      "hasRewardsArray": false,
+      "hasNewChunks": true,
+      "hasVisibleCTAChange": true
+    },
+    "evidenceCorrelation": {
+      "apiResponseDrift": false,
+      "newApiRoute": false,
+      "newLiveApiRoute": false,
+      "backendSignal": false,
+      "criticalKeyword": false,
+      "semanticMaterial": false,
+      "activationRelevantSemantic": false,
+      "surfaceMovement": true,
+      "onchainMovement": false,
+      "fundingActive": false,
+      "rewardActivity": false,
+      "externalClaimTransfer": false,
+      "newRecipient": false,
+      "evidenceCount": 1,
+      "domainCount": 1,
+      "domains": {
+        "api": false,
+        "backend": false,
+        "semantic": false,
+        "webSurface": true,
+        "onchain": false,
+        "distributor": false,
+        "recipients": false
+      },
+      "score": 8,
+      "level": "LOW",
+      "componentScores": {
+        "api": 0,
+        "backend": 0,
+        "semantic": 0,
+        "webSurface": 8,
+        "onchain": 0,
+        "distributor": 0,
+        "recipients": 0
+      },
+      "convergenceBonus": 0,
+      "semanticScore": 8,
+      "semanticScoreSource": "DISCOVERY_PROXY",
+      "semanticClassification": null,
+      "newExternalTransfers": 0,
+      "newExternalRecipients": 0,
+      "classification": "ISOLATED"
+    },
+    "temporalCorrelation": {
+      "windowMinutes": 60,
+      "domainCount": 1,
+      "sequence": [
+        "webSurface"
+      ],
+      "events": [
+        {
+          "domain": "webSurface",
+          "seenAt": "2026-09-04T10:34:47.618Z",
+          "source": "current",
+          "detail": null
+        }
+      ],
+      "firstSeenAt": "2026-09-04T10:34:47.618Z",
+      "lastSeenAt": "2026-09-04T10:34:47.618Z",
+      "spanMinutes": 0,
+      "observedSequencePattern": null,
+      "classification": "NONE",
+      "interpretation": "No strong cross-domain temporal sequence is established yet."
+    },
+    "surfaceDiscovery": {
+      "hostRoles": [
+        {
+          "host": "api.web3modal.org",
+          "role": "WALLET_INFRASTRUCTURE",
+          "provider": "WEB3MODAL_REOWN",
+          "requestCount": 12,
+          "sourceClasses": [
+            "THIRD_PARTY"
+          ],
+          "resourceTypes": {
+            "fetch": 12
+          },
+          "present": true,
+          "driftState": "STABLE"
+        },
+        {
+          "host": "fonts.googleapis.com",
+          "role": "STATIC_INFRASTRUCTURE",
+          "provider": "GOOGLE_FONTS",
+          "requestCount": 1,
+          "sourceClasses": [
+            "THIRD_PARTY"
+          ],
+          "resourceTypes": {
+            "stylesheet": 1
+          },
+          "present": true,
+          "driftState": "STABLE"
+        },
+        {
+          "host": "fonts.gstatic.com",
+          "role": "STATIC_INFRASTRUCTURE",
+          "provider": "GOOGLE_FONTS",
+          "requestCount": 1,
+          "sourceClasses": [
+            "THIRD_PARTY"
+          ],
+          "resourceTypes": {
+            "font": 1
+          },
+          "present": true,
+          "driftState": "STABLE"
+        },
+        {
+          "host": "mm-sdk-analytics.api.cx.metamask.io",
+          "role": "WALLET_TELEMETRY",
+          "provider": "METAMASK",
+          "requestCount": 1,
+          "sourceClasses": [
+            "THIRD_PARTY"
+          ],
+          "resourceTypes": {
+            "fetch": 1
+          },
+          "present": true,
+          "driftState": "STABLE"
+        },
+        {
+          "host": "pulse.walletconnect.org",
+          "role": "WALLET_INFRASTRUCTURE",
+          "provider": "WALLETCONNECT",
+          "requestCount": 1,
+          "sourceClasses": [
+            "THIRD_PARTY"
+          ],
+          "resourceTypes": {
+            "fetch": 1
+          },
+          "present": true,
+          "driftState": "STABLE"
+        },
+        {
+          "host": "www.pond0x.com",
+          "role": "PONDOX_FIRST_PARTY",
+          "provider": "PONDOX",
+          "requestCount": 76,
+          "sourceClasses": [
+            "FIRST_PARTY"
+          ],
+          "resourceTypes": {
+            "document": 1,
+            "font": 2,
+            "image": 5,
+            "stylesheet": 3,
+            "script": 59,
+            "fetch": 6
+          },
+          "present": true,
+          "driftState": "STABLE"
+        }
+      ],
+      "unclassifiedHostCount": 0,
+      "unclassifiedHosts": [],
+      "inventory": {
+        "requestCount": 92,
+        "firstPartyRequestCount": 76,
+        "thirdPartyRequestCount": 16,
+        "unknownRequestCount": 0,
+        "hosts": [
+          "api.web3modal.org",
+          "fonts.googleapis.com",
+          "fonts.gstatic.com",
+          "mm-sdk-analytics.api.cx.metamask.io",
+          "pulse.walletconnect.org",
+          "www.pond0x.com"
+        ],
+        "origins": [
+          "https://api.web3modal.org",
+          "https://fonts.googleapis.com",
+          "https://fonts.gstatic.com",
+          "https://mm-sdk-analytics.api.cx.metamask.io",
+          "https://pulse.walletconnect.org",
+          "https://www.pond0x.com"
+        ],
+        "resourceTypes": {
+          "document": 1,
+          "font": 3,
+          "image": 5,
+          "stylesheet": 4,
+          "script": 59,
+          "fetch": 20
+        }
+      },
+      "drift": {
+        "comparable": true,
+        "baselineSnapshotId": "2026-09-04_094012",
+        "status": "DRIFT",
+        "newSurfaceCount": 3,
+        "missingSurfaceCount": 3,
+        "newHostCount": 0,
+        "missingHostCount": 0,
+        "newHosts": [],
+        "missingHosts": [],
+        "newSurfaces": [
+          {
+            "url": "https://www.pond0x.com/_next/static/chunks/webpack-2389ed00e2279f21.js",
+            "origin": "https://www.pond0x.com",
+            "sourceHost": "www.pond0x.com",
+            "sourceClass": "FIRST_PARTY",
+            "method": "GET",
+            "resourceType": "script"
+          },
+          {
+            "url": "https://www.pond0x.com/_next/static/chunks/51972-ef64531ddf75884e.js",
+            "origin": "https://www.pond0x.com",
+            "sourceHost": "www.pond0x.com",
+            "sourceClass": "FIRST_PARTY",
+            "method": "GET",
+            "resourceType": "script"
+          },
+          {
+            "url": "https://www.pond0x.com/_next/static/chunks/app/page-b4cd6daaf9697a3c.js",
+            "origin": "https://www.pond0x.com",
+            "sourceHost": "www.pond0x.com",
+            "sourceClass": "FIRST_PARTY",
+            "method": "GET",
+            "resourceType": "script"
+          }
+        ],
+        "missingSurfaces": [
+          {
+            "url": "https://www.pond0x.com/_next/static/chunks/webpack-d58479a9f25184ca.js",
+            "origin": "https://www.pond0x.com",
+            "sourceHost": "www.pond0x.com",
+            "sourceClass": "FIRST_PARTY",
+            "method": "GET",
+            "resourceType": "script"
+          },
+          {
+            "url": "https://www.pond0x.com/_next/static/chunks/51972-a235e3e80a016204.js",
+            "origin": "https://www.pond0x.com",
+            "sourceHost": "www.pond0x.com",
+            "sourceClass": "FIRST_PARTY",
+            "method": "GET",
+            "resourceType": "script"
+          },
+          {
+            "url": "https://www.pond0x.com/_next/static/chunks/app/page-587441c619ba1cf1.js",
+            "origin": "https://www.pond0x.com",
+            "sourceHost": "www.pond0x.com",
+            "sourceClass": "FIRST_PARTY",
+            "method": "GET",
+            "resourceType": "script"
+          }
+        ]
+      }
+    },
+    "observability": {
+      "status": "HEALTHY",
+      "blindSpot": false,
+      "degraded": false,
+      "reasons": [],
+      "navigationOk": true,
+      "documentCaptured": true,
+      "capturedResponseCount": 78,
+      "firstPartyResponseCount": 65,
+      "apiResponseCount": 14,
+      "firstPartyApiCount": 3
+    },
+    "discovery": {
+      "checkedAt": "2026-09-04T10:34:42.348Z",
+      "sourceSnapshotId": "2026-09-04_103424",
+      "snapshotDir": "2026-09-04_103424",
+      "newUnknownChange": false,
+      "keyFunctionCandidate": null,
+      "newLabels": [],
+      "newRoutes": [],
+      "newApiRoutes": [],
+      "newLiveApiRoutes": [],
+      "newKeywords": [],
+      "criticalKeywords": [],
+      "apiResponseDrift": {
+        "detected": false,
+        "changedRouteCount": 0,
+        "changedRoutes": []
+      }
+    },
+    "whyItMatters": "Wallet and authentication layers are being tightly integrated. Low activity but high-sensitivity changes suggest stealth deployment. Breakout detected after a period of inactivity. Reward systems are a primary focus of current changes.",
+    "alphaScore": 100,
+    "alphaClass": "CRITICAL",
+    "triggerState": "TRIGGERED",
+    "suggestedAction": "Critical signal. Treat as imminent event candidate and escalate immediately.",
+    "activationState": "IDLE",
+    "activationAction": "No fresh activation event confirmed.",
+    "eventType": "REWARD ACTIVATION",
+    "signalRegime": "PRE-LAUNCH REAL",
+    "signalFusion": "FULL ACTIVATION STACK",
+    "priority": "LOW",
+    "eta": "24h - 72h",
+    "signature": "CRITICAL::105::AUTH|CHAIN|PRE-ACTIVATION|REWARDS|REWARD_PREP|SYSTEM|UI_ARMING::PRE-ACTIVATION|REWARD_PREP|UI_ARMING",
+    "alertSignature": "8007c65b92a2f0b9aadfa2a39b0ba1db887a1480a9539ad59b695b2f9a74fe0d"
+  },
+  {
     "id": "2026-09-04_094012__2026-09-04T09:40:37.826Z",
     "snapshotId": "2026-09-04_094012",
     "totalFiles": 63,
@@ -85798,416 +86418,6 @@
       "checkedAt": "2026-08-26T13:19:04.672Z",
       "sourceSnapshotId": "2026-08-26_131853",
       "snapshotDir": "2026-08-26_131853",
-      "newUnknownChange": false,
-      "keyFunctionCandidate": null,
-      "newLabels": [],
-      "newRoutes": [],
-      "newApiRoutes": [],
-      "newLiveApiRoutes": [],
-      "newKeywords": [],
-      "criticalKeywords": [],
-      "apiResponseDrift": {
-        "detected": false,
-        "changedRouteCount": 0,
-        "changedRoutes": []
-      }
-    },
-    "whyItMatters": "",
-    "alphaScore": 0,
-    "alphaClass": "NOISE",
-    "triggerState": "IDLE",
-    "suggestedAction": "Ignore noise and continue baseline monitoring.",
-    "activationState": "IDLE",
-    "activationAction": "No fresh activation event confirmed.",
-    "eventType": "NOISE",
-    "signalRegime": "NOISE DISGUISED AS SIGNAL",
-    "signalFusion": "UNCLASSIFIED SIGNAL MIX",
-    "priority": "LOW",
-    "eta": "unknown",
-    "signature": "LOW::0::::",
-    "alertSignature": "f0c184b60154c177bdd0b20d65914ab31f8abe0ea067ccbc883f82d4adf64c92"
-  },
-  {
-    "id": "2026-08-26_114710__2026-08-26T11:47:21.467Z",
-    "snapshotId": "2026-08-26_114710",
-    "totalFiles": 62,
-    "added": 0,
-    "changed": 0,
-    "movementCount": 0,
-    "movementPct": 0,
-    "addedPct": 0,
-    "changedPct": 0,
-    "rawScore": 0,
-    "rawActivationProbability": 0,
-    "movementPercent": 0,
-    "addedPercent": 0,
-    "changedPercent": 0,
-    "scorePercent": 0,
-    "activationProbability": 0,
-    "score": 0,
-    "intensityClass": "LOW",
-    "overdrive": false,
-    "portalArmed": false,
-    "launchImminent": false,
-    "signals": [],
-    "backendSignals": [],
-    "patternScore": 0,
-    "patterns": [],
-    "level": "LOW",
-    "significance": "NONE",
-    "rarityScore": 0,
-    "focusAreas": [],
-    "sensitiveHits": [],
-    "changeTypes": [],
-    "insight": "No significant activity detected",
-    "confidence": 0.2,
-    "tags": [],
-    "summary": "No changes detected across 62 analyzed files.",
-    "note": "No strong signals at this time.",
-    "changedFiles": [],
-    "generatedAt": "2026-08-26T11:47:21.467Z",
-    "trend": 0,
-    "trendDirection": "FLAT",
-    "breakdown": {
-      "frontend": {
-        "raw": 0,
-        "weighted": 0,
-        "hits": []
-      },
-      "infra": {
-        "raw": 0,
-        "weighted": 0,
-        "hits": []
-      },
-      "rewards": {
-        "raw": 0,
-        "weighted": 0,
-        "hits": []
-      },
-      "behavior": {
-        "raw": 0,
-        "weighted": 0,
-        "hits": []
-      },
-      "onchain": {
-        "raw": 0,
-        "hits": []
-      },
-      "patternBoost": 0,
-      "weightedBoost": 0,
-      "discoveryApiCount": 0,
-      "discoveryKeywordCount": 0,
-      "backendSignalCount": 0
-    },
-    "featureActivationEvidence": {
-      "classification": "DORMANT_FEATURE_SURFACE",
-      "comparable": true,
-      "buildChanged": false,
-      "previousBuildId": "1786340515953",
-      "currentBuildId": "1786340515953",
-      "unlockedFlags": [],
-      "lockedFlags": [],
-      "activatedRoutes": [],
-      "deactivatedRoutes": [],
-      "observedDormantRoutes": [
-        {
-          "route": "/leaderboard",
-          "status": 404,
-          "finalUrl": "https://www.pond0x.com/leaderboard"
-        }
-      ],
-      "convergence": false,
-      "activationCluster": false
-    },
-    "advancedSignals": {
-      "frontend": [],
-      "infra": [],
-      "rewards": [],
-      "behavior": [],
-      "frontendScore": 0,
-      "infraScore": 0,
-      "rewardsScore": 0,
-      "behaviorScore": 0,
-      "movementPct": 0,
-      "recentChangesCount": 0,
-      "onchainStatus": "QUIET",
-      "onchainAvailable": true,
-      "onchainFresh": true,
-      "hasOnchainMovement": false,
-      "onchainScore": 0,
-      "onchain": [],
-      "hasWalletStrings": false,
-      "hasConnectUI": false,
-      "hasDisabledState": false,
-      "hasEnabledState": false,
-      "hasRewardLogic": false,
-      "hasRewardActivation": false,
-      "hasAuthSignals": false,
-      "hasClaimSignal": false,
-      "hasEligibilitySignal": false,
-      "hasActiveSignal": false,
-      "hasApiSurface": false,
-      "hasClaimApi": false,
-      "hasRewardApi": false,
-      "hasAuthApi": false,
-      "hasAccountApi": false,
-      "hasEligibleTrue": false,
-      "hasCanClaimTrue": false,
-      "hasEnabledTrue": false,
-      "hasActiveTrue": false,
-      "hasRewardsArray": false,
-      "hasNewChunks": false,
-      "hasVisibleCTAChange": false
-    },
-    "evidenceCorrelation": {
-      "apiResponseDrift": false,
-      "newApiRoute": false,
-      "newLiveApiRoute": false,
-      "backendSignal": false,
-      "criticalKeyword": false,
-      "surfaceMovement": false,
-      "onchainMovement": false,
-      "evidenceCount": 0,
-      "domainCount": 0,
-      "domains": {
-        "api": false,
-        "backend": false,
-        "semantic": false,
-        "webSurface": false,
-        "onchain": false
-      },
-      "classification": "NONE"
-    },
-    "temporalCorrelation": {
-      "windowMinutes": 60,
-      "domainCount": 0,
-      "sequence": [],
-      "events": [],
-      "firstSeenAt": null,
-      "lastSeenAt": null,
-      "spanMinutes": null,
-      "classification": "NONE"
-    },
-    "surfaceDiscovery": {
-      "hostRoles": [
-        {
-          "host": "api.web3modal.org",
-          "role": "WALLET_INFRASTRUCTURE",
-          "provider": "WEB3MODAL_REOWN",
-          "requestCount": 10,
-          "sourceClasses": [
-            "THIRD_PARTY"
-          ],
-          "resourceTypes": {
-            "fetch": 10
-          },
-          "present": true,
-          "driftState": "STABLE"
-        },
-        {
-          "host": "fonts.googleapis.com",
-          "role": "STATIC_INFRASTRUCTURE",
-          "provider": "GOOGLE_FONTS",
-          "requestCount": 1,
-          "sourceClasses": [
-            "THIRD_PARTY"
-          ],
-          "resourceTypes": {
-            "stylesheet": 1
-          },
-          "present": true,
-          "driftState": "STABLE"
-        },
-        {
-          "host": "fonts.gstatic.com",
-          "role": "STATIC_INFRASTRUCTURE",
-          "provider": "GOOGLE_FONTS",
-          "requestCount": 1,
-          "sourceClasses": [
-            "THIRD_PARTY"
-          ],
-          "resourceTypes": {
-            "font": 1
-          },
-          "present": true,
-          "driftState": "STABLE"
-        },
-        {
-          "host": "mm-sdk-analytics.api.cx.metamask.io",
-          "role": "WALLET_TELEMETRY",
-          "provider": "METAMASK",
-          "requestCount": 1,
-          "sourceClasses": [
-            "THIRD_PARTY"
-          ],
-          "resourceTypes": {
-            "fetch": 1
-          },
-          "present": true,
-          "driftState": "STABLE"
-        },
-        {
-          "host": "pulse.walletconnect.org",
-          "role": "WALLET_INFRASTRUCTURE",
-          "provider": "WALLETCONNECT",
-          "requestCount": 1,
-          "sourceClasses": [
-            "THIRD_PARTY"
-          ],
-          "resourceTypes": {
-            "fetch": 1
-          },
-          "present": true,
-          "driftState": "STABLE"
-        },
-        {
-          "host": "www.pond0x.com",
-          "role": "PONDOX_FIRST_PARTY",
-          "provider": "PONDOX",
-          "requestCount": 75,
-          "sourceClasses": [
-            "FIRST_PARTY"
-          ],
-          "resourceTypes": {
-            "document": 1,
-            "font": 2,
-            "image": 5,
-            "stylesheet": 3,
-            "script": 58,
-            "fetch": 6
-          },
-          "present": true,
-          "driftState": "STABLE"
-        }
-      ],
-      "unclassifiedHostCount": 0,
-      "unclassifiedHosts": [],
-      "inventory": {
-        "requestCount": 89,
-        "firstPartyRequestCount": 75,
-        "thirdPartyRequestCount": 14,
-        "unknownRequestCount": 0,
-        "hosts": [
-          "api.web3modal.org",
-          "fonts.googleapis.com",
-          "fonts.gstatic.com",
-          "mm-sdk-analytics.api.cx.metamask.io",
-          "pulse.walletconnect.org",
-          "www.pond0x.com"
-        ],
-        "origins": [
-          "https://api.web3modal.org",
-          "https://fonts.googleapis.com",
-          "https://fonts.gstatic.com",
-          "https://mm-sdk-analytics.api.cx.metamask.io",
-          "https://pulse.walletconnect.org",
-          "https://www.pond0x.com"
-        ],
-        "resourceTypes": {
-          "document": 1,
-          "font": 3,
-          "image": 5,
-          "stylesheet": 4,
-          "script": 58,
-          "fetch": 18
-        }
-      },
-      "drift": {
-        "comparable": true,
-        "baselineSnapshotId": "2026-08-26_105313",
-        "status": "DRIFT",
-        "newSurfaceCount": 4,
-        "missingSurfaceCount": 4,
-        "newHostCount": 0,
-        "missingHostCount": 0,
-        "newHosts": [],
-        "missingHosts": [],
-        "newSurfaces": [
-          {
-            "url": "https://api.web3modal.org/getWalletImage/7677b54f-3486-46e2-4e37-bf8747814f00",
-            "origin": "https://api.web3modal.org",
-            "sourceHost": "api.web3modal.org",
-            "sourceClass": "THIRD_PARTY",
-            "method": "GET",
-            "resourceType": "fetch"
-          },
-          {
-            "url": "https://api.web3modal.org/getWalletImage/eebe4a7f-7166-402f-92e0-1f64ca2aa800",
-            "origin": "https://api.web3modal.org",
-            "sourceHost": "api.web3modal.org",
-            "sourceClass": "THIRD_PARTY",
-            "method": "GET",
-            "resourceType": "fetch"
-          },
-          {
-            "url": "https://api.web3modal.org/getWalletImage/ebac7b39-688c-41e3-7912-a4fefba74600",
-            "origin": "https://api.web3modal.org",
-            "sourceHost": "api.web3modal.org",
-            "sourceClass": "THIRD_PARTY",
-            "method": "GET",
-            "resourceType": "fetch"
-          },
-          {
-            "url": "https://api.web3modal.org/getWalletImage/252753e7-b783-4e03-7f77-d39864530900",
-            "origin": "https://api.web3modal.org",
-            "sourceHost": "api.web3modal.org",
-            "sourceClass": "THIRD_PARTY",
-            "method": "GET",
-            "resourceType": "fetch"
-          }
-        ],
-        "missingSurfaces": [
-          {
-            "url": "https://api.web3modal.org/getWalletImage/3386dde1-8b24-48c8-4b81-16979e342000",
-            "origin": "https://api.web3modal.org",
-            "sourceHost": "api.web3modal.org",
-            "sourceClass": "THIRD_PARTY",
-            "method": "GET",
-            "resourceType": "fetch"
-          },
-          {
-            "url": "https://api.web3modal.org/getWalletImage/e30d09fe-c0dd-4b61-81e2-d6dc09eb9700",
-            "origin": "https://api.web3modal.org",
-            "sourceHost": "api.web3modal.org",
-            "sourceClass": "THIRD_PARTY",
-            "method": "GET",
-            "resourceType": "fetch"
-          },
-          {
-            "url": "https://api.web3modal.org/getWalletImage/3d7eb880-7654-431f-ed84-a25712b45200",
-            "origin": "https://api.web3modal.org",
-            "sourceHost": "api.web3modal.org",
-            "sourceClass": "THIRD_PARTY",
-            "method": "GET",
-            "resourceType": "fetch"
-          },
-          {
-            "url": "https://api.web3modal.org/getWalletImage/4e7d6f52-f663-4fc1-4b88-eebe7fc72800",
-            "origin": "https://api.web3modal.org",
-            "sourceHost": "api.web3modal.org",
-            "sourceClass": "THIRD_PARTY",
-            "method": "GET",
-            "resourceType": "fetch"
-          }
-        ]
-      }
-    },
-    "observability": {
-      "status": "HEALTHY",
-      "blindSpot": false,
-      "degraded": false,
-      "reasons": [],
-      "navigationOk": true,
-      "documentCaptured": true,
-      "capturedResponseCount": 74,
-      "firstPartyResponseCount": 64,
-      "apiResponseCount": 11,
-      "firstPartyApiCount": 3
-    },
-    "discovery": {
-      "checkedAt": "2026-08-26T11:47:20.799Z",
-      "sourceSnapshotId": "2026-08-26_114710",
-      "snapshotDir": "2026-08-26_114710",
       "newUnknownChange": false,
       "keyFunctionCandidate": null,
       "newLabels": [],
