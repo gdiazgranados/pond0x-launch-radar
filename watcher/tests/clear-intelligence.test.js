@@ -13,8 +13,8 @@ test("classifies the observed PAPER rail without creating a launch score", () =>
     quotes: { paperToUsdc: { outAmount: "0" } },
   });
 
-  assert.equal(output.status, "BOOTSTRAPPING");
-  assert.equal(output.state, "PRIMARY_ISSUANCE_LIVE");
+  assert.equal(output.status, "LIVE_OBSERVATION");
+  assert.equal(output.state, "ISSUANCE_OBSERVED");
   assert.equal(output.scoreNeutral, true);
   assert.equal(output.accounting.reservePaperDelta, 0.497025);
   assert.equal(output.accounting.supplyGap, 184.321225);
@@ -22,9 +22,9 @@ test("classifies the observed PAPER rail without creating a launch score", () =>
   assert.equal(output.capabilities.find((item) => item.id === "redeem").state, "UNPROVEN");
 });
 
-test("requires an executable output amount before marking a route available", () => {
-  assert.equal(quoteState(null), "UNAVAILABLE");
-  assert.equal(quoteState({ error: "NO_ROUTE" }), "UNAVAILABLE");
-  assert.equal(quoteState({ outAmount: "0" }), "UNAVAILABLE");
-  assert.equal(quoteState({ outAmount: "99830000" }), "AVAILABLE");
+test("separates quote availability from failed or empty probes", () => {
+  assert.equal(quoteState(null), "NOT_TESTED");
+  assert.equal(quoteState({ error: "NO_ROUTE" }), "NOT_TESTED");
+  assert.equal(quoteState({ outAmount: "0" }), "NO_QUOTE");
+  assert.equal(quoteState({ outAmount: "99830000" }), "QUOTE_AVAILABLE");
 });

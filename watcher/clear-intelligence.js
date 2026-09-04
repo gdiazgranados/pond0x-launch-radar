@@ -142,17 +142,17 @@ async function main() {
     issuanceEvents,
     issuanceObserved: issuanceEvents.length > 0 || previous?.activity?.issuanceObserved === true,
     redemptionObserved: previous?.activity?.redemptionObserved === true,
-    portalPaperState: previous?.routes?.portalPaper || "OBSERVED",
+    portalPaperState: previous?.routes?.portalPaper || "HISTORICAL_QUOTE",
     quotes: { usdcToPaper, paperToUsdc, usdcToCcpu, ccpuToUsdc },
     evidence: [
       {
-        type: "FACT",
+        type: "ON-CHAIN FACT",
         label: "PAPER/CCPU atomic issuance",
         source: "Solscan",
         url: "https://solscan.io/tx/XQAxmcFXdUUZpimT4LQ59rcs2RrZZyyeRwRjiiefZq2WMiqSA5z1bcLX8syYJLHUKaMkVvYU4hCNKkFZKecwW8V",
       },
       {
-        type: "FACT",
+        type: "DOCUMENTATION",
         label: "Clear USD Factory specification",
         source: "Clear Protocol",
         url: "https://docs.clearsol.network/create_token/4_clear_usd",
