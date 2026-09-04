@@ -11,8 +11,8 @@ function round(value, digits = 6) {
 }
 
 function quoteState(quote) {
-  if (!quote || quote.error) return "UNAVAILABLE";
-  return n(quote.outAmount) > 0 ? "AVAILABLE" : "UNAVAILABLE";
+  if (!quote || quote.error) return "NOT_TESTED";
+  return n(quote.outAmount) > 0 ? "QUOTE_AVAILABLE" : "NO_QUOTE";
 }
 
 function buildClearIntelligence(input = {}) {
@@ -42,8 +42,8 @@ function buildClearIntelligence(input = {}) {
   return {
     schemaVersion: 1,
     generatedAt,
-    status: "BOOTSTRAPPING",
-    state: issuanceObserved ? "PRIMARY_ISSUANCE_LIVE" : "INFRASTRUCTURE_OBSERVED",
+    status: input.freshness === "RESEARCH_BASELINE" ? "RESEARCH_BASELINE" : "LIVE_OBSERVATION",
+    state: issuanceObserved ? "ISSUANCE_OBSERVED" : "NO_RECENT_ISSUANCE",
     scoreNeutral: true,
     freshness: input.freshness || "LIVE",
     tokens: {
@@ -81,11 +81,11 @@ function buildClearIntelligence(input = {}) {
       redemptionObserved,
     },
     capabilities: [
-      { id: "infrastructure", label: "Programs and vaults", state: "VERIFIED" },
-      { id: "labeled-usd", label: "PAPER issuance", state: issuanceObserved ? "VERIFIED" : "OBSERVED" },
+      { id: "infrastructure", label: "Relevant program and account activity", state: "OBSERVED" },
+      { id: "labeled-usd", label: "PAPER issuance", state: issuanceObserved ? "OBSERVED" : "UNPROVEN" },
       { id: "collateral", label: "LRT collateral", state: "UNPROVEN" },
       { id: "borrow", label: "Borrowing / debt", state: "UNPROVEN" },
-      { id: "market", label: "Material secondary liquidity", state: reversePaperRoute === "AVAILABLE" ? "OBSERVED" : "LIMITED" },
+      { id: "market", label: "Material secondary liquidity", state: reversePaperRoute === "QUOTE_AVAILABLE" ? "OBSERVED" : "UNPROVEN" },
       { id: "farm", label: "Farming and yield", state: "UNPROVEN" },
       { id: "repay", label: "Repayment", state: redemptionObserved ? "OBSERVED" : "UNPROVEN" },
       { id: "redeem", label: "PAPER redemption", state: redemptionObserved ? "VERIFIED" : "UNPROVEN" },
