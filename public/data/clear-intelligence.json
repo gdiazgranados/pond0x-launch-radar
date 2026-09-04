@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-09-04T20:00:00.000Z",
+  "status": "BOOTSTRAPPING",
+  "state": "PRIMARY_ISSUANCE_LIVE",
+  "scoreNeutral": true,
+  "freshness": "RESEARCH_BASELINE",
+  "tokens": {
+    "paper": {
+      "mint": "PAPERu8xjrqfjBLj8XG6FCiokuk7pG1GzUbRTYwX1nU",
+      "supply": 14177.919116
+    },
+    "ccpu": {
+      "mint": "CCPU6wgqmMiWigL3Tffpg7NgPfKuBRePTmrhxqqizWSa",
+      "supply": 14362.240341,
+      "reserveBalance": 14178.416141
+    }
+  },
+  "accounting": {
+    "reservePaperDelta": 0.497025,
+    "supplyGap": 184.321225,
+    "vaultUsdc": 0,
+    "backingRatio": null,
+    "backingStatus": "UNPROVEN",
+    "note": "Vault USDC is observable, but a balance alone does not prove a legal or programmatic 1:1 redemption claim."
+  },
+  "routes": {
+    "portalPaper": "OBSERVED",
+    "usdcToPaper": "UNKNOWN",
+    "paperToUsdc": "UNAVAILABLE",
+    "usdcToCcpu": "UNAVAILABLE",
+    "ccpuToUsdc": "UNAVAILABLE",
+    "quotes": {},
+    "portalObservation": {
+      "input": "1 SOL",
+      "inputUsd": 101.78,
+      "output": "99.83 PAPER",
+      "path": "SOL → USDC → PAPER"
+    }
+  },
+  "activity": {
+    "issuanceObserved": true,
+    "issuanceEvents": [],
+    "redemptionObserved": false
+  },
+  "capabilities": [
+    { "id": "infrastructure", "label": "Programs and vaults", "state": "VERIFIED" },
+    { "id": "labeled-usd", "label": "PAPER issuance", "state": "VERIFIED" },
+    { "id": "collateral", "label": "LRT collateral", "state": "UNPROVEN" },
+    { "id": "borrow", "label": "Borrowing / debt", "state": "UNPROVEN" },
+    { "id": "market", "label": "Material secondary liquidity", "state": "LIMITED" },
+    { "id": "farm", "label": "Farming and yield", "state": "UNPROVEN" },
+    { "id": "repay", "label": "Repayment", "state": "UNPROVEN" },
+    { "id": "redeem", "label": "PAPER redemption", "state": "UNPROVEN" },
+    { "id": "governance", "label": "Governance rewards", "state": "UNPROVEN" },
+    { "id": "cross-chain", "label": "Cross-chain use", "state": "UNPROVEN" }
+  ],
+  "evidence": [
+    {
+      "type": "FACT",
+      "label": "PAPER/CCPU atomic issuance",
+      "source": "Solscan",
+      "url": "https://solscan.io/tx/XQAxmcFXdUUZpimT4LQ59rcs2RrZZyyeRwRjiiefZq2WMiqSA5z1bcLX8syYJLHUKaMkVvYU4hCNKkFZKecwW8V"
+    },
+    {
+      "type": "FACT",
+      "label": "Clear USD Factory specification",
+      "source": "Clear Protocol",
+      "url": "https://docs.clearsol.network/create_token/4_clear_usd"
+    }
+  ],
+  "methodology": "Score-neutral observation of token supply, vault balances, executable route quotes and transaction-level PAPER/CCPU activity. Facts, inferences and unproven capabilities remain separate."
+}

@@ -80,6 +80,11 @@ jobs:
         run: node watcher/chain-intelligence.js
         env:
           HELIUS_API_KEY: ${{ secrets.HELIUS_API_KEY }}
+      - name: Build Clear Intelligence
+        continue-on-error: true
+        run: node watcher/clear-intelligence.js
+        env:
+          HELIUS_API_KEY: ${{ secrets.HELIUS_API_KEY }}
       - name: Probe Telegram health
         run: node watcher/telegram-health.js
         env:

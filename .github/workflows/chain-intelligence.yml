@@ -35,6 +35,11 @@ jobs:
         run: node watcher/chain-intelligence.js
         env:
           HELIUS_API_KEY: ${{ secrets.HELIUS_API_KEY }}
+      - name: Build Clear Intelligence
+        continue-on-error: true
+        run: node watcher/clear-intelligence.js
+        env:
+          HELIUS_API_KEY: ${{ secrets.HELIUS_API_KEY }}
       - name: Evaluate chain evidence (observation only)
         run: node watcher/evidence-observe.js --chain-only
       - name: Publish chain data to radar-data
@@ -50,6 +55,7 @@ jobs:
           cp public/data/evidence-{ledger,state}.json /tmp/radar-data/data/
           cp public/data/distributor-intelligence.json /tmp/radar-data/data/
           cp public/data/mining-intelligence.json /tmp/radar-data/data/
+          cp public/data/clear-intelligence.json /tmp/radar-data/data/
           cp -R public/data/evidence-events public/data/evidence-sweeps /tmp/radar-data/data/
           cd /tmp/radar-data
           git config user.name "radar-bot"
