@@ -29,6 +29,7 @@ type RadarApiResponse = {
   systemHealth?: any
   telegramHealth?: any
   miningIntelligence?: MiningIntelligence | null
+  clearIntelligence?: any
 }
 
 function apiRadarUrl(cacheBust: number) {
@@ -172,6 +173,7 @@ export function useRadarData() {
   const [systemHealth, setSystemHealth] = useState<any>(null)
   const [telegramHealth, setTelegramHealth] = useState<any>(null)
   const [miningIntelligence, setMiningIntelligence] = useState<MiningIntelligence | null>(null)
+  const [clearIntelligence, setClearIntelligence] = useState<any>(null)
 
   const loadRemoteRadar = useCallback(async (signal?: AbortSignal) => {
     const cacheBust = Date.now()
@@ -265,6 +267,7 @@ export function useRadarData() {
     setSystemHealth(json?.systemHealth || null)
     setTelegramHealth(json?.telegramHealth || null)
     setMiningIntelligence(json?.miningIntelligence || null)
+    setClearIntelligence(json?.clearIntelligence || null)
   }, [])
 
   const refresh = useCallback(
@@ -383,6 +386,7 @@ export function useRadarData() {
     systemHealth,
     telegramHealth,
     miningIntelligence,
+    clearIntelligence,
 
     refresh,
   }

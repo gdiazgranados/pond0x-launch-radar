@@ -1,9 +1,10 @@
 import styles from "./ecosystem-navigation.module.css";
 
-type Destination = "radar" | "graph" | "miner" | "qa";
+type Destination = "radar" | "clear" | "graph" | "miner" | "qa";
 
 const destinations: { id: Destination; label: string; path: string; site: "radar" | "graph" }[] = [
   { id: "radar", label: "Radar", path: "/", site: "radar" },
+  { id: "clear", label: "Clear Intelligence", path: "/clear", site: "radar" },
   { id: "graph", label: "Blockchain Graph", path: "/graph", site: "graph" },
   { id: "miner", label: "Live Miner", path: "/observatory", site: "graph" },
   { id: "qa", label: "Indicators Q&A", path: "/qa", site: "radar" },
@@ -36,4 +37,3 @@ export default function EcosystemNavigation({
     </nav>
   );
 }
-
