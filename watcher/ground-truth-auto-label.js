@@ -4,7 +4,7 @@ const fs = require("fs-extra");
 const path = require("path");
 
 const PUBLIC_DATA = path.join(__dirname, "..", "public", "data");
-const RECIPIENTS_FILE = path.join(PUBLIC_DATA, "reward-recipients.json");
+const CHAIN_FILE = path.join(PUBLIC_DATA, "chain-intelligence.json");
 const ARCHIVE_FILE = path.join(PUBLIC_DATA, "historical-evidence-archive.json");
 const STATIC_REGISTRY_FILE = path.join(__dirname, "ground-truth-events.json");
 const OUTPUT_FILE = path.join(PUBLIC_DATA, "ground-truth-events.json");
@@ -80,29 +80,37 @@ function correlateEvent(event, archiveEntries) {
   };
 }
 
-function recipientToEvent(recipient) {
-  const signature = recipient?.lastSignature;
-  const occurredAt = iso(recipient?.lastSeenAt || recipient?.firstSeenAt);
-  if (!signature || !occurredAt || !recipient?.wallet) return null;
+function transferToEvent(transfer) {
+  const signature = transfer?.signature;
+  const recipient = transfer?.to;
+  const occurredAt = iso(transfer?.time || (transfer?.timestamp ? Number(transfer.timestamp) * 1000 : null));
+  if (!signature || !recipient || !occurredAt) return null;
+
+  const transferIndex = Number.isInteger(Number(transfer?.transferIndex))
+    ? Number(transfer.transferIndex)
+    : null;
+
   return {
-    id: `solana-${signature}`,
+    id: transferIndex == null
+      ? `solana-${signature}`
+      : `solana-${signature}:${transferIndex}`,
     occurredAt,
     type: "EXTERNAL_DISTRIBUTOR_TRANSFER",
     chain: "solana",
     signature,
-    recipient: recipient.wallet,
-    amountWPOND: Number(recipient?.totalWPOND || 0),
+    transferIndex,
+    recipient,
+    amountWPOND: Number(transfer?.amount || 0),
     confidence: "CONFIRMED_ONCHAIN",
     label: "Observed distributor transfer to external recipient",
-    source: "AUTO_LABELED_FROM_RECIPIENT_LEDGER",
+    source: "AUTO_LABELED_FROM_FRESH_CHAIN_EVIDENCE",
   };
 }
 
 async function main() {
-  const [staticRegistry, existingPublished, recipients, archive] = await Promise.all([
+  const [staticRegistry, chain, archive] = await Promise.all([
     readJson(STATIC_REGISTRY_FILE, { events: [] }),
-    readJson(OUTPUT_FILE, { events: [] }),
-    readJson(RECIPIENTS_FILE, { recipients: [] }),
+    readJson(CHAIN_FILE, {}),
     readJson(ARCHIVE_FILE, { entries: [] }),
   ]);
 
@@ -110,17 +118,38 @@ async function main() {
     .filter((entry) => entry?.generatedAt && entry?.provenance?.mode === "EXACT_SWEEP_ARCHIVE")
     .sort((a, b) => new Date(a.generatedAt) - new Date(b.generatedAt));
 
+  // Ground truth starts from the manually verified static registry. Do not inherit
+  // previously auto-generated rows from the published runtime registry: older v1
+  // logic promoted the aggregate recipient ledger and could contaminate calibration.
   const merged = new Map();
-  for (const event of [...arr(staticRegistry?.events), ...arr(existingPublished?.events)]) {
-    if (event?.id) merged.set(event.id, { ...event });
+  const signatureIndex = new Map();
+  for (const event of arr(staticRegistry?.events)) {
+    if (!event?.id) continue;
+    merged.set(event.id, { ...event });
+    if (event.signature) signatureIndex.set(event.signature, event.id);
   }
 
+  const alertWindow = chain?.alertWindow || null;
+  const coverageComplete = alertWindow?.coverageComplete === true;
+  const freshExternalTransfers = coverageComplete
+    ? arr(alertWindow?.evidence?.external)
+    : [];
+
   let autoAdded = 0;
-  for (const recipient of arr(recipients?.recipients)) {
-    const event = recipientToEvent(recipient);
+  for (const transfer of freshExternalTransfers) {
+    const event = transferToEvent(transfer);
     if (!event) continue;
+
+    const existingId = signatureIndex.get(event.signature);
+    if (existingId) {
+      const existing = merged.get(existingId);
+      merged.set(existingId, { ...existing, ...event, id: existingId });
+      continue;
+    }
+
     if (!merged.has(event.id)) autoAdded += 1;
-    merged.set(event.id, { ...merged.get(event.id), ...event });
+    merged.set(event.id, event);
+    signatureIndex.set(event.signature, event.id);
   }
 
   const events = [...merged.values()]
@@ -130,14 +159,17 @@ async function main() {
 
   const covered = events.filter((event) => event?.exactArchiveCorrelation?.archiveCovered).length;
   const output = {
-    version: 2,
+    version: 3,
     updatedAt: new Date().toISOString(),
-    methodology: "Ground-truth registry contains directly observed, timestamped on-chain distributor transfers with transaction signatures preserved by the radar. New external claim candidates are auto-labeled from the recipient ledger and correlated only with exact pre-event archive sweeps. They are not asserted to be rewards or launch events.",
+    methodology: "Ground-truth registry contains directly observed, timestamped on-chain distributor transfers with transaction signatures preserved by the radar. Automatic labels are created only from fresh transfer-level chain evidence inside a complete alert window. Aggregate recipient-ledger rows are never promoted to ground truth. Events are external claim candidates and are not asserted to be rewards or launch events.",
     autoLabeling: {
       enabled: true,
-      source: "reward-recipients.json",
+      source: "chain-intelligence.alertWindow.evidence.external",
+      requiresCompleteCoverage: true,
+      coverageComplete,
       eventType: "EXTERNAL_DISTRIBUTOR_TRANSFER",
       confidenceRequired: "CONFIRMED_ONCHAIN",
+      observedFreshTransfersThisSweep: freshExternalTransfers.length,
       autoAddedThisSweep: autoAdded,
       exactLookbackHours: LOOKBACK_HOURS,
     },
@@ -151,7 +183,7 @@ async function main() {
 
   await fs.ensureDir(PUBLIC_DATA);
   await fs.writeJson(OUTPUT_FILE, output, { spaces: 2 });
-  console.log(`Ground Truth Auto-Labeling v1 | events=${events.length} added=${autoAdded} exactCovered=${covered}`);
+  console.log(`Ground Truth Auto-Labeling v2 | events=${events.length} fresh=${freshExternalTransfers.length} added=${autoAdded} exactCovered=${covered} coverage=${coverageComplete ? "COMPLETE" : "INCOMPLETE"}`);
 }
 
 main().catch((error) => {
