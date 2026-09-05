@@ -76,6 +76,10 @@ jobs:
         continue-on-error: true
         timeout-minutes: 2
         run: node watcher/token-market-observer.js
+      - name: Build token market trends
+        continue-on-error: true
+        timeout-minutes: 1
+        run: node watcher/token-market-trends.js
       - name: Run discovery
         run: node watcher/discovery.js
       - name: Run route and API discovery v2
