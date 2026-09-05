@@ -1,3 +1,4 @@
+import Link from "next/link"
 import { privateOwnerAccess } from "../../src/auth/server"
 import { privateAuthConfigured } from "../../src/auth/owner-policy"
 import { signIn, signOut } from "./actions"
@@ -14,9 +15,9 @@ export default async function SignInPage({
 
   return (
     <main className="mx-auto min-h-screen max-w-2xl px-6 py-16 text-zinc-100">
-      <a className="text-sm text-cyan-300" href="/">
+      <Link className="text-sm text-cyan-300" href="/">
         ← Public Radar
-      </a>
+      </Link>
       <h1 className="mt-8 text-3xl font-semibold">
         Private Intelligence
       </h1>
