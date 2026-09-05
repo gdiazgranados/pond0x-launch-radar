@@ -1,3 +1,4 @@
+import Link from "next/link"
 import { redirect } from "next/navigation"
 import { privateOwnerAccess } from "../../src/auth/server"
 
@@ -8,9 +9,9 @@ export default async function PrivateWorkspacePage() {
 
   return (
     <main className="mx-auto min-h-screen max-w-5xl px-6 py-16 text-zinc-100">
-      <a className="text-sm text-cyan-300" href="/">
+      <Link className="text-sm text-cyan-300" href="/">
         ← Public Radar
-      </a>
+      </Link>
       <p className="mt-8 text-xs uppercase tracking-[0.2em] text-fuchsia-300">
         Owner-only · no-store
       </p>
