@@ -10,6 +10,16 @@ const {
 const now =
   Date.parse("2026-08-19T19:40:00.000Z");
 
+
+const emptyObservedActivity = {
+  fundingActive15m: false,
+  rewardTransfers5m: 0,
+  externalClaimTransfer: false,
+  newExternalTransfers: 0,
+  newExternalRecipients: 0,
+  externalClaimLastObservedAt: null,
+};
+
 const cases = [
   {
     name: "MISSING",
@@ -23,6 +33,7 @@ const cases = [
       hasOnchainMovement: undefined,
       onchainScore: 0,
       onchain: [],
+      ...emptyObservedActivity,
     },
   },
 
@@ -50,6 +61,7 @@ const cases = [
       hasOnchainMovement: undefined,
       onchainScore: 0,
       onchain: [],
+      ...emptyObservedActivity,
     },
   },
 
@@ -84,6 +96,8 @@ const cases = [
       onchain: [
         "reward_transfers_5m:1",
       ],
+      ...emptyObservedActivity,
+      rewardTransfers5m: 1,
     },
   },
 
@@ -118,6 +132,8 @@ const cases = [
       onchain: [
         "reward_transfers_5m:4",
       ],
+      ...emptyObservedActivity,
+      rewardTransfers5m: 4,
     },
   },
 
@@ -152,6 +168,48 @@ const cases = [
       onchain: [
         "funding_active_15m",
       ],
+      ...emptyObservedActivity,
+      fundingActive15m: true,
+    },
+  },
+
+  {
+    name: "FRESH_ACTIVE_EXTERNAL_CLAIM",
+
+    input: {
+      generatedAt:
+        "2026-08-19T19:35:00.000Z",
+
+      windows: {
+        "5m": {
+          rewardTransfers: 0,
+        },
+      },
+
+      recipientLedger: {
+        newTransfersThisSweep: 2,
+        newRecipientsThisSweep: 1,
+        lastObservedAt: "2026-08-19T19:34:00.000Z",
+      },
+
+      chainConfirmationScore: 64,
+    },
+
+    expected: {
+      status: "ACTIVE",
+      available: true,
+      fresh: true,
+      hasOnchainMovement: true,
+      onchainScore: 64,
+      onchain: [
+        "external_claim_transfers:2",
+        "new_external_recipients:1",
+      ],
+      ...emptyObservedActivity,
+      externalClaimTransfer: true,
+      newExternalTransfers: 2,
+      newExternalRecipients: 1,
+      externalClaimLastObservedAt: "2026-08-19T19:34:00.000Z",
     },
   },
 ];
