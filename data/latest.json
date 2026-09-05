@@ -1,59 +1,126 @@
 {
-  "id": "2026-09-05_063243__2026-09-05T06:33:08.908Z",
-  "snapshotId": "2026-09-05_063243",
+  "id": "2026-09-05_073238__2026-09-05T07:33:02.807Z",
+  "snapshotId": "2026-09-05_073238",
   "totalFiles": 63,
-  "added": 0,
-  "changed": 0,
-  "movementCount": 0,
-  "movementPct": 0,
-  "addedPct": 0,
-  "changedPct": 0,
-  "rawScore": 0,
-  "rawActivationProbability": 0,
-  "movementPercent": 0,
-  "addedPercent": 0,
-  "changedPercent": 0,
-  "scorePercent": 0,
-  "activationProbability": 0,
-  "score": 0,
-  "intensityClass": "LOW",
+  "added": 1,
+  "changed": 1,
+  "movementCount": 2,
+  "movementPct": 3.17,
+  "addedPct": 1.59,
+  "changedPct": 1.59,
+  "rawScore": 81.25,
+  "rawActivationProbability": 30,
+  "movementPercent": 3.17,
+  "addedPercent": 1.59,
+  "changedPercent": 1.59,
+  "scorePercent": 95.76,
+  "activationProbability": 30,
+  "score": 81.25,
+  "intensityClass": "VERY HIGH",
   "overdrive": false,
   "portalArmed": false,
   "launchImminent": false,
-  "signals": [],
+  "signals": [
+    "account",
+    "connect",
+    "launch",
+    "nonce",
+    "reward",
+    "rewards",
+    "solana",
+    "wallet"
+  ],
   "backendSignals": [],
-  "patternScore": 0,
-  "patterns": [],
-  "level": "LOW",
-  "significance": "NONE",
-  "rarityScore": 0,
-  "focusAreas": [],
-  "sensitiveHits": [],
-  "changeTypes": [],
+  "patternScore": 60,
+  "patterns": [
+    {
+      "tag": "PRE-ACTIVATION",
+      "boost": 15,
+      "confidence": "HIGH",
+      "reasons": [
+        "Wallet-related strings detected",
+        "Connect UI detected",
+        "UI still appears disabled"
+      ]
+    },
+    {
+      "tag": "UI_ARMING",
+      "boost": 12,
+      "confidence": "HIGH",
+      "reasons": [
+        "Connect UI visible",
+        "CTA or interactive surface changed"
+      ]
+    }
+  ],
+  "level": "VERY HIGH",
+  "significance": "HIGH",
+  "rarityScore": 100,
+  "focusAreas": [
+    "REWARDS",
+    "AUTH",
+    "WALLET",
+    "ACCOUNT",
+    "SYSTEM"
+  ],
+  "sensitiveHits": [
+    "reward",
+    "rewards",
+    "auth",
+    "wallet",
+    "connect",
+    "solana",
+    "account",
+    "launch"
+  ],
+  "changeTypes": [
+    "asset"
+  ],
   "insight": "No significant activity detected",
   "confidence": 0.2,
-  "tags": [],
-  "summary": "No changes detected across 63 analyzed files.",
-  "note": "No strong signals at this time.",
-  "changedFiles": [],
-  "generatedAt": "2026-09-05T06:33:08.908Z",
-  "trend": 0,
-  "trendDirection": "FLAT",
+  "tags": [
+    "AUTH",
+    "REWARDS",
+    "CHAIN",
+    "SYSTEM",
+    "PRE-ACTIVATION",
+    "UI_ARMING"
+  ],
+  "summary": "2 of 63 files show movement (3.17%). 1 new (1.59%) and 1 modified (1.59). Signals: account, connect, launch, nonce, reward, rewards, solana, wallet.",
+  "note": "Significant frontend changes and relevant signals.",
+  "changedFiles": [
+    "_next_static_chunks_51972-3fd4c83025f1022c.js",
+    "_next_static_chunks_webpack-2389ed00e2279f21.js"
+  ],
+  "generatedAt": "2026-09-05T07:33:02.807Z",
+  "trend": 78.25,
+  "trendDirection": "UP",
   "breakdown": {
     "frontend": {
-      "raw": 0,
-      "weighted": 0,
-      "hits": []
+      "raw": 100,
+      "weighted": 35,
+      "hits": [
+        "wallet_strings",
+        "connect_ui",
+        "disabled_state",
+        "cta_change",
+        "auth_flow"
+      ]
     },
     "infra": {
-      "raw": 0,
-      "weighted": 0,
-      "hits": []
+      "raw": 40,
+      "weighted": 10,
+      "hits": [
+        "new_chunks",
+        "js_change"
+      ]
     },
     "rewards": {
-      "raw": 0,
-      "weighted": 0,
-      "hits": []
+      "raw": 25,
+      "weighted": 6.25,
+      "hits": [
+        "reward_logic"
+      ]
     },
     "behavior": {
       "raw": 0,
@@ -64,30 +131,62 @@
       "raw": 0,
       "hits": []
     },
-    "patternBoost": 0,
-    "weightedBoost": 0,
+    "patternBoost": 27,
+    "weightedBoost": 3,
     "discoveryApiCount": 0,
     "discoveryKeywordCount": 0,
     "backendSignalCount": 0
   },
   "featureActivationEvidence": {
-    "classification": "DORMANT_FEATURE_SURFACE",
+    "classification": "BUNDLE_SURFACE_DRIFT",
     "comparable": true,
-    "buildChanged": false,
+    "buildChanged": true,
     "previousBuildId": "1788514313014",
-    "currentBuildId": "1788514313014",
+    "currentBuildId": "1788516173501",
     "buildIdSource": "FIRST_PARTY_JS_FINGERPRINT",
-    "bundleFingerprint": "fa0a02a385ac4726b0d3",
+    "bundleFingerprint": "f3b53ef8390019a244bd",
     "bundleCount": 59,
-    "bundleChanged": false,
+    "bundleChanged": true,
     "bundleDiff": {
       "comparable": true,
-      "status": "STABLE",
+      "status": "DRIFT",
       "previousBundleCount": 59,
       "currentBundleCount": 59,
-      "addedBundles": [],
-      "removedBundles": [],
-      "changedBundles": [],
+      "addedBundles": [
+        {
+          "key": "https://www.pond0x.com/_next/static/chunks/51972-3fd4c83025f1022c.js",
+          "url": "https://www.pond0x.com/_next/static/chunks/51972-3fd4c83025f1022c.js",
+          "sha256": "4e03b6e14c50f4b521062f1e8dedeeb1cf8b7115334bea045fdd1736e71fed5e",
+          "size": 26310
+        }
+      ],
+      "removedBundles": [
+        {
+          "key": "https://www.pond0x.com/_next/static/chunks/51972-ef64531ddf75884e.js",
+          "url": "https://www.pond0x.com/_next/static/chunks/51972-ef64531ddf75884e.js",
+          "sha256": "a5de0923b0e34c8f6e841bad5ab6111b171c5ee6655107e91eba658496b49638",
+          "size": 26310
+        }
+      ],
+      "changedBundles": [
+        {
+          "key": "https://www.pond0x.com/_next/static/chunks/webpack-2389ed00e2279f21.js",
+          "url": "https://www.pond0x.com/_next/static/chunks/webpack-2389ed00e2279f21.js",
+          "previousSha256": "f0cadabca90eee1dd9493a61af21b4a1199e8cf8b45639694e3e26356147800e",
+          "currentSha256": "8d3f18d8fb2f5d3b6e9c69fe3d9fae4f66bf04b85d9f24129450871671ce1b99",
+          "previousSize": 22728,
+          "currentSize": 22728,
+          "sizeDelta": 0,
+          "addedRoutes": [],
+          "removedRoutes": [],
+          "addedApiRoutes": [],
+          "removedApiRoutes": [],
+          "addedKeywords": [],
+          "removedKeywords": [],
+          "addedFlags": [],
+          "removedFlags": []
+        }
+      ],
       "addedRoutes": [],
       "removedRoutes": [],
       "addedApiRoutes": [],
@@ -99,24 +198,24 @@
     },
     "semanticChange": {
       "comparable": true,
-      "score": 0,
+      "score": 5.5,
       "level": "TRIVIAL",
-      "classification": "SEMANTICALLY_STABLE",
+      "classification": "LOW_VALUE_BUNDLE_DRIFT",
       "material": false,
       "highValueEvidence": [],
       "reasons": [
-        "No material semantic delta detected."
+        "1 changed, 1 added, 1 removed bundles."
       ],
       "components": {
-        "structural": 0,
+        "structural": 5.5,
         "semantic": 0,
         "activation": 0,
         "convergenceBonus": 0
       },
       "counts": {
-        "changedBundles": 0,
-        "addedBundles": 0,
-        "removedBundles": 0,
+        "changedBundles": 1,
+        "addedBundles": 1,
+        "removedBundles": 1,
         "addedRoutes": 0,
         "addedApiRoutes": 0,
         "addedKeywords": 0,
@@ -140,29 +239,40 @@
     "activationCluster": false
   },
   "advancedSignals": {
-    "frontend": [],
-    "infra": [],
-    "rewards": [],
+    "frontend": [
+      "wallet_strings",
+      "connect_ui",
+      "disabled_state",
+      "cta_change",
+      "auth_flow"
+    ],
+    "infra": [
+      "new_chunks",
+      "js_change"
+    ],
+    "rewards": [
+      "reward_logic"
+    ],
     "behavior": [],
-    "frontendScore": 0,
-    "infraScore": 0,
-    "rewardsScore": 0,
+    "frontendScore": 100,
+    "infraScore": 40,
+    "rewardsScore": 25,
     "behaviorScore": 0,
-    "movementPct": 0,
-    "recentChangesCount": 0,
+    "movementPct": 3.17,
+    "recentChangesCount": 2,
     "onchainStatus": "QUIET",
     "onchainAvailable": true,
     "onchainFresh": true,
     "hasOnchainMovement": false,
     "onchainScore": 0,
     "onchain": [],
-    "hasWalletStrings": false,
-    "hasConnectUI": false,
-    "hasDisabledState": false,
+    "hasWalletStrings": true,
+    "hasConnectUI": true,
+    "hasDisabledState": true,
     "hasEnabledState": false,
-    "hasRewardLogic": false,
+    "hasRewardLogic": true,
     "hasRewardActivation": false,
-    "hasAuthSignals": false,
+    "hasAuthSignals": true,
     "hasClaimSignal": false,
     "hasEligibilitySignal": false,
     "hasActiveSignal": false,
@@ -176,8 +286,8 @@
     "hasEnabledTrue": false,
     "hasActiveTrue": false,
     "hasRewardsArray": false,
-    "hasNewChunks": false,
-    "hasVisibleCTAChange": false
+    "hasNewChunks": true,
+    "hasVisibleCTAChange": true
   },
   "evidenceCorrelation": {
     "apiResponseDrift": false,
@@ -187,50 +297,59 @@
     "criticalKeyword": false,
     "semanticMaterial": false,
     "activationRelevantSemantic": false,
-    "surfaceMovement": false,
+    "surfaceMovement": true,
     "onchainMovement": false,
     "fundingActive": false,
     "rewardActivity": false,
     "externalClaimTransfer": false,
     "newRecipient": false,
-    "evidenceCount": 0,
-    "domainCount": 0,
+    "evidenceCount": 1,
+    "domainCount": 1,
     "domains": {
       "api": false,
       "backend": false,
       "semantic": false,
-      "webSurface": false,
+      "webSurface": true,
       "onchain": false,
       "distributor": false,
       "recipients": false
     },
-    "score": 0,
-    "level": "NONE",
+    "score": 8,
+    "level": "LOW",
     "componentScores": {
       "api": 0,
       "backend": 0,
       "semantic": 0,
-      "webSurface": 0,
+      "webSurface": 8,
       "onchain": 0,
       "distributor": 0,
       "recipients": 0
     },
     "convergenceBonus": 0,
-    "semanticScore": 0,
-    "semanticScoreSource": "FEATURE_SEMANTIC_ENGINE",
+    "semanticScore": 8,
+    "semanticScoreSource": "DISCOVERY_PROXY",
     "semanticClassification": null,
     "newExternalTransfers": 0,
     "newExternalRecipients": 0,
-    "classification": "NONE"
+    "classification": "ISOLATED"
   },
   "temporalCorrelation": {
     "windowMinutes": 60,
-    "domainCount": 0,
-    "sequence": [],
-    "events": [],
-    "firstSeenAt": null,
-    "lastSeenAt": null,
-    "spanMinutes": null,
+    "domainCount": 1,
+    "sequence": [
+      "webSurface"
+    ],
+    "events": [
+      {
+        "domain": "webSurface",
+        "seenAt": "2026-09-05T07:33:02.807Z",
+        "source": "current",
+        "detail": null
+      }
+    ],
+    "firstSeenAt": "2026-09-05T07:33:02.807Z",
+    "lastSeenAt": "2026-09-05T07:33:02.807Z",
+    "spanMinutes": 0,
     "observedSequencePattern": null,
     "classification": "NONE",
     "interpretation": "No strong cross-domain temporal sequence is established yet."
@@ -361,16 +480,34 @@
     },
     "drift": {
       "comparable": true,
-      "baselineSnapshotId": "2026-09-05_053243",
-      "status": "STABLE",
-      "newSurfaceCount": 0,
-      "missingSurfaceCount": 0,
+      "baselineSnapshotId": "2026-09-05_063243",
+      "status": "DRIFT",
+      "newSurfaceCount": 1,
+      "missingSurfaceCount": 1,
       "newHostCount": 0,
       "missingHostCount": 0,
       "newHosts": [],
       "missingHosts": [],
-      "newSurfaces": [],
-      "missingSurfaces": []
+      "newSurfaces": [
+        {
+          "url": "https://www.pond0x.com/_next/static/chunks/51972-3fd4c83025f1022c.js",
+          "origin": "https://www.pond0x.com",
+          "sourceHost": "www.pond0x.com",
+          "sourceClass": "FIRST_PARTY",
+          "method": "GET",
+          "resourceType": "script"
+        }
+      ],
+      "missingSurfaces": [
+        {
+          "url": "https://www.pond0x.com/_next/static/chunks/51972-ef64531ddf75884e.js",
+          "origin": "https://www.pond0x.com",
+          "sourceHost": "www.pond0x.com",
+          "sourceClass": "FIRST_PARTY",
+          "method": "GET",
+          "resourceType": "script"
+        }
+      ]
     }
   },
   "observability": {
@@ -386,9 +523,9 @@
     "firstPartyApiCount": 3
   },
   "discovery": {
-    "checkedAt": "2026-09-05T06:33:02.483Z",
-    "sourceSnapshotId": "2026-09-05_063243",
-    "snapshotDir": "2026-09-05_063243",
+    "checkedAt": "2026-09-05T07:32:57.012Z",
+    "sourceSnapshotId": "2026-09-05_073238",
+    "snapshotDir": "2026-09-05_073238",
     "newUnknownChange": false,
     "keyFunctionCandidate": null,
     "newLabels": [],
@@ -403,18 +540,18 @@
       "changedRoutes": []
     }
   },
-  "whyItMatters": "",
-  "alphaScore": 0,
-  "alphaClass": "NOISE",
-  "triggerState": "IDLE",
-  "suggestedAction": "Ignore noise and continue baseline monitoring.",
+  "whyItMatters": "Wallet and authentication layers are being tightly integrated. Low activity but high-sensitivity changes suggest stealth deployment. Breakout detected after a period of inactivity. Reward systems are a primary focus of current changes.",
+  "alphaScore": 100,
+  "alphaClass": "CRITICAL",
+  "triggerState": "TRIGGERED",
+  "suggestedAction": "Critical signal. Treat as imminent event candidate and escalate immediately.",
   "activationState": "IDLE",
   "activationAction": "No fresh activation event confirmed.",
-  "eventType": "NOISE",
-  "signalRegime": "NOISE DISGUISED AS SIGNAL",
-  "signalFusion": "UNCLASSIFIED SIGNAL MIX",
-  "priority": "LOW",
-  "eta": "unknown",
-  "signature": "LOW::0::::",
-  "alertSignature": "f0c184b60154c177bdd0b20d65914ab31f8abe0ea067ccbc883f82d4adf64c92"
+  "eventType": "AUTH STACK CHANGE",
+  "signalRegime": "PRE-LAUNCH REAL",
+  "signalFusion": "ELEVATED MULTI-SIGNAL EVENT",
+  "priority": "VERY HIGH",
+  "eta": "24h - 72h",
+  "signature": "VERY HIGH::80::AUTH|CHAIN|PRE-ACTIVATION|REWARDS|SYSTEM|UI_ARMING::PRE-ACTIVATION|UI_ARMING",
+  "alertSignature": "1d610c73e7b2c783509178aa99e92be149415c1f5077370271097d19849649c4"
 }
