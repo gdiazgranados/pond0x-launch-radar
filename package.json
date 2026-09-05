@@ -9,7 +9,8 @@
     "lint": "eslint",
     "radar:demo": "node watcher/use-demo.js",
     "radar:real": "node watcher/use-real.js",
-    "test:radar": "node --test watcher/tests/*.test.js"
+    "test:radar": "node --test watcher/tests/*.test.js",
+    "test:private-auth": "node --import tsx --test scripts/quality/private-owner-policy.test.ts"
   },
   "dependencies": {
     "next": "16.1.7",
@@ -17,7 +18,9 @@
     "postcss": "^8.5.8",
     "react": "19.2.3",
     "react-dom": "19.2.3",
-    "recharts": "^3.8.0"
+    "recharts": "^3.8.0",
+    "@supabase/ssr": "0.12.5",
+    "@supabase/supabase-js": "2.112.4"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.2.2",
@@ -27,6 +30,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.1.7",
     "tailwindcss": "^4.2.2",
-    "typescript": "^5"
+    "typescript": "^5",
+    "tsx": "4.23.12"
   }
 }
