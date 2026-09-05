@@ -1,6 +1,6 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { buildTrends } = require("./token-market-trends");
+const { buildTrends } = require("../token-market-trends");
 
 function token(pairAddress, priceUsd, liquidity, volume, quote = "USDC") {
   const pair = {
