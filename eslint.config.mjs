@@ -13,8 +13,12 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
 
-    // Captured external/minified radar assets.
+    // Captured external/minified radar assets and generated runtime data.
+    "snapshots/**",
     "watcher/snapshots/**",
+    "public/data/**",
+    "data/**",
+    ".publish/**",
   ]),
 
   // Watcher runtime is intentionally CommonJS.
