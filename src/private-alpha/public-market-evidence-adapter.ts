@@ -3,6 +3,7 @@ import type {
   ShadowChain,
   ShadowToken,
 } from "./shadow-portfolio"
+import type { SizeAwareQuoteObservation } from "./size-aware-quote"
 
 type MarketSnapshot = {
   generatedAt?: string
@@ -104,6 +105,7 @@ export function adaptPublicMarketEvidence(
   options: {
     now: Date
     maxAgeMinutes: number
+    sizeAwareQuote?: SizeAwareQuoteObservation
   }
 ): AdaptedMarketEvidence {
   if (
@@ -156,7 +158,17 @@ export function adaptPublicMarketEvidence(
   for (const anomaly of window?.anomalies ?? []) {
     anomalies.push(blocking(`TREND:${anomaly}`))
   }
-  if (token?.executableQuotes?.status !== "MEASURED") {
+  const quote = options.sizeAwareQuote
+  const quoteMeasured =
+    quote?.status === "MEASURED" &&
+    quote.tokenId === tokenId &&
+    quote.chain === TOKEN_CHAIN[tokenId] &&
+    quote.referencePairAddress === market?.pairAddress &&
+    quote.blockingReasons.length === 0 &&
+    finiteOrNull(quote.estimatedEntryPriceImpactPct) !== null &&
+    freshAt(quote.observedAt, options.now, options.maxAgeMinutes)
+
+  if (!quoteMeasured) {
     anomalies.push(blocking("SIZE_AWARE_QUOTE_NOT_MEASURED"))
   }
 
@@ -201,7 +213,9 @@ export function adaptPublicMarketEvidence(
       actualLookbackHours: finiteOrNull(window?.actualHours),
       sourceFresh,
       anomalies,
-      estimatedPriceImpactPct: null,
+      estimatedPriceImpactPct: quoteMeasured
+        ? finiteOrNull(quote.estimatedEntryPriceImpactPct)
+        : null,
     },
   }
 }
