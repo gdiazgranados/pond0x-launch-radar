@@ -200,3 +200,101 @@ export function invalidateShadowPosition(
     invalidationReason: reason.trim(),
   }
 }
+
+export type ClosePositionInput = {
+  closedAt: string
+  exitReferenceUsd: number
+  estimatedExitSlippagePct: number
+  additionalFeesUsd: number
+  evidence: MarketEvidence
+}
+
+export function observeShadowPrice(
+  position: ShadowPosition,
+  referenceUsd: number
+): ShadowPosition {
+  if (position.status !== "OPEN") {
+    throw new Error("only an open position can observe price")
+  }
+  if (!finitePositive(referenceUsd)) {
+    throw new Error("referenceUsd must be positive")
+  }
+
+  const changePct =
+    ((referenceUsd - position.entryReferenceUsd) /
+      position.entryReferenceUsd) *
+    100
+
+  return {
+    ...position,
+    maxAdverseExcursionPct: Math.max(
+      position.maxAdverseExcursionPct,
+      Math.max(0, -changePct)
+    ),
+    maxFavorableExcursionPct: Math.max(
+      position.maxFavorableExcursionPct,
+      Math.max(0, changePct)
+    ),
+  }
+}
+
+export function closeShadowPosition(
+  position: ShadowPosition,
+  input: ClosePositionInput
+): ShadowPosition {
+  if (position.status !== "OPEN" || !position.openedAt) {
+    throw new Error("only an open position can be closed")
+  }
+  if (
+    !validTimestamp(input.closedAt) ||
+    Date.parse(input.closedAt) < Date.parse(position.openedAt)
+  ) {
+    throw new Error("closedAt must be valid and after openedAt")
+  }
+  if (!finitePositive(input.exitReferenceUsd)) {
+    throw new Error("exitReferenceUsd must be positive")
+  }
+  if (!finiteNonNegative(input.estimatedExitSlippagePct)) {
+    throw new Error("estimatedExitSlippagePct must be non-negative")
+  }
+  if (!finiteNonNegative(input.additionalFeesUsd)) {
+    throw new Error("additionalFeesUsd must be non-negative")
+  }
+
+  const reasons = evidenceBlockingReasons(input.evidence)
+  const entryPair = position.evidenceRefs[0]?.currentPairAddress
+  if (input.evidence.currentPairAddress !== entryPair) {
+    reasons.push("ENTRY_EXIT_PAIR_MISMATCH")
+  }
+  if (reasons.length > 0) {
+    throw new Error(`exit evidence is blocked: ${[...new Set(reasons)].join(",")}`)
+  }
+
+  const grossPnlUsd =
+    ((input.exitReferenceUsd - position.entryReferenceUsd) /
+      position.entryReferenceUsd) *
+    position.notionalUsd
+  const slippageUsd =
+    (position.notionalUsd *
+      (position.estimatedEntrySlippagePct +
+        input.estimatedExitSlippagePct)) /
+    100
+  const totalFeesUsd =
+    position.estimatedFeesUsd + input.additionalFeesUsd
+  const realizedPnlUsd = grossPnlUsd - slippageUsd - totalFeesUsd
+
+  return {
+    ...position,
+    status: "CLOSED",
+    closedAt: input.closedAt,
+    exitReferenceUsd: input.exitReferenceUsd,
+    estimatedExitSlippagePct: input.estimatedExitSlippagePct,
+    estimatedFeesUsd: totalFeesUsd,
+    realizedPnlUsd,
+    realizedPnlPct: (realizedPnlUsd / position.notionalUsd) * 100,
+    evidenceRefs: [
+      ...position.evidenceRefs,
+      structuredClone(input.evidence),
+    ],
+  }
+}
