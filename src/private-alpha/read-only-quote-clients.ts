@@ -1,5 +1,10 @@
 import type { QuoteLeg } from "./size-aware-quote"
 
+export type ReadOnlyQuoteLeg = QuoteLeg & {
+  inputAmountBaseUnits: string
+  outputAmountBaseUnits: string
+}
+
 type FetchLike = (
   input: string | URL,
   init?: RequestInit
@@ -119,7 +124,7 @@ async function getJson(
 export async function readJupiterQuote(
   request: JupiterQuoteRequest,
   fetcher: FetchLike = fetch
-): Promise<QuoteLeg> {
+): Promise<ReadOnlyQuoteLeg> {
   validateCommon(request)
 
   const url = new URL(
@@ -157,6 +162,8 @@ export async function readJupiterQuote(
 
   return {
     routeId: routeId("jupiter", labels),
+    inputAmountBaseUnits: inputAmount,
+    outputAmountBaseUnits: outputAmount,
     inputAmount: humanUnits(inputAmount, request.inputDecimals),
     outputAmount: humanUnits(
       outputAmount,
@@ -169,7 +176,7 @@ export async function readJupiterQuote(
 export async function readZeroXPrice(
   request: ZeroXPriceRequest,
   fetcher: FetchLike = fetch
-): Promise<QuoteLeg> {
+): Promise<ReadOnlyQuoteLeg> {
   validateCommon(request)
   if (!request.apiKey.trim()) {
     throw new Error("0x API key is required")
@@ -223,6 +230,8 @@ export async function readZeroXPrice(
 
   return {
     routeId: routeId("0x", labels),
+    inputAmountBaseUnits: inputAmount,
+    outputAmountBaseUnits: outputAmount,
     inputAmount: humanUnits(inputAmount, request.inputDecimals),
     outputAmount: humanUnits(
       outputAmount,
