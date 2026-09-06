@@ -6,6 +6,7 @@ import type {
   AlertItem,
   HeartbeatData,
   RadarApiSyncMeta,
+  SentinelEvent,
 } from "../types/radar"
 
 import type { EvidenceLedger } from "../types/evidence"
@@ -19,7 +20,7 @@ type RadarApiResponse = {
   history?: RadarData[]
   historyData?: RadarData[]
   alerts?: AlertItem[]
-  sentinelEvents?: AlertItem[]
+  sentinelEvents?: SentinelEvent[]
   alertsHistory?: AlertItem[]
   heartbeatData?: HeartbeatData | null
   heartbeat?: HeartbeatData | null
@@ -32,8 +33,8 @@ type RadarApiResponse = {
   clearIntelligence?: any
 }
 
-function apiRadarUrl(cacheBust: number) {
-  return `/api/radar?ts=${cacheBust}`
+function apiRadarUrl() {
+  return "/api/radar"
 }
 
 function getSafeTime(value?: string | null) {
@@ -163,6 +164,7 @@ export function useRadarData() {
   const [data, setData] = useState<RadarData | null>(null)
   const [history, setHistory] = useState<RadarData[]>([])
   const [alerts, setAlerts] = useState<AlertItem[]>([])
+  const [sentinelEvents, setSentinelEvents] = useState<SentinelEvent[]>([])
   const [loading, setLoading] = useState(true)
   const [heartbeatData, setHeartbeatData] = useState<HeartbeatData | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -176,16 +178,7 @@ export function useRadarData() {
   const [clearIntelligence, setClearIntelligence] = useState<any>(null)
 
   const loadRemoteRadar = useCallback(async (signal?: AbortSignal) => {
-    const cacheBust = Date.now()
-
-    const res = await fetch(apiRadarUrl(cacheBust), {
-      cache: "no-store",
-      headers: {
-        "Cache-Control": "no-cache",
-        Pragma: "no-cache",
-      },
-      signal,
-    })
+    const res = await fetch(apiRadarUrl(), { signal })
 
     if (!res.ok) {
       throw new Error(`Radar API failed: ${res.status}`)
@@ -212,6 +205,9 @@ export function useRadarData() {
 
     // Never label Sentinel observations as delivered Telegram messages.
     const rawAlerts = Array.isArray(json.alerts) ? json.alerts : []
+    const rawSentinelEvents = Array.isArray(json.sentinelEvents)
+      ? json.sentinelEvents
+      : []
     setEvidenceLedger(json.evidenceLedger || null)
 
     const normalizedData =
@@ -254,6 +250,17 @@ export function useRadarData() {
         : currentHeartbeat
     })
     setAlerts(normalizedAlerts)
+    setSentinelEvents(
+      [...rawSentinelEvents].sort((a, b) => {
+        const aTs = getSafeTime(
+          a.checkedAt || a.generatedAt || a.sentAt || a.triggeredAt
+        )
+        const bTs = getSafeTime(
+          b.checkedAt || b.generatedAt || b.sentAt || b.triggeredAt
+        )
+        return bTs - aTs
+      })
+    )
     setMeta(json?.meta || null)
 
     setChainIntelligence(
@@ -325,33 +332,6 @@ export function useRadarData() {
         )
       }, 60_000)
 
-    function handleVisibilityChange() {
-      if (
-        document.visibilityState === "visible"
-      ) {
-        const controller =
-          new AbortController()
-
-        fetchData(controller.signal)
-      }
-    }
-
-    function handleWindowFocus() {
-      const controller = new AbortController()
-
-      fetchData(controller.signal)
-    }
-
-    document.addEventListener(
-      "visibilitychange",
-      handleVisibilityChange
-    )
-
-    window.addEventListener(
-      "focus",
-      handleWindowFocus
-    )
-
     return () => {
       isMounted = false
 
@@ -359,15 +339,6 @@ export function useRadarData() {
 
       clearInterval(fetchInterval)
 
-      document.removeEventListener(
-        "visibilitychange",
-        handleVisibilityChange
-      )
-
-      window.removeEventListener(
-        "focus",
-        handleWindowFocus
-      )
     }
   }, [refresh])
 
@@ -376,6 +347,7 @@ export function useRadarData() {
     data,
     history,
     alerts,
+    sentinelEvents,
     loading,
     heartbeatData,
     error,
