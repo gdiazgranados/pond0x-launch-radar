@@ -1,9 +1,11 @@
 import test from "node:test"
 import assert from "node:assert/strict"
 import {
+  closeShadowPosition,
   createShadowProposal,
   evidenceBlockingReasons,
   invalidateShadowPosition,
+  observeShadowPrice,
   openShadowPosition,
   type MarketEvidence,
 } from "../../src/private-alpha/shadow-portfolio"
@@ -133,3 +135,65 @@ test("rejects unsupported token-chain combinations and real-money-like values", 
     /notionalUsd/
   )
 })
+
+test("tracks favorable and adverse movement without changing the entry", () => {
+  const opened = openShadowPosition(
+    proposal(),
+    "2026-09-06T00:01:00Z"
+  )
+  const favorable = observeShadowPrice(opened, 0.0012)
+  const adverse = observeShadowPrice(favorable, 0.0008)
+
+  assert.equal(adverse.entryReferenceUsd, 0.001)
+  assert.ok(Math.abs(adverse.maxFavorableExcursionPct - 20) < 1e-9)
+  assert.ok(Math.abs(adverse.maxAdverseExcursionPct - 20) < 1e-9)
+})
+
+test("closes on the same pair and calculates net simulated PnL after costs", () => {
+  const opened = openShadowPosition(
+    proposal(),
+    "2026-09-06T00:01:00Z"
+  )
+  const closed = closeShadowPosition(opened, {
+    closedAt: "2026-09-06T01:00:00Z",
+    exitReferenceUsd: 0.0011,
+    estimatedExitSlippagePct: 0.6,
+    additionalFeesUsd: 0.25,
+    evidence: {
+      ...evidence,
+      observedAt: "2026-09-06T01:00:00Z",
+    },
+  })
+
+  assert.equal(closed.status, "CLOSED")
+  assert.equal(closed.exitReferenceUsd, 0.0011)
+  assert.ok(Math.abs(closed.realizedPnlUsd! - 8.5) < 1e-9)
+  assert.ok(Math.abs(closed.realizedPnlPct! - 8.5) < 1e-9)
+  assert.equal(closed.estimatedFeesUsd, 0.5)
+  assert.equal(closed.evidenceRefs.length, 2)
+})
+
+test("refuses to close against a replacement pool", () => {
+  const opened = openShadowPosition(
+    proposal(),
+    "2026-09-06T00:01:00Z"
+  )
+
+  assert.throws(
+    () =>
+      closeShadowPosition(opened, {
+        closedAt: "2026-09-06T01:00:00Z",
+        exitReferenceUsd: 0.0011,
+        estimatedExitSlippagePct: 0.6,
+        additionalFeesUsd: 0.25,
+        evidence: {
+          ...evidence,
+          observedAt: "2026-09-06T01:00:00Z",
+          currentPairAddress: "pair-2",
+          baselinePairAddress: "pair-2",
+        },
+      }),
+    /ENTRY_EXIT_PAIR_MISMATCH/
+  )
+})
+
