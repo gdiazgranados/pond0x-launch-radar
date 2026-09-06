@@ -138,9 +138,12 @@ export function ChainIntelligencePanel({
     })
     .slice(0, RECIPIENT_DISPLAY_LIMIT)
 
+  const observedRecipientCount = Number(
+    recipientLedger.totalRecipients ?? recipients.length
+  )
   const hiddenRecipientCount = Math.max(
     0,
-    recipients.length - priorityRecipients.length
+    observedRecipientCount - priorityRecipients.length
   )
 
   const match = Number(m.historicalPatternMatchPct || 0)
@@ -536,7 +539,7 @@ export function ChainIntelligencePanel({
         {recipients.length > 0 ? (
           <div className="mt-4 overflow-x-auto">
             <div className="mb-3 text-[11px] text-slate-500">
-              Showing {fmt(priorityRecipients.length, 0)} of {fmt(recipients.length, 0)} prioritized recipients
+              Showing {fmt(priorityRecipients.length, 0)} of {fmt(observedRecipientCount, 0)} prioritized recipients
               {hiddenRecipientCount > 0
                 ? ` · ${fmt(hiddenRecipientCount, 0)} additional wallets remain available in the underlying ledger`
                 : ""}
