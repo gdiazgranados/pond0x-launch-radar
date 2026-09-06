@@ -66,15 +66,16 @@ const TOKEN_KEY: Record<ShadowToken, string> = {
   PAPER: "paper",
 }
 
+const TOKEN_CHAIN: Record<ShadowToken, ShadowChain> = {
+  PNDC: "ETHEREUM",
+  PORK: "ETHEREUM",
+  wPOND: "SOLANA",
+  PAPER: "SOLANA",
+}
+
 function finiteOrNull(value: unknown) {
   const number = Number(value)
   return Number.isFinite(number) ? number : null
-}
-
-function chainFor(value: string | undefined): ShadowChain {
-  return value?.toLowerCase() === "solana"
-    ? "SOLANA"
-    : "ETHEREUM"
 }
 
 function freshAt(
@@ -135,6 +136,13 @@ export function adaptPublicMarketEvidence(
   ) {
     anomalies.push(blocking("MARKET_SNAPSHOT_UNAVAILABLE"))
   }
+  const observedChain = token?.chain ?? trendToken?.chain
+  if (
+    observedChain?.toLowerCase() !==
+    TOKEN_CHAIN[tokenId].toLowerCase()
+  ) {
+    anomalies.push(blocking("TOKEN_CHAIN_MISMATCH"))
+  }
   if (
     trends.status !== "LIVE" ||
     trendToken?.status !== "OBSERVED" ||
@@ -170,7 +178,7 @@ export function adaptPublicMarketEvidence(
 
   return {
     tokenId,
-    chain: chainFor(token?.chain ?? trendToken?.chain),
+    chain: TOKEN_CHAIN[tokenId],
     currentReferenceUsd: finiteOrNull(market?.priceUsd),
     evidence: {
       observedAt: snapshot.generatedAt ?? "",
