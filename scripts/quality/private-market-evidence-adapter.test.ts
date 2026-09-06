@@ -56,7 +56,7 @@ function trends() {
               previousPrimaryPairAddress: "pair-1",
               samePairObserved: true,
             },
-            anomalies: [],
+            anomalies: [] as string[],
           },
         },
       },
