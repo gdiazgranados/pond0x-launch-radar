@@ -230,4 +230,3 @@ test("a fresh same-pair size-aware quote completes executable evidence", () => {
     "OPEN"
   )
 })
-
