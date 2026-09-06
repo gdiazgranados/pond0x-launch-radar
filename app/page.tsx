@@ -13,7 +13,6 @@ import { CheckInTape } from "./components/radar/CheckInTape"
 import { HistoryPanel } from "./components/radar/HistoryPanel"
 import { RecentAlerts } from "./components/radar/RecentAlerts"
 import { TrendGraph } from "./components/radar/TrendGraph"
-import { useSentinelData } from "./hooks/useSentinelData"
 import { SentinelPanel } from "./components/radar/SentinelPanel"
 import { ChainIntelligencePanel } from "./components/radar/ChainIntelligencePanel"
 import { FeatureActivationPanel } from "./components/radar/FeatureActivationPanel"
@@ -247,8 +246,9 @@ export default function Home() {
     chainBaseline,
     miningIntelligence,
     evidenceLedger,
+    sentinelEvents,
   } = useRadarData()
-  const { latestEvent } = useSentinelData()
+  const latestEvent = sentinelEvents[0] ?? null
   const [now, setNow] = useState(Date.now())
 
   const cleanHistory = useMemo(() => {
