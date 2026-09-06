@@ -196,4 +196,3 @@ test("refuses to close against a replacement pool", () => {
     /ENTRY_EXIT_PAIR_MISMATCH/
   )
 })
-
