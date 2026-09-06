@@ -51,6 +51,8 @@ test("uses Jupiter keyless GET quote without transaction endpoints", async () =>
   assert.equal(quote.routeId, "jupiter:Meteora")
   assert.equal(quote.inputAmount, 1)
   assert.equal(quote.outputAmount, 0.5)
+  assert.equal(quote.inputAmountBaseUnits, "1000000")
+  assert.equal(quote.outputAmountBaseUnits, "500000000")
 })
 
 test("sends a Jupiter key only in the server request header", async () => {
@@ -138,6 +140,11 @@ test("uses the 0x read-only price endpoint and includes estimated gas", async ()
   assert.equal(quote.routeId, "0x:Uniswap_V3")
   assert.equal(quote.inputAmount, 1)
   assert.equal(quote.outputAmount, 2)
+  assert.equal(
+    quote.inputAmountBaseUnits,
+    "1000000000000000000"
+  )
+  assert.equal(quote.outputAmountBaseUnits, "2000000")
   assert.ok(Math.abs(quote.estimatedFeeUsd - 0.1525) < 1e-9)
 })
 
