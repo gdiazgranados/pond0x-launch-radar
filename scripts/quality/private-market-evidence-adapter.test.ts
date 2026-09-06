@@ -6,6 +6,7 @@ import {
   openShadowPosition,
 } from "../../src/private-alpha/shadow-portfolio"
 import { adaptPublicMarketEvidence } from "../../src/private-alpha/public-market-evidence-adapter"
+import { buildSizeAwareQuote } from "../../src/private-alpha/size-aware-quote"
 
 const generatedAt = "2026-09-06T00:30:00Z"
 
@@ -166,3 +167,67 @@ test("pins each supported token to its expected chain and flags bad input", () =
     )
   )
 })
+
+test("a fresh same-pair size-aware quote completes executable evidence", () => {
+  const quote = buildSizeAwareQuote({
+    tokenId: "PAPER",
+    chain: "SOLANA",
+    observedAt: generatedAt,
+    referencePairAddress: "pair-1",
+    requestedNotionalUsd: 100,
+    referencePriceUsd: 0.72,
+    buy: {
+      routeId: "buy-route",
+      inputAmount: 100,
+      outputAmount: 130,
+      estimatedFeeUsd: 0.2,
+    },
+    sell: {
+      routeId: "sell-route",
+      inputAmount: 130,
+      outputAmount: 90,
+      estimatedFeeUsd: 0.2,
+    },
+  })
+  const adapted = adaptPublicMarketEvidence(
+    snapshot(),
+    trends(),
+    "PAPER",
+    "6h",
+    {
+      now: new Date("2026-09-06T00:35:00Z"),
+      maxAgeMinutes: 15,
+      sizeAwareQuote: quote,
+    }
+  )
+
+  assert.equal(adapted.evidence.anomalies.length, 0)
+  assert.equal(
+    adapted.evidence.estimatedPriceImpactPct,
+    quote.estimatedEntryPriceImpactPct
+  )
+  assert.deepEqual(
+    evidenceBlockingReasons(adapted.evidence),
+    []
+  )
+
+  const proposal = createShadowProposal({
+    positionId: "executable-paper-shadow",
+    tokenId: adapted.tokenId,
+    chain: adapted.chain,
+    entryReferenceUsd: adapted.currentReferenceUsd!,
+    notionalUsd: quote.requestedNotionalUsd,
+    estimatedEntrySlippagePct:
+      quote.estimatedEntryPriceImpactPct!,
+    estimatedFeesUsd: quote.estimatedFeesUsd!,
+    evidence: adapted.evidence,
+    ruleVersion: "private-v1",
+    operatorNote: null,
+  })
+
+  assert.equal(
+    openShadowPosition(proposal, generatedAt).status,
+    "OPEN"
+  )
+})
+
