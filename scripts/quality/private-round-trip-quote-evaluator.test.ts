@@ -123,7 +123,7 @@ test("0x converts native quote amounts to USD and preserves raw tokens", async (
 
 test("a failed buy closes evaluation without requesting a sell", async () => {
   let calls = 0
-  const reader = async (_request: JupiterQuoteRequest) => {
+  const reader = async () => {
     calls += 1
     throw new Error("provider unavailable")
   }
@@ -158,7 +158,7 @@ test("a failed buy closes evaluation without requesting a sell", async () => {
 
 test("a failed sell preserves the buy route but remains unavailable", async () => {
   let calls = 0
-  const reader = async (_request: JupiterQuoteRequest) => {
+  const reader = async () => {
     calls += 1
     if (calls === 1) {
       return leg(
