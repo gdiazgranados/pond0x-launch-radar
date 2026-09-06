@@ -2,8 +2,8 @@ import { NextResponse } from "next/server"
 import clearResearchBaseline from "../../../public/data/clear-intelligence.json"
 
 const RADAR_DATA_BASE = process.env.NEXT_PUBLIC_RADAR_DATA_BASE || "https://raw.githubusercontent.com/gdiazgranados/pond0x-launch-radar/radar-data/data"
-function remoteJsonUrl(file: string) { return `${RADAR_DATA_BASE}/${file.replace(/^\/+/, "")}?t=${Date.now()}` }
-async function loadRemoteJson(file: string) { try { const res = await fetch(remoteJsonUrl(file), { cache: "no-store" }); if (!res.ok) throw new Error(`${file} failed (${res.status})`); return await res.json() } catch (err) { console.error(`Error loading ${file}:`, err); return null } }
+function remoteJsonUrl(file: string) { return `${RADAR_DATA_BASE}/${file.replace(/^\/+/, "")}` }
+async function loadRemoteJson(file: string) { try { const res = await fetch(remoteJsonUrl(file), { next: { revalidate: 60 } }); if (!res.ok) throw new Error(`${file} failed (${res.status})`); return await res.json() } catch (err) { console.error(`Error loading ${file}:`, err); return null } }
 function clampPercent(value: number) { const n = Number(value || 0); return !Number.isFinite(n) ? 0 : Math.max(0, Math.min(100, Math.round(n * 100) / 100)) }
 function normalizeScoreToPercent(rawScore: number) { const n = Number(rawScore || 0); return !Number.isFinite(n) || n <= 0 ? 0 : clampPercent(Math.log10(n + 1) * 50) }
 function classifyIntensity(rawScore: number) { const n = Number(rawScore || 0); if (n >= 100) return "EXTREME"; if (n >= 70) return "VERY HIGH"; if (n >= 40) return "HIGH"; if (n >= 15) return "MEDIUM"; return "LOW" }
@@ -17,7 +17,7 @@ export async function GET() {
     const normalizedLatest = latest ? { ...normalizeRadarItem(latest), ...intelligence } : Object.values(intelligence).some(Boolean) ? intelligence : null
     const normalizedHistory = Array.isArray(history) ? history.filter(Boolean).map(normalizeRadarItem) : []
     const mergedChainIntelligence = chainIntelligence ? { ...chainIntelligence, recipientLedger: rewardRecipients || chainIntelligence?.recipientLedger || null, distributorIntelligence: distributorIntelligence || null } : rewardRecipients || distributorIntelligence ? { recipientLedger: rewardRecipients || null, distributorIntelligence: distributorIntelligence || null } : null
-    return NextResponse.json({ evidenceLedger, alerts: Array.isArray(alertsHistory) ? alertsHistory.filter(item => item?.sentAt) : [], latest: normalizedLatest, history: normalizedHistory, heartbeat, sentinelState, sentinelEvents, chainIntelligence: mergedChainIntelligence, chainBaseline, rewardRecipients, systemHealth, telegramHealth, distributorIntelligence, miningIntelligence, clearIntelligence: clearIntelligence || clearResearchBaseline, routeApiIntelligence, activationTimeline, activationDecision, historicalReplay, calibrationReport, groundTruthEvents, historicalEvidenceArchive, thresholdDriftReport, preEventSignatureIntelligence, source: "remote-radar-data", fetchedAt: new Date().toISOString() })
+    return NextResponse.json({ evidenceLedger, alerts: Array.isArray(alertsHistory) ? alertsHistory.filter(item => item?.sentAt) : [], latest: normalizedLatest, history: normalizedHistory, heartbeat, sentinelState, sentinelEvents, chainIntelligence: mergedChainIntelligence, chainBaseline, systemHealth, telegramHealth, miningIntelligence, clearIntelligence: clearIntelligence || clearResearchBaseline, source: "remote-radar-data", fetchedAt: new Date().toISOString() }, { headers: { "Cache-Control": "public, max-age=0, s-maxage=60, stale-while-revalidate=300" } })
   } catch (err) {
     console.error("Radar API error:", err)
     return NextResponse.json({ error: "Radar API failed", details: err instanceof Error ? err.message : "unknown" }, { status: 500 })
