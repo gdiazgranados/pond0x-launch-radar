@@ -5,7 +5,7 @@ import type {
 } from "./shadow-portfolio"
 import type { SizeAwareQuoteObservation } from "./size-aware-quote"
 
-type MarketSnapshot = {
+export type MarketSnapshot = {
   generatedAt?: string
   status?: string
   scoreNeutral?: boolean
@@ -23,7 +23,7 @@ type MarketSnapshot = {
   }>
 }
 
-type TrendWindow = {
+export type TrendWindow = {
   status?: string
   requestedHours?: number
   baselineAt?: string | null
@@ -38,7 +38,7 @@ type TrendWindow = {
   anomalies?: string[]
 }
 
-type MarketTrends = {
+export type MarketTrends = {
   generatedAt?: string
   status?: string
   scoreNeutral?: boolean
