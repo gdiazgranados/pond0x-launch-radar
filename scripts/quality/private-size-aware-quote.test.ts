@@ -41,6 +41,8 @@ test("normalizes a complete hypothetical round-trip quote", () => {
     Math.abs(quote.estimatedExitPriceImpactPct! - 10) < 1e-9
   )
   assert.equal(quote.estimatedRoundTripLossPct, 19)
+  assert.equal(quote.estimatedEntryFeeUsd, 1)
+  assert.equal(quote.estimatedExitFeeUsd, 0.5)
   assert.equal(quote.estimatedFeesUsd, 1.5)
   assert.deepEqual(quote.blockingReasons, [])
 })
@@ -58,6 +60,8 @@ test("keeps missing quote legs explicitly unavailable", () => {
     "SELL_QUOTE_UNAVAILABLE",
   ])
   assert.equal(quote.estimatedEntryPriceImpactPct, null)
+  assert.equal(quote.estimatedEntryFeeUsd, null)
+  assert.equal(quote.estimatedExitFeeUsd, null)
 })
 
 test("rejects a sell quote for a different token amount", () => {
