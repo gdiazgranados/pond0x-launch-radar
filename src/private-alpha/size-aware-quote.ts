@@ -23,6 +23,8 @@ export type SizeAwareQuoteObservation = {
   estimatedEntryPriceImpactPct: number | null
   estimatedExitPriceImpactPct: number | null
   estimatedRoundTripLossPct: number | null
+  estimatedEntryFeeUsd: number | null
+  estimatedExitFeeUsd: number | null
   estimatedFeesUsd: number | null
   buyRouteId: string | null
   sellRouteId: string | null
@@ -72,6 +74,8 @@ function unavailable(
     estimatedEntryPriceImpactPct: null,
     estimatedExitPriceImpactPct: null,
     estimatedRoundTripLossPct: null,
+    estimatedEntryFeeUsd: null,
+    estimatedExitFeeUsd: null,
     estimatedFeesUsd: null,
     buyRouteId: input.buy?.routeId ?? null,
     sellRouteId: input.sell?.routeId ?? null,
@@ -159,6 +163,8 @@ export function buildSizeAwareQuote(
       ((input.requestedNotionalUsd - input.sell.outputAmount) /
         input.requestedNotionalUsd) *
       100,
+    estimatedEntryFeeUsd: input.buy.estimatedFeeUsd,
+    estimatedExitFeeUsd: input.sell.estimatedFeeUsd,
     estimatedFeesUsd:
       input.buy.estimatedFeeUsd + input.sell.estimatedFeeUsd,
     buyRouteId: input.buy.routeId,
