@@ -219,7 +219,7 @@ test("a fresh same-pair size-aware quote completes executable evidence", () => {
     notionalUsd: quote.requestedNotionalUsd,
     estimatedEntrySlippagePct:
       quote.estimatedEntryPriceImpactPct!,
-    estimatedFeesUsd: quote.estimatedFeesUsd!,
+    estimatedFeesUsd: quote.estimatedEntryFeeUsd!,
     evidence: adapted.evidence,
     ruleVersion: "private-v1",
     operatorNote: null,
