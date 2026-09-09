@@ -9,7 +9,7 @@ export const WPOND_MINT =
 export const WRAPPED_SOL_MINT =
   "So11111111111111111111111111111111111111112"
 
-type WpondMarketSnapshot = MarketSnapshot & {
+export type WpondMarketSnapshot = Omit<MarketSnapshot, "tokens"> & {
   tokens?: Array<{
     symbol?: string
     chain?: string
