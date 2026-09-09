@@ -67,7 +67,7 @@ function exitLeg(
 }
 
 test("quotes the exact raw units stored in execution basis", async () => {
-  let request: JupiterQuoteRequest | null = null
+  const requests: JupiterQuoteRequest[] = []
   const observation = await observeWpondExactExit(
     snapshot(),
     basis(),
@@ -76,14 +76,15 @@ test("quotes the exact raw units stored in execution basis", async () => {
       estimatedFeeLamports: 10_000,
     },
     async (value) => {
-      request = value
+      requests.push(value)
       return exitLeg()
     }
   )
 
-  assert.equal(request?.inputAmountBaseUnits, "90000000000")
-  assert.equal(request?.inputToken, WPOND_MINT)
-  assert.equal(request?.outputToken, WRAPPED_SOL_MINT)
+  assert.equal(requests.length, 1)
+  assert.equal(requests[0].inputAmountBaseUnits, "90000000000")
+  assert.equal(requests[0].inputToken, WPOND_MINT)
+  assert.equal(requests[0].outputToken, WRAPPED_SOL_MINT)
   assert.equal(observation.status, "MEASURED")
   assert.equal(
     observation.entryTokenAmountBaseUnits,
