@@ -59,7 +59,8 @@ export default function ClearPage() {
   const accounting = clear?.accounting || {}
   const routes = clear?.routes || {}
   const portal = routes.portalObservation || {}
-  const recentIssuance = Array.isArray(clear?.activity?.issuanceEvents) && clear.activity.issuanceEvents.length > 0
+  const issuanceEvents = Array.isArray(clear?.activity?.issuanceEvents) ? clear.activity.issuanceEvents : []
+  const recentIssuance = issuanceEvents.length > 0
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-[#020406] text-white">
@@ -121,7 +122,7 @@ export default function ClearPage() {
                 ["PAPER Supply", fmt(paper.supply), shortAddress(paper.mint)],
                 ["CCPU Supply", fmt(ccpu.supply), shortAddress(ccpu.mint)],
                 ["Tracked CCPU Account", fmt(ccpu.reserveBalance), "observed balance; reserve role unproven"],
-                ["Recent Issuance (24h)", recentIssuance ? clear.activity.issuanceEvents.length : 0, recentIssuance ? "on-chain events detected" : "no recent event detected"],
+                ["Recent Issuance (24h)", issuanceEvents.length, recentIssuance ? "on-chain events detected" : "no recent event detected"],
                 ["Tracked Vault USDC", fmt(accounting.vaultUsdc, 2), `backing: ${accounting.backingStatus || "UNPROVEN"}`],
               ].map(([label, value, note]) => (
                 <div key={label} className="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
@@ -137,7 +138,7 @@ export default function ClearPage() {
                 <div className="text-[11px] font-semibold uppercase tracking-[0.28em] text-violet-300">Clear USD Factory path</div>
                 <h2 className="mt-1 text-xl font-semibold">Where the process stands</h2>
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                  {capabilities.map((capability: any) => (
+                  {capabilities.map((capability) => (
                     <div key={capability.id} className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-black/20 p-3">
                       <span className="text-sm text-slate-300">{capability.label}</span>
                       <span className={`shrink-0 rounded-full border px-2.5 py-1 text-xs font-semibold ${stateTone(capability.state)}`}>{stateLabel(capability.state)}</span>
@@ -169,7 +170,7 @@ export default function ClearPage() {
                 <div className="rounded-3xl border border-white/10 bg-white/[0.025] p-5">
                   <div className="text-[11px] font-semibold uppercase tracking-[0.28em] text-emerald-400">Evidence ledger</div>
                   <div className="mt-4 space-y-3">
-                    {evidence.map((item: any) => (
+                    {evidence.map((item) => (
                       <a key={item.url} href={item.url} target="_blank" rel="noopener noreferrer" className="block rounded-xl border border-white/10 bg-black/20 p-3 hover:border-cyan-500/30">
                         <div className="text-xs font-semibold text-emerald-300">{item.type}</div>
                         <div className="mt-1 text-sm text-slate-200">{item.label} ↗</div>

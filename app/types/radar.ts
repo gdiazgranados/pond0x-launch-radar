@@ -134,6 +134,33 @@ export type ThresholdDriftReport = {
   profiles?: Record<string, { metrics?: CalibrationProfileMetrics }>
 }
 
+export type ClearIntelligence = {
+  generatedAt?: string
+  status?: string
+  tokens?: {
+    paper?: { mint?: string; supply?: number }
+    ccpu?: { mint?: string; supply?: number; reserveBalance?: number }
+  }
+  accounting?: {
+    vaultUsdc?: number
+    backingStatus?: string
+  }
+  routes?: {
+    portalPaper?: string
+    usdcToPaper?: string
+    paperToUsdc?: string
+    usdcToCcpu?: string
+    ccpuToUsdc?: string
+    quotes?: Record<string, unknown>
+    portalObservation?: { input?: string; output?: string }
+  }
+  activity?: {
+    issuanceEvents?: unknown[]
+  }
+  capabilities?: Array<{ id: string; label?: string; state?: string }>
+  evidence?: Array<{ type?: string; label?: string; source?: string; url: string }>
+}
+
 export type RadarData = {
   id: string
   snapshotId?: string

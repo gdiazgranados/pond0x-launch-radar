@@ -7,6 +7,7 @@ import type {
   HeartbeatData,
   RadarApiSyncMeta,
   SentinelEvent,
+  ClearIntelligence,
 } from "../types/radar"
 
 import type { EvidenceLedger } from "../types/evidence"
@@ -30,7 +31,7 @@ type RadarApiResponse = {
   systemHealth?: any
   telegramHealth?: any
   miningIntelligence?: MiningIntelligence | null
-  clearIntelligence?: any
+  clearIntelligence?: ClearIntelligence | null
 }
 
 function apiRadarUrl() {
@@ -175,7 +176,7 @@ export function useRadarData() {
   const [systemHealth, setSystemHealth] = useState<any>(null)
   const [telegramHealth, setTelegramHealth] = useState<any>(null)
   const [miningIntelligence, setMiningIntelligence] = useState<MiningIntelligence | null>(null)
-  const [clearIntelligence, setClearIntelligence] = useState<any>(null)
+  const [clearIntelligence, setClearIntelligence] = useState<ClearIntelligence | null>(null)
 
   const loadRemoteRadar = useCallback(async (signal?: AbortSignal) => {
     const res = await fetch(apiRadarUrl(), { signal })
