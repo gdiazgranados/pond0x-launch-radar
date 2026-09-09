@@ -103,12 +103,22 @@ export async function closeBasisAwareShadowPosition(
   if (adapted.currentReferenceUsd === null) {
     reasons.push("CURRENT_REFERENCE_UNAVAILABLE")
   }
+  if (adapted.currentReferenceUsd === null) {
+    reasons.push("CURRENT_REFERENCE_UNAVAILABLE")
+  }
   if (
     quote.status !== "MEASURED" ||
     quote.tokenId !== position.tokenId ||
     quote.chain !== position.chain
   ) {
     reasons.push("EXECUTABLE_EXIT_QUOTE_UNAVAILABLE")
+  }
+  if (
+    quote.entryTokenAmountBaseUnits !==
+      basis.simulatedTokenAmountBaseUnits ||
+    quote.entryTokenDecimals !== basis.tokenDecimals
+  ) {
+    reasons.push("EXIT_TOKEN_AMOUNT_MISMATCH")
   }
   if (
     quote.entryTokenAmountBaseUnits !==
