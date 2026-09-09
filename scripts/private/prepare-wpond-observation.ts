@@ -62,6 +62,10 @@ function positiveEnvironment(name: string, fallback: number) {
   return value
 }
 
+function timestampKey(value: string) {
+  return value.replace(/[^0-9A-Za-z]/g, "")
+}
+
 async function main() {
   const [snapshot, trends, targetDecimals] = await Promise.all([
     jsonGet<WpondMarketSnapshot>(SNAPSHOT_URL),
@@ -95,20 +99,27 @@ async function main() {
       apiKey: process.env.JUPITER_API_KEY,
     }
   )
-  const snapshotKey = String(snapshot.generatedAt)
-    .replace(/[^0-9A-Za-z]/g, "")
+  const snapshotKey = timestampKey(String(snapshot.generatedAt))
+  const evaluatedKey = timestampKey(evaluatedAt)
   const notionalKey = requestedNotionalUsd
     .toString()
     .replace(".", "-")
+  const observationId =
+    `wpond-${snapshotKey}-${evaluatedKey}-usd-${notionalKey}`
   const outputPath = resolve(
     process.env.SHADOW_OBSERVATION_INPUT ??
       "private-data/shadow-observation-input.json"
   )
+  const archivePath = resolve(
+    dirname(outputPath),
+    "observations",
+    `${observationId}.json`
+  )
   const envelope = {
-    decisionId: `wpond-${snapshotKey}-usd-${notionalKey}`,
+    decisionId: observationId,
     evaluatedAt,
     tokenId: "wPOND",
-    positionId: `wpond-shadow-${snapshotKey}-usd-${notionalKey}`,
+    positionId: `wpond-shadow-${observationId}`,
     ruleVersion: "private-wpond-v1",
     windowKey: "24h",
     maxAgeMinutes,
@@ -117,9 +128,16 @@ async function main() {
     trends,
     sizeAwareQuote,
   }
+  const serialized = JSON.stringify(envelope, null, 2)
 
+  await mkdir(dirname(archivePath), { recursive: true })
+  await writeFile(archivePath, serialized, {
+    encoding: "utf8",
+    mode: 0o600,
+    flag: "wx",
+  })
   await mkdir(dirname(outputPath), { recursive: true })
-  await writeFile(outputPath, JSON.stringify(envelope, null, 2), {
+  await writeFile(outputPath, serialized, {
     encoding: "utf8",
     mode: 0o600,
   })
@@ -127,6 +145,7 @@ async function main() {
   console.log(JSON.stringify({
     simulationOnly: true,
     outputPath,
+    archivePath,
     sourceGeneratedAt: snapshot.generatedAt,
     evaluatedAt,
     targetDecimals,
