@@ -45,7 +45,7 @@ test("builds a $10 wPOND quote using verified three-decimal units", () => {
   assert.equal(request.referencePairAddress, "wpond-raydium-pair")
   assert.equal(request.targetToken, WPOND_MINT)
   assert.equal(request.quoteToken, WRAPPED_SOL_MINT)
-  assert.ok(BigInt(request.quoteAmountBaseUnits) > 0n)
+  assert.ok(Number(request.quoteAmountBaseUnits) > 0)
   assert.ok(Math.abs(
     Number(request.quoteAmountBaseUnits) / 1e9 *
       request.quoteTokenPriceUsd - 10
