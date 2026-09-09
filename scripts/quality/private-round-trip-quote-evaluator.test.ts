@@ -15,10 +15,12 @@ function leg(
   outputAmountBaseUnits: string,
   inputAmount: number,
   outputAmount: number,
-  routeId: string
+  routeId: string,
+  venueIds: ReadonlyArray<string> = []
 ): ReadOnlyQuoteLeg {
   return {
     routeId,
+    venueIds,
     inputAmountBaseUnits,
     outputAmountBaseUnits,
     inputAmount,
@@ -32,8 +34,8 @@ test("Jupiter sells the exact raw amount returned by the buy quote", async () =>
   const reader = async (request: JupiterQuoteRequest) => {
     requests.push(request)
     return requests.length === 1
-      ? leg("100000000", "500000000000", 100, 500, "jupiter:buy")
-      : leg("500000000000", "95000000", 500, 95, "jupiter:sell")
+      ? leg("100000000", "500000000000", 100, 500, "jupiter:buy", ["paper-pair"])
+      : leg("500000000000", "95000000", 500, 95, "jupiter:sell", ["paper-pair"])
   }
 
   const observation = await evaluateJupiterRoundTrip(
@@ -166,7 +168,8 @@ test("a failed sell preserves the buy route but remains unavailable", async () =
         "250000000000",
         50,
         250,
-        "jupiter:buy"
+        "jupiter:buy",
+        ["paper-pair"]
       )
     }
     throw new Error("sell unavailable")
@@ -196,6 +199,49 @@ test("a failed sell preserves the buy route but remains unavailable", async () =
   assert.equal(observation.status, "UNAVAILABLE")
   assert.equal(observation.buyRouteId, "jupiter:buy")
   assert.deepEqual(observation.blockingReasons, [
+    "SELL_QUOTE_UNAVAILABLE",
+  ])
+})
+
+
+test("Jupiter blocks a quote routed through another pool", async () => {
+  let calls = 0
+  const reader = async () => {
+    calls += 1
+    return leg(
+      "100000000",
+      "500000000000",
+      100,
+      500,
+      "jupiter:other-pool",
+      ["another-pair"]
+    )
+  }
+
+  const observation = await evaluateJupiterRoundTrip(
+    {
+      tokenId: "wPOND",
+      chain: "SOLANA",
+      observedAt: "2026-09-06T12:00:00Z",
+      referencePairAddress: "wpond-pair",
+      requestedNotionalUsd: 100,
+      referencePriceUsd: 0.0000001,
+      quoteTokenPriceUsd: 100,
+      quoteToken: "SOL-mint",
+      targetToken: "wPOND-mint",
+      quoteAmountBaseUnits: "1000000000",
+      quoteDecimals: 9,
+      targetDecimals: 9,
+      buyEstimatedFeeUsd: 0,
+      sellEstimatedFeeUsd: 0,
+    },
+    reader
+  )
+
+  assert.equal(calls, 1)
+  assert.equal(observation.status, "UNAVAILABLE")
+  assert.deepEqual(observation.blockingReasons, [
+    "BUY_QUOTE_UNAVAILABLE",
     "SELL_QUOTE_UNAVAILABLE",
   ])
 })

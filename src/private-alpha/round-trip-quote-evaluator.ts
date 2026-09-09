@@ -118,6 +118,12 @@ export async function evaluateJupiterRoundTrip(
     )
   }
 
+  if (!buy.venueIds.includes(input.referencePairAddress)) {
+    return buildSizeAwareQuote(
+      observationInput(input, null, null)
+    )
+  }
+
   const pricedEntry = pricedBuy(buy, input.quoteTokenPriceUsd)
 
   try {
@@ -130,6 +136,12 @@ export async function evaluateJupiterRoundTrip(
       estimatedFeeUsd: input.sellEstimatedFeeUsd,
       apiKey: input.apiKey,
     })
+
+    if (!sell.venueIds.includes(input.referencePairAddress)) {
+      return buildSizeAwareQuote(
+        observationInput(input, pricedEntry, null)
+      )
+    }
 
     return buildSizeAwareQuote(
       observationInput(
