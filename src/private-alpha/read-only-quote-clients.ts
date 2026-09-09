@@ -3,6 +3,7 @@ import type { QuoteLeg } from "./size-aware-quote"
 export type ReadOnlyQuoteLeg = QuoteLeg & {
   inputAmountBaseUnits: string
   outputAmountBaseUnits: string
+  venueIds: ReadonlyArray<string>
 }
 
 type FetchLike = (
@@ -148,13 +149,21 @@ export async function readJupiterQuote(
   const routePlan = Array.isArray(payload.routePlan)
     ? payload.routePlan
     : []
-  const labels = routePlan.map((step) => {
-    if (!step || typeof step !== "object") return ""
-    const swapInfo = (step as { swapInfo?: unknown }).swapInfo
-    if (!swapInfo || typeof swapInfo !== "object") return ""
-    const value = (swapInfo as { label?: unknown }).label
-    return typeof value === "string" ? value : ""
+  const swapInfo = routePlan.map((step) => {
+    if (!step || typeof step !== "object") return null
+    const value = (step as { swapInfo?: unknown }).swapInfo
+    return value && typeof value === "object"
+      ? value as Record<string, unknown>
+      : null
   })
+  const labels = swapInfo.map((value) =>
+    typeof value?.label === "string" ? value.label : ""
+  )
+  const venueIds = swapInfo
+    .map((value) =>
+      typeof value?.ammKey === "string" ? value.ammKey : ""
+    )
+    .filter(Boolean)
 
   if (inputAmount !== request.inputAmountBaseUnits) {
     throw new Error("Jupiter returned a different input amount")
@@ -162,6 +171,7 @@ export async function readJupiterQuote(
 
   return {
     routeId: routeId("jupiter", labels),
+    venueIds,
     inputAmountBaseUnits: inputAmount,
     outputAmountBaseUnits: outputAmount,
     inputAmount: humanUnits(inputAmount, request.inputDecimals),
@@ -230,6 +240,7 @@ export async function readZeroXPrice(
 
   return {
     routeId: routeId("0x", labels),
+    venueIds: labels.filter(Boolean),
     inputAmountBaseUnits: inputAmount,
     outputAmountBaseUnits: outputAmount,
     inputAmount: humanUnits(inputAmount, request.inputDecimals),

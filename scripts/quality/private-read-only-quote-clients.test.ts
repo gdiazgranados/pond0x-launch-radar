@@ -25,7 +25,7 @@ test("uses Jupiter keyless GET quote without transaction endpoints", async () =>
       inAmount: "1000000",
       outAmount: "500000000",
       routePlan: [
-        { swapInfo: { label: "Meteora" } },
+        { swapInfo: { label: "Meteora", ammKey: "paper-pair" } },
       ],
     })
   }
@@ -49,6 +49,7 @@ test("uses Jupiter keyless GET quote without transaction endpoints", async () =>
   assert.equal(requestedInit?.method, "GET")
   assert.deepEqual(requestedInit?.headers, {})
   assert.equal(quote.routeId, "jupiter:Meteora")
+  assert.deepEqual(quote.venueIds, ["paper-pair"])
   assert.equal(quote.inputAmount, 1)
   assert.equal(quote.outputAmount, 0.5)
   assert.equal(quote.inputAmountBaseUnits, "1000000")
@@ -138,6 +139,7 @@ test("uses the 0x read-only price endpoint and includes estimated gas", async ()
     "v2"
   )
   assert.equal(quote.routeId, "0x:Uniswap_V3")
+  assert.deepEqual(quote.venueIds, ["Uniswap_V3"])
   assert.equal(quote.inputAmount, 1)
   assert.equal(quote.outputAmount, 2)
   assert.equal(
