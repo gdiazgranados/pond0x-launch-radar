@@ -9,7 +9,6 @@ const CCPU_MINT = "CCPU6wgqmMiWigL3Tffpg7NgPfKuBRePTmrhxqqizWSa";
 const USDC_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
 const CCPU_RESERVE = "8oJug97gz4nQktCJnGwhJ8Dvt7j9fFUhGoS3T17YvP9T";
 const CLEARUSD_VAULT = "3VgwNAh4nxenN1g53WWVLn289tt84jRTPY6qHtXbFJzV";
-const CLEAR_GATEWAY = "CLEARGWMrGw4pK3xTJS7WaUYPLZEhN4JGLx9f943WtP6";
 const PAPER_PRINTER = "PRNT89RGpbBtzkCJMxgCyCeVkqaqVuVFLa1Cv5NsMpr";
 const OUTPUT = path.join(__dirname, "..", "public", "data", "clear-intelligence.json");
 

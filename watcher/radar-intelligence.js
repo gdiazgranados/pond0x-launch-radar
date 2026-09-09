@@ -73,20 +73,6 @@ function normalizeTokens(input) {
     .filter(Boolean);
 }
 
-function buildCorpus(snapshot) {
-  const textSources = [
-    ...(snapshot.signals || []),
-    ...(snapshot.tags || []),
-    ...(snapshot.filePaths || []),
-    ...(snapshot.changedFiles || []),
-    snapshot.summary,
-    snapshot.note,
-    snapshot.insight,
-  ];
-
-  return normalizeTokens(textSources);
-}
-
 function buildChangeEvidenceCorpus(snapshot) {
   const textSources = [
     ...(snapshot.signals || []),
