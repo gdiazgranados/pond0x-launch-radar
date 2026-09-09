@@ -9,6 +9,8 @@ export type ShadowExecutionBasis = {
   referencePairAddress: string
   requestedNotionalUsd: number
   simulatedTokenUnits: number
+  simulatedTokenAmountBaseUnits: string
+  tokenDecimals: number
   effectiveEntryPriceUsd: number
   estimatedEntryFeeUsd: number
   buyRouteId: string
@@ -60,6 +62,11 @@ function assertBasis(value: unknown): asserts value is ShadowExecutionBasis {
     !nonEmpty(value.referencePairAddress) ||
     !finitePositive(value.requestedNotionalUsd) ||
     !finitePositive(value.simulatedTokenUnits) ||
+    !nonEmpty(value.simulatedTokenAmountBaseUnits) ||
+    !/^[1-9]\\d*$/.test(value.simulatedTokenAmountBaseUnits) ||
+    !Number.isInteger(value.tokenDecimals) ||
+    Number(value.tokenDecimals) < 0 ||
+    Number(value.tokenDecimals) > 30 ||
     !finitePositive(value.effectiveEntryPriceUsd) ||
     !finiteNonNegative(value.estimatedEntryFeeUsd) ||
     !nonEmpty(value.buyRouteId) ||
@@ -80,7 +87,12 @@ export function buildShadowExecutionBasis(
     quote.status !== "MEASURED" ||
     !finitePositive(quote.effectiveEntryPriceUsd) ||
     !finiteNonNegative(quote.estimatedEntryFeeUsd) ||
-    !nonEmpty(quote.buyRouteId)
+    !nonEmpty(quote.buyRouteId) ||
+    !nonEmpty(quote.entryTokenAmountBaseUnits) ||
+    !/^[1-9]\\d*$/.test(quote.entryTokenAmountBaseUnits) ||
+    !Number.isInteger(quote.entryTokenDecimals) ||
+    Number(quote.entryTokenDecimals) < 0 ||
+    Number(quote.entryTokenDecimals) > 30
   ) {
     throw new Error("complete measured buy quote is required")
   }
@@ -105,7 +117,11 @@ export function buildShadowExecutionBasis(
     referencePairAddress: quote.referencePairAddress,
     requestedNotionalUsd: quote.requestedNotionalUsd,
     simulatedTokenUnits:
-      quote.requestedNotionalUsd / quote.effectiveEntryPriceUsd,
+      Number(quote.entryTokenAmountBaseUnits) /
+      10 ** Number(quote.entryTokenDecimals),
+    simulatedTokenAmountBaseUnits:
+      quote.entryTokenAmountBaseUnits,
+    tokenDecimals: Number(quote.entryTokenDecimals),
     effectiveEntryPriceUsd: quote.effectiveEntryPriceUsd,
     estimatedEntryFeeUsd: quote.estimatedEntryFeeUsd,
     buyRouteId: quote.buyRouteId,
