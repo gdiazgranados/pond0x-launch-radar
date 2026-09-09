@@ -14,7 +14,7 @@ function readinessTone(ready?: boolean) {
 }
 
 export function CalibrationLearningPanel({ data }: { data?: RadarData | null }) {
-  const report = (data as any)?.thresholdDriftReport || null
+  const report = data?.thresholdDriftReport || null
   if (!report) return null
 
   const readiness = report?.readiness || {}
