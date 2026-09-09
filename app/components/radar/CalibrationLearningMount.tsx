@@ -1,10 +1,11 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import type { RadarData } from "../../types/radar"
 import { CalibrationLearningPanel } from "./CalibrationLearningPanel"
 
 export function CalibrationLearningMount() {
-  const [data, setData] = useState<any>(null)
+  const [data, setData] = useState<RadarData | null>(null)
 
   useEffect(() => {
     let active = true
