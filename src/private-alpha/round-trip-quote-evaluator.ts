@@ -75,7 +75,8 @@ function pricedSell(
 function observationInput(
   input: RoundTripBase,
   buy: QuoteLeg | null,
-  sell: QuoteLeg | null
+  sell: QuoteLeg | null,
+  entryTokenAmountBaseUnits: string | null = null
 ) {
   return {
     tokenId: input.tokenId,
@@ -86,6 +87,11 @@ function observationInput(
     referencePriceUsd: input.referencePriceUsd,
     buy,
     sell,
+    entryTokenAmountBaseUnits,
+    entryTokenDecimals:
+      entryTokenAmountBaseUnits === null
+        ? null
+        : input.targetDecimals,
   }
 }
 
@@ -139,7 +145,12 @@ export async function evaluateJupiterRoundTrip(
 
     if (!sell.venueIds.includes(input.referencePairAddress)) {
       return buildSizeAwareQuote(
-        observationInput(input, pricedEntry, null)
+        observationInput(
+          input,
+          pricedEntry,
+          null,
+          buy.outputAmountBaseUnits
+        )
       )
     }
 
@@ -147,12 +158,18 @@ export async function evaluateJupiterRoundTrip(
       observationInput(
         input,
         pricedEntry,
-        pricedSell(sell, input.quoteTokenPriceUsd)
+        pricedSell(sell, input.quoteTokenPriceUsd),
+        buy.outputAmountBaseUnits
       )
     )
   } catch {
     return buildSizeAwareQuote(
-      observationInput(input, pricedEntry, null)
+      observationInput(
+        input,
+        pricedEntry,
+        null,
+        buy.outputAmountBaseUnits
+      )
     )
   }
 }
@@ -201,12 +218,18 @@ export async function evaluateZeroXRoundTrip(
       observationInput(
         input,
         pricedEntry,
-        pricedSell(sell, input.quoteTokenPriceUsd)
+        pricedSell(sell, input.quoteTokenPriceUsd),
+        buy.outputAmountBaseUnits
       )
     )
   } catch {
     return buildSizeAwareQuote(
-      observationInput(input, pricedEntry, null)
+      observationInput(
+        input,
+        pricedEntry,
+        null,
+        buy.outputAmountBaseUnits
+      )
     )
   }
 }

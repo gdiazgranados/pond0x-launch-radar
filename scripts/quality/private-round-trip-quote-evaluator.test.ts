@@ -67,6 +67,11 @@ test("Jupiter sells the exact raw amount returned by the buy quote", async () =>
   assert.equal(observation.estimatedRoundTripLossPct, 5)
   assert.equal(observation.buyRouteId, "jupiter:buy")
   assert.equal(observation.sellRouteId, "jupiter:sell")
+  assert.equal(
+    observation.entryTokenAmountBaseUnits,
+    "500000000000"
+  )
+  assert.equal(observation.entryTokenDecimals, 9)
 })
 
 test("0x converts native quote amounts to USD and preserves raw tokens", async () => {

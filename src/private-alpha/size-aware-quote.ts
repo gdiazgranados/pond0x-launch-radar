@@ -28,6 +28,8 @@ export type SizeAwareQuoteObservation = {
   estimatedFeesUsd: number | null
   buyRouteId: string | null
   sellRouteId: string | null
+  entryTokenAmountBaseUnits?: string | null
+  entryTokenDecimals?: number | null
   blockingReasons: ReadonlyArray<string>
 }
 
@@ -40,6 +42,8 @@ export type SizeAwareQuoteInput = {
   referencePriceUsd: number
   buy: QuoteLeg | null
   sell: QuoteLeg | null
+  entryTokenAmountBaseUnits?: string | null
+  entryTokenDecimals?: number | null
 }
 
 const TOKEN_CHAIN: Record<ShadowToken, ShadowChain> = {
@@ -79,6 +83,9 @@ function unavailable(
     estimatedFeesUsd: null,
     buyRouteId: input.buy?.routeId ?? null,
     sellRouteId: input.sell?.routeId ?? null,
+    entryTokenAmountBaseUnits:
+      input.entryTokenAmountBaseUnits ?? null,
+    entryTokenDecimals: input.entryTokenDecimals ?? null,
     blockingReasons: [...new Set(reasons)],
   }
 }
@@ -126,6 +133,23 @@ export function buildSizeAwareQuote(
     }
   }
 
+  const rawAmount = input.entryTokenAmountBaseUnits
+  const rawDecimals = input.entryTokenDecimals
+  if (
+    rawAmount !== undefined &&
+    rawAmount !== null &&
+    !/^[1-9]\d*$/.test(rawAmount)
+  ) {
+    reasons.push("ENTRY_TOKEN_BASE_UNITS_INVALID")
+  }
+  if (
+    rawDecimals !== undefined &&
+    rawDecimals !== null &&
+    (!Number.isInteger(rawDecimals) || rawDecimals < 0 || rawDecimals > 30)
+  ) {
+    reasons.push("ENTRY_TOKEN_DECIMALS_INVALID")
+  }
+
   const inputDifference =
     Math.abs(input.sell.inputAmount - input.buy.outputAmount) /
     input.buy.outputAmount
@@ -169,6 +193,8 @@ export function buildSizeAwareQuote(
       input.buy.estimatedFeeUsd + input.sell.estimatedFeeUsd,
     buyRouteId: input.buy.routeId,
     sellRouteId: input.sell.routeId,
+    entryTokenAmountBaseUnits: rawAmount ?? null,
+    entryTokenDecimals: rawDecimals ?? null,
     blockingReasons: [],
   }
 }
