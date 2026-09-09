@@ -5,7 +5,8 @@ import Link from "next/link"
 import { IndicatorHelp } from "./components/radar/IndicatorHelp"
 import { useEffect, useMemo, useState } from "react"
 import { useRadarData } from "./hooks/useRadarData"
-import { formatDate, shortTime } from "./lib/date"
+import { formatDate } from "./lib/date"
+import type { RadarData } from "./types/radar"
 import { SectionTitle } from "./components/radar/SectionTitle"
 import { MetricCard } from "./components/radar/MetricCard"
 import { HeartbeatPanel } from "./components/radar/HeartbeatPanel"
@@ -137,21 +138,7 @@ function Gauge({
   )
 }
 
-function getEta(data: any) {
-  const level = String(data?.level ?? "LOW").toUpperCase()
-  const scorePercent = Number(data?.scorePercent ?? data?.score ?? 0)
-  const movement = Number(data?.movementPercent ?? data?.movementPct ?? 0)
-  const trendDirection = String(data?.trendDirection ?? "FLAT").toUpperCase()
-  const trend = typeof data?.trend === "number" ? data.trend : 0
-
-  if (level === "CRITICAL" && (trendDirection === "UP" || trend >= 8)) return "< 24h"
-  if (scorePercent >= 85 && movement >= 25 && (trendDirection === "UP" || trend >= 8)) return "< 6h"
-  if (scorePercent >= 75 && movement >= 20) return "< 24h"
-  if (scorePercent >= 60) return "24h - 72h"
-  return "monitoring"
-}
-
-function getPriorityMode(data: any) {
+function getPriorityMode(data: RadarData | null) {
   const tags = data?.tags || []
   const level = String(data?.level || "LOW").toUpperCase()
   const activationProbability = Number(data?.activationProbability ?? 0)
@@ -207,34 +194,6 @@ function getPriorityMode(data: any) {
   }
 }
 
-function getAlphaClassTone(alphaClass: string) {
-  switch (alphaClass) {
-    case "CRITICAL":
-      return "text-red-300"
-    case "ACTIONABLE":
-      return "text-orange-300"
-    case "SETUP":
-      return "text-yellow-300"
-    case "WATCH":
-      return "text-cyan-300"
-    default:
-      return "text-slate-300"
-  }
-}
-
-function getTriggerStateTone(triggerState: string) {
-  switch (triggerState) {
-    case "TRIGGERED":
-      return "text-red-300"
-    case "ARMED":
-      return "text-orange-300"
-    case "WATCHING":
-      return "text-cyan-300"
-    default:
-      return "text-slate-300"
-  }
-}
-
 export default function Home() {
   const {
     data,
@@ -268,7 +227,6 @@ export default function Home() {
 
   const uiScore = useMemo(() => Number(current?.score ?? 0), [current])
 
-  const rawScore = useMemo(() => Number(current?.rawScore ?? current?.score ?? 0), [current])
 
   const uiScorePercent = useMemo(() => Number(current?.scorePercent ?? 0), [current])
 
