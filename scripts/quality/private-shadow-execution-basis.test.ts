@@ -66,6 +66,8 @@ function quote(): SizeAwareQuoteObservation {
     estimatedFeesUsd: 0.002,
     buyRouteId: "jupiter:Raydium CLMM",
     sellRouteId: "jupiter:Raydium CLMM",
+    entryTokenAmountBaseUnits: "98039215686",
+    entryTokenDecimals: 3,
     blockingReasons: [],
   }
 }
@@ -95,7 +97,9 @@ test("builds execution basis from a complete measured buy quote", () => {
 
   assert.equal(basis.positionId, "wpond-shadow-1")
   assert.equal(basis.effectiveEntryPriceUsd, 0.000000102)
-  assert.equal(basis.simulatedTokenUnits, 10 / 0.000000102)
+  assert.equal(basis.simulatedTokenUnits, 98_039_215.686)
+  assert.equal(basis.simulatedTokenAmountBaseUnits, "98039215686")
+  assert.equal(basis.tokenDecimals, 3)
   assert.equal(basis.buyRouteId, "jupiter:Raydium CLMM")
   assert.equal(basis.source, "EXECUTABLE_BUY_QUOTE")
 })
@@ -123,7 +127,7 @@ test("persists execution basis idempotently and keeps it immutable", async () =>
   await assert.rejects(
     persistShadowExecutionBasis(
       store,
-      { ...basis, simulatedTokenUnits: basis.simulatedTokenUnits + 1 },
+      { ...basis, simulatedTokenAmountBaseUnits: "98039215687" },
       "2026-09-09T15:41:00Z"
     ),
     /execution basis is immutable/
