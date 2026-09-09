@@ -146,11 +146,11 @@ export async function evaluateJupiterRoundTrip(
     if (!sell.venueIds.includes(input.referencePairAddress)) {
       return buildSizeAwareQuote(
         observationInput(
-        input,
-        pricedEntry,
-        null,
-        buy.outputAmountBaseUnits
-      )
+          input,
+          pricedEntry,
+          null,
+          buy.outputAmountBaseUnits
+        )
       )
     }
 
