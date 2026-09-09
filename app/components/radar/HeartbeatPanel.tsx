@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, type ComponentProps } from "react"
 import { SectionTitle } from "./SectionTitle"
 import { SystemHealthPanel } from "./SystemHealthPanel"
 import { formatRelativeMinutes } from "../../lib/date"
@@ -21,6 +21,8 @@ type HeartbeatPanelProps = {
   freshnessDate?: string
 }
 
+type SystemHealthProps = ComponentProps<typeof SystemHealthPanel>
+
 function formatMexicoCityDate(value: string | null) {
   if (!value) return "—"
 
@@ -40,8 +42,8 @@ export function HeartbeatPanel({
   source,
   freshnessDate,
 }: HeartbeatPanelProps) {
-  const [systemHealth, setSystemHealth] = useState<any>(null)
-  const [telegramHealth, setTelegramHealth] = useState<any>(null)
+  const [systemHealth, setSystemHealth] = useState<SystemHealthProps["systemHealth"]>(null)
+  const [telegramHealth, setTelegramHealth] = useState<SystemHealthProps["telegramHealth"]>(null)
 
   const isOverdue = nextSweepCountdown === "overdue"
   const isAwaitingRunner =
