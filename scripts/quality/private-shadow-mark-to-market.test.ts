@@ -139,6 +139,15 @@ test("marks an open position and appends immutable evidence", async () => {
   assert.ok(result.position.maxFavorableExcursionPct > 9.9)
   assert.equal(result.position.maxAdverseExcursionPct, 0)
   assert.ok(result.grossUnrealizedPnlUsd > 0.99)
+  assert.equal(result.executionBasisComplete, false)
+  assert.ok(
+    Math.abs((result.currentRoundTripLossPct ?? 0) - 2) <
+      1e-9
+  )
+  assert.ok(
+    result.conservativeExitStressPnlUsd <
+      result.grossUnrealizedPnlUsd
+  )
   assert.equal(result.state.portfolio.revision, 3)
 })
 
