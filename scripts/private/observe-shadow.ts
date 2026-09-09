@@ -6,6 +6,10 @@ import {
 } from "../../src/private-alpha/shadow-candidate-pipeline"
 import { PrivateFileLedgerStore } from "../../src/private-alpha/file-ledger-store"
 import {
+  buildShadowExecutionBasis,
+  persistShadowExecutionBasis,
+} from "../../src/private-alpha/shadow-execution-basis"
+import {
   coordinateShadowCandidate,
   type CoordinateShadowCandidateInput,
 } from "../../src/private-alpha/shadow-simulation-coordinator"
@@ -111,6 +115,24 @@ async function main() {
     coordinateInput
   )
 
+  let executionBasisRevision: number | null = null
+  let executionBasisComplete = false
+  if (candidate.status === "PROPOSED") {
+    const basis = buildShadowExecutionBasis(
+      candidate.proposal,
+      envelope.sizeAwareQuote
+    )
+    const basisResult = await persistShadowExecutionBasis(
+      new PrivateFileLedgerStore(
+        resolve(dataDirectory, "shadow-execution-basis.json")
+      ),
+      basis,
+      envelope.evaluatedAt
+    )
+    executionBasisRevision = basisResult.ledger.revision
+    executionBasisComplete = true
+  }
+
   console.log(JSON.stringify({
     simulationOnly: true,
     changed: result.changed,
@@ -118,6 +140,8 @@ async function main() {
     blockingReasons: candidate.blockingReasons,
     auditRevision: result.audit.revision,
     portfolioRevision: result.state.portfolio.revision,
+    executionBasisRevision,
+    executionBasisComplete,
     positions: result.state.portfolio.positions.length,
     evaluation: result.state.evaluation,
   }, null, 2))
