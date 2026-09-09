@@ -79,6 +79,9 @@ export async function closeBasisAwareShadowPosition(
   const quote = input.sizeAwareQuote
   const reasons = evidenceBlockingReasons(adapted.evidence)
 
+  if (adapted.currentReferenceUsd === null) {
+    reasons.push("CURRENT_REFERENCE_UNAVAILABLE")
+  }
   if (Date.parse(input.closedAt) < Date.parse(position.openedAt)) {
     reasons.push("EXIT_PRECEDES_ENTRY")
   }
