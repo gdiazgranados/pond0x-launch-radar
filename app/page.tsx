@@ -249,7 +249,7 @@ export default function Home() {
     sentinelEvents,
   } = useRadarData()
   const latestEvent = sentinelEvents[0] ?? null
-  const [now, setNow] = useState(Date.now())
+  const [now, setNow] = useState<number | null>(null)
 
   const cleanHistory = useMemo(() => {
     return Array.from(new Map(history.map((item) => [item.id, item])).values())
@@ -433,7 +433,7 @@ export default function Home() {
   }, [effectiveFreshnessDate, heartbeatData?.scheduleMinutes])
 
   const nextSweepCountdown = useMemo(() => {
-    if (!nextPollAt) return null
+    if (!nextPollAt || now === null) return null
 
     const target = new Date(nextPollAt).getTime()
     if (Number.isNaN(target)) return null
@@ -458,12 +458,13 @@ export default function Home() {
   }, [recentHistory])
 
   const burstCount = useMemo(() => {
-    const nowTs = Date.now()
+    if (now === null) return 0
+
     return cleanHistory.filter((item) => {
       const ts = new Date(item.generatedAt || 0).getTime()
-      return Number.isFinite(ts) && nowTs - ts <= 5 * 60 * 1000
+      return Number.isFinite(ts) && now - ts <= 5 * 60 * 1000
     }).length
-  }, [cleanHistory])
+  }, [cleanHistory, now])
 
   const confidenceScore = useMemo(() => {
     const score = uiScorePercent
