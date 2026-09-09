@@ -1,12 +1,12 @@
 import { mkdir, writeFile } from "node:fs/promises"
 import { dirname, resolve } from "node:path"
 import type {
+  MarketSnapshot,
   MarketTrends,
 } from "../../src/private-alpha/public-market-evidence-adapter"
 import {
   observeWpondRoundTrip,
   WPOND_MINT,
-  type WpondMarketSnapshot,
 } from "../../src/private-alpha/wpond-quote-observer"
 
 const SNAPSHOT_URL =
@@ -64,7 +64,7 @@ function positiveEnvironment(name: string, fallback: number) {
 
 async function main() {
   const [snapshot, trends, targetDecimals] = await Promise.all([
-    jsonGet<WpondMarketSnapshot>(SNAPSHOT_URL),
+    jsonGet<MarketSnapshot>(SNAPSHOT_URL),
     jsonGet<MarketTrends>(TRENDS_URL),
     wpondDecimals(),
   ])
