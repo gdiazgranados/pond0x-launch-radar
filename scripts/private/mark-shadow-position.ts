@@ -55,8 +55,10 @@ async function main() {
     entryReferenceUsd: result.position.entryReferenceUsd,
     currentReferenceUsd: result.currentReferenceUsd,
     grossUnrealizedPnlUsd: result.grossUnrealizedPnlUsd,
-    estimatedNetLiquidationPnlUsd:
-      result.estimatedNetLiquidationPnlUsd,
+    executionBasisComplete: result.executionBasisComplete,
+    currentRoundTripLossPct: result.currentRoundTripLossPct,
+    conservativeExitStressPnlUsd:
+      result.conservativeExitStressPnlUsd,
     maxAdverseExcursionPct:
       result.position.maxAdverseExcursionPct,
     maxFavorableExcursionPct:

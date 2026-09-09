@@ -108,7 +108,10 @@ export async function markShadowPosition(
     markedAt: input.markedAt,
     currentReferenceUsd: adapted.currentReferenceUsd,
     grossUnrealizedPnlUsd,
-    estimatedNetLiquidationPnlUsd:
+    executionBasisComplete: false as const,
+    currentRoundTripLossPct:
+      input.sizeAwareQuote.estimatedRoundTripLossPct,
+    conservativeExitStressPnlUsd:
       grossUnrealizedPnlUsd -
       entrySlippageUsd -
       exitSlippageUsd -
