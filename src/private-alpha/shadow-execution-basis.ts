@@ -63,7 +63,7 @@ function assertBasis(value: unknown): asserts value is ShadowExecutionBasis {
     !finitePositive(value.requestedNotionalUsd) ||
     !finitePositive(value.simulatedTokenUnits) ||
     !nonEmpty(value.simulatedTokenAmountBaseUnits) ||
-    !/^[1-9]\\d*$/.test(value.simulatedTokenAmountBaseUnits) ||
+    !/^[1-9]\d*$/.test(value.simulatedTokenAmountBaseUnits) ||
     !Number.isInteger(value.tokenDecimals) ||
     Number(value.tokenDecimals) < 0 ||
     Number(value.tokenDecimals) > 30 ||
@@ -89,7 +89,7 @@ export function buildShadowExecutionBasis(
     !finiteNonNegative(quote.estimatedEntryFeeUsd) ||
     !nonEmpty(quote.buyRouteId) ||
     !nonEmpty(quote.entryTokenAmountBaseUnits) ||
-    !/^[1-9]\\d*$/.test(quote.entryTokenAmountBaseUnits) ||
+    !/^[1-9]\d*$/.test(quote.entryTokenAmountBaseUnits) ||
     !Number.isInteger(quote.entryTokenDecimals) ||
     Number(quote.entryTokenDecimals) < 0 ||
     Number(quote.entryTokenDecimals) > 30
