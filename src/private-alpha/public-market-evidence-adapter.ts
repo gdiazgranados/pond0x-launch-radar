@@ -132,8 +132,10 @@ export function adaptPublicMarketEvidence(
   if (snapshot.generatedAt !== trends.generatedAt) {
     anomalies.push(blocking("SOURCE_TIMESTAMP_MISMATCH"))
   }
+  const snapshotStatusUsable =
+    snapshot.status === "LIVE" || snapshot.status === "PARTIAL"
   if (
-    snapshot.status !== "LIVE" ||
+    !snapshotStatusUsable ||
     token?.status !== "OBSERVED"
   ) {
     anomalies.push(blocking("MARKET_SNAPSHOT_UNAVAILABLE"))

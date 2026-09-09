@@ -230,3 +230,99 @@ test("a fresh same-pair size-aware quote completes executable evidence", () => {
     "OPEN"
   )
 })
+
+
+test("a partial snapshot does not block an observed token", () => {
+  const market = {
+    generatedAt,
+    status: "PARTIAL",
+    scoreNeutral: true,
+    tokens: [
+      {
+        symbol: "wPOND",
+        chain: "solana",
+        status: "OBSERVED",
+        primaryMarket: {
+          pairAddress: "wpond-sol-pair",
+          priceUsd: 0.000000109,
+          liquidityUsd: 52_729.9,
+          volume: { h24: 18_010.54 },
+        },
+      },
+      {
+        symbol: "PAPER",
+        chain: "solana",
+        status: "NO_MARKET",
+        primaryMarket: null,
+      },
+    ],
+  }
+  const marketTrends = {
+    generatedAt,
+    status: "LIVE",
+    scoreNeutral: true,
+    tokens: {
+      wpond: {
+        symbol: "wPOND",
+        chain: "solana",
+        status: "OBSERVED",
+        windows: {
+          "24h": {
+            status: "OBSERVED",
+            requestedHours: 24,
+            baselineAt: "2026-09-05T00:30:00Z",
+            actualHours: 24,
+            baselineQuality: "ALIGNED",
+            marketContinuity: {
+              state: "SAME_PRIMARY_PAIR",
+              currentPairAddress: "wpond-sol-pair",
+              previousPrimaryPairAddress: "wpond-sol-pair",
+              samePairObserved: true,
+            },
+            anomalies: [] as string[],
+          },
+        },
+      },
+    },
+  }
+  const quote = buildSizeAwareQuote({
+    tokenId: "wPOND",
+    chain: "SOLANA",
+    observedAt: generatedAt,
+    referencePairAddress: "wpond-sol-pair",
+    requestedNotionalUsd: 100,
+    referencePriceUsd: 0.000000109,
+    buy: {
+      routeId: "jupiter:buy",
+      inputAmount: 100,
+      outputAmount: 900_000_000,
+      estimatedFeeUsd: 0.1,
+    },
+    sell: {
+      routeId: "jupiter:sell",
+      inputAmount: 900_000_000,
+      outputAmount: 99,
+      estimatedFeeUsd: 0.1,
+    },
+  })
+
+  const adapted = adaptPublicMarketEvidence(
+    market,
+    marketTrends,
+    "wPOND",
+    "24h",
+    {
+      now: new Date("2026-09-06T00:35:00Z"),
+      maxAgeMinutes: 15,
+      sizeAwareQuote: quote,
+    }
+  )
+
+  assert.equal(
+    adapted.evidence.anomalies.some(
+      (item) => item.code === "MARKET_SNAPSHOT_UNAVAILABLE"
+    ),
+    false
+  )
+  assert.deepEqual(evidenceBlockingReasons(adapted.evidence), [])
+})
