@@ -5,10 +5,6 @@ function n(value) {
   return Number.isFinite(x) ? x : 0;
 }
 
-function ensureArray(value) {
-  return Array.isArray(value) ? value : [];
-}
-
 function validTime(value, fallback) {
   const ts = new Date(value || 0).getTime();
   return Number.isFinite(ts) && ts > 0 ? new Date(ts).toISOString() : fallback;
