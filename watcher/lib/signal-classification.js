@@ -180,7 +180,6 @@ function buildSignalClassification({ ensureArray }) {
     const hasEligibleTrue = backendSignals.includes("eligible_true");
     const hasCanClaimTrue = backendSignals.includes("canclaim_true");
     const hasEnabledTrue = backendSignals.includes("enabled_true");
-    const hasActiveTrue = backendSignals.includes("active_true");
     const hasRewardsArray = backendSignals.includes("rewards_array");
 
     if ((hasEligibleTrue && hasCanClaimTrue) || (hasEnabledTrue && hasRewardsArray && score >= 70)) {
