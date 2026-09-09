@@ -220,6 +220,6 @@ test("refuses to close against a replacement pool", async () => {
   )
 
   assert.equal(result.status, "BLOCKED")
-  assert.ok(result.blockingReasons.includes("ENTRY_EXIT_PAIR_MISMATCH"))
+  assert.ok(\n    Array.from<string>(result.blockingReasons).includes(\n      "ENTRY_EXIT_PAIR_MISMATCH"\n    )\n  )
   assert.equal(JSON.parse(value.portfolioStore.value!).revision, 2)
 })
