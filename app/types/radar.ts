@@ -111,6 +111,29 @@ export type DiscoveryMeta = {
   [key: string]: unknown
 }
 
+export type CalibrationProfileMetrics = {
+  signalCount?: number
+  falseSignalCount?: number
+  precision?: number | null
+  recall?: number | null
+  falseSignalRate?: number | null
+  medianLeadMinutes?: number | null
+}
+
+export type ThresholdDriftReport = {
+  exactSweepCount?: number
+  recommendation?: string
+  groundTruth?: {
+    coveredByExactArchive?: number
+  }
+  readiness?: {
+    minExactSweepsForTuning?: number
+    minCoveredEventsForTuning?: number
+    readyForThresholdReview?: boolean
+  }
+  profiles?: Record<string, { metrics?: CalibrationProfileMetrics }>
+}
+
 export type RadarData = {
   id: string
   snapshotId?: string
@@ -170,6 +193,7 @@ export type RadarData = {
 
   breakdown?: RadarBreakdown
   advancedSignals?: AdvancedSignals
+  thresholdDriftReport?: ThresholdDriftReport
 
   evidenceCorrelation?: {
     apiResponseDrift?: boolean
