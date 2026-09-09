@@ -80,6 +80,8 @@ function fixture(options?: {
             referencePairAddress: "wpond-pair",
             requestedNotionalUsd: 10,
             simulatedTokenUnits: 90_000_000,
+            simulatedTokenAmountBaseUnits: "90000000000",
+            tokenDecimals: 3,
             effectiveEntryPriceUsd: 10 / 90_000_000,
             estimatedEntryFeeUsd: 0.001,
             buyRouteId: "jupiter:Raydium CLMM",
@@ -144,6 +146,8 @@ function fixture(options?: {
       outputAmount: 90_000_000,
       estimatedFeeUsd: 0.001,
     },
+    entryTokenAmountBaseUnits: "90000000000",
+    entryTokenDecimals: 3,
     sell: {
       routeId: "jupiter:sell",
       inputAmount: 90_000_000,
@@ -223,6 +227,35 @@ test("refuses to close against a replacement pool", async () => {
   assert.ok(
     Array.from<string>(result.blockingReasons).includes(
       "ENTRY_EXIT_PAIR_MISMATCH"
+    )
+  )
+  assert.equal(JSON.parse(value.portfolioStore.value!).revision, 2)
+})
+
+
+test("blocks a sell quote for different raw token units", async () => {
+  const value = fixture()
+  const result = await closeBasisAwareShadowPosition(
+    value.portfolioStore,
+    value.basisStore,
+    {
+      positionId: "wpond-shadow-1",
+      closedAt: closeAt,
+      snapshot: value.snapshot,
+      trends: value.trends,
+      sizeAwareQuote: {
+        ...value.quote,
+        entryTokenAmountBaseUnits: "89999999999",
+      },
+      windowKey: "24h",
+      maxAgeMinutes: 15,
+    }
+  )
+
+  assert.equal(result.status, "BLOCKED")
+  assert.ok(
+    Array.from<string>(result.blockingReasons).includes(
+      "EXIT_TOKEN_AMOUNT_MISMATCH"
     )
   )
   assert.equal(JSON.parse(value.portfolioStore.value!).revision, 2)
