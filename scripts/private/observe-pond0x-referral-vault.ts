@@ -189,7 +189,10 @@ async function observeVault(input: {
   for (const signatureInfo of signatures) {
     if (
       typeof signatureInfo.signature !== "string" ||
-      signatureInfo.err != null
+      (
+        signatureInfo.err !== null &&
+        signatureInfo.err !== undefined
+      )
     ) {
       continue
     }
