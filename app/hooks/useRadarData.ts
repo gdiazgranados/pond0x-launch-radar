@@ -8,6 +8,10 @@ import type {
   RadarApiSyncMeta,
   SentinelEvent,
   ClearIntelligence,
+  ChainIntelligence,
+  HistoricalChainBaseline,
+  SystemHealth,
+  TelegramHealth,
 } from "../types/radar"
 
 import type { EvidenceLedger } from "../types/evidence"
@@ -26,10 +30,10 @@ type RadarApiResponse = {
   heartbeatData?: HeartbeatData | null
   heartbeat?: HeartbeatData | null
   meta?: RadarApiSyncMeta
-  chainIntelligence?: any
-  chainBaseline?: any
-  systemHealth?: any
-  telegramHealth?: any
+  chainIntelligence?: ChainIntelligence | null
+  chainBaseline?: HistoricalChainBaseline | null
+  systemHealth?: SystemHealth | null
+  telegramHealth?: TelegramHealth | null
   miningIntelligence?: MiningIntelligence | null
   clearIntelligence?: ClearIntelligence | null
 }
@@ -171,10 +175,10 @@ export function useRadarData() {
   const [error, setError] = useState<string | null>(null)
   const [meta, setMeta] = useState<RadarApiSyncMeta | null>(null)
 
-  const [chainIntelligence, setChainIntelligence] = useState<any>(null)
-  const [chainBaseline, setChainBaseline] = useState<any>(null)
-  const [systemHealth, setSystemHealth] = useState<any>(null)
-  const [telegramHealth, setTelegramHealth] = useState<any>(null)
+  const [chainIntelligence, setChainIntelligence] = useState<ChainIntelligence | null>(null)
+  const [chainBaseline, setChainBaseline] = useState<HistoricalChainBaseline | null>(null)
+  const [systemHealth, setSystemHealth] = useState<SystemHealth | null>(null)
+  const [telegramHealth, setTelegramHealth] = useState<TelegramHealth | null>(null)
   const [miningIntelligence, setMiningIntelligence] = useState<MiningIntelligence | null>(null)
   const [clearIntelligence, setClearIntelligence] = useState<ClearIntelligence | null>(null)
 

@@ -213,6 +213,107 @@ export type ActivationDecision = {
   }
 }
 
+export type ChainRecipient = {
+  wallet?: string
+  frequencyClass?: string
+  totalWPOND?: number
+  transferCount?: number
+  firstSeenAt?: string
+  lastSeenAt?: string
+  lastSignature?: string
+}
+
+export type ChainMetricWindow = {
+  rewardTransfers?: number
+  rewards?: number
+  transfers?: number
+  uniqueRecipients?: number
+  wpondDistributed?: number
+}
+
+export type ChainIntelligence = {
+  activityState?: string
+  version?: string
+  fundingDetected?: boolean
+  chainConfirmationScore?: number
+  chainObservability?: { status?: string }
+  cycleAnalytics?: {
+    automationConfidence?: number
+    cadenceConfidence?: string
+    claimAfterFundingProbabilityPct?: number
+    cycleSignal?: string
+    liveAutomationConfidence?: number
+    medianFundingCadenceSeconds?: number
+  }
+  predictor?: {
+    status?: string
+    nextFundingExpectedAt?: string | null
+    fundingWindowHalfWidthSeconds?: number
+    expectedClaimWindowSeconds?: { start?: number; end?: number }
+  }
+  patternMatch?: {
+    historicalPatternMatchPct?: number
+    status?: string
+    confidence?: string
+    interpretation?: string
+    components?: {
+      cadenceSimilarityPct?: number
+      rewardTransferDelaySimilarityPct?: number
+      claimDelaySimilarityPct?: number
+      predictorProximityPct?: number
+    }
+  }
+  windows?: Record<string, ChainMetricWindow>
+  distributorIntelligence?: {
+    version?: string
+    distributor?: string
+    activityState?: string
+    windows?: Record<string, ChainMetricWindow>
+    recipientMix?: { totalRecipients?: number; newRecipients?: number; repeatRecipients?: number; frequentRecipients?: number }
+    transferProfile?: { medianTransfer?: number; largestTransfer?: number; amountAnomalyCount?: number }
+    bursts?: { count?: number; latest?: { transfers?: number; totalWPOND?: number } }
+    velocity1h?: { volumeVelocityPct?: number; transferVelocityPct?: number }
+    latestTransfer?: { time?: string }
+    lastTransferAgeMinutes?: number | null
+    coverage?: { sampleLimited?: boolean; analyzedTransferSample?: number; fetchedExternalClaims?: number; coverageComplete?: boolean }
+  }
+  recipientLedger?: {
+    recipients?: ChainRecipient[]
+    totalRecipients?: number
+    totalTransfers?: number
+    totalWPOND?: number
+  }
+}
+
+export type HistoricalChainBaseline = {
+  cyclesAnalyzed?: number
+  correlatedCycles?: number
+  correlationRatePct?: number
+}
+
+export type HealthStage = {
+  status?: string
+  detail?: string
+  checkedAt?: string
+}
+
+export type SystemHealth = {
+  overall?: string
+  checkedAt?: string
+  stages?: Record<string, HealthStage>
+  run?: { source?: string | null; workflowRunNumber?: number | null }
+}
+
+export type TelegramHealth = {
+  status?: string
+  checkedAt?: string
+  botReachable?: boolean
+  chatReachable?: boolean
+  lastSuccessfulAlertAt?: string | null
+  lastSuccessfulChainAlertAt?: string | null
+  lastError?: string | null
+}
+
 export type RadarData = {
   id: string
   snapshotId?: string
