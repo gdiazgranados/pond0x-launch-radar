@@ -109,6 +109,11 @@ async function main() {
           routeLabels: stringArray(payload.routeLabels),
           router: nullableString(payload.router),
           feeBps: nullableNumber(payload.feeBps),
+          feeMint: nullableString(payload.feeMint),
+          feeAmount: nullableIntegerString(payload.feeAmount),
+          referralAccount: nullableString(payload.referralAccount),
+          referralFeeBps:
+            nullableNumber(payload.referralFeeBps),
           signatureFeeLamports:
             nullableIntegerString(payload.signatureFeeLamports),
           prioritizationFeeLamports:
@@ -177,6 +182,13 @@ async function main() {
                   routeLabels,
                   router: data.router,
                   feeBps: data.feeBps,
+                  feeMint: data.feeMint,
+                  feeAmount: data.feeAmount,
+                  referralAccount:
+                    url.searchParams.get("referralAccount"),
+                  referralFeeBps: Number(
+                    url.searchParams.get("referralFee")
+                  ),
                   signatureFeeLamports:
                     data.signatureFeeLamports,
                   prioritizationFeeLamports:
@@ -243,6 +255,13 @@ async function main() {
         requestInputMint: url.searchParams.get("inputMint"),
         requestOutputMint: url.searchParams.get("outputMint"),
         requestAmount: url.searchParams.get("amount"),
+        requestReferralAccount:
+          url.searchParams.get("referralAccount"),
+        requestReferralFeeBps: Number.isFinite(Number(
+          url.searchParams.get("referralFee")
+        ))
+          ? Number(url.searchParams.get("referralFee"))
+          : null,
         parsed: false,
         failureReason: null,
       }
@@ -269,6 +288,15 @@ async function main() {
             routeLabels: routeLabels(payload.routePlan),
             router: nullableString(payload.router),
             feeBps: nullableNumber(payload.feeBps),
+            feeMint: nullableString(payload.feeMint),
+            feeAmount: nullableIntegerString(payload.feeAmount),
+            referralAccount:
+              url.searchParams.get("referralAccount"),
+            referralFeeBps: Number.isFinite(Number(
+              url.searchParams.get("referralFee")
+            ))
+              ? Number(url.searchParams.get("referralFee"))
+              : null,
             signatureFeeLamports:
               nullableIntegerString(payload.signatureFeeLamports),
             prioritizationFeeLamports:
@@ -351,14 +379,20 @@ async function main() {
     ]
     const payAmountBaseUnits =
       decimalToBaseUnits(payAmountSol, 9)
-    const quote =
-      [...quotes].reverse().find(
-        (candidate) =>
-          candidate.provider === "JUPITER_LITE" &&
-          candidate.inputMint === WRAPPED_SOL_MINT &&
-          candidate.outputMint === WPOND_MINT &&
-          candidate.inAmount === payAmountBaseUnits
-      ) ?? null
+    const matchingQuotes = [...quotes].reverse().filter(
+      (candidate) =>
+        candidate.inputMint === WRAPPED_SOL_MINT &&
+        candidate.outputMint === WPOND_MINT &&
+        candidate.inAmount === payAmountBaseUnits
+    )
+    const ultraQuote = matchingQuotes.find(
+      (candidate) => candidate.provider === "JUPITER_ULTRA"
+    ) ?? null
+    const liteQuote = matchingQuotes.find(
+      (candidate) => candidate.provider === "JUPITER_LITE"
+    ) ?? null
+    const quote = ultraQuote ?? liteQuote
+    const benchmarkQuote = ultraQuote ? liteQuote : null
 
     const observedAt = new Date().toISOString()
     const observation = buildPond0xPortalObservation({
@@ -368,6 +402,7 @@ async function main() {
       portalDisplayedReceiveAmount,
       portalDisplayedAt,
       quote,
+      benchmarkQuote,
       quoteCandidates: quotes,
       quoteDiagnostics,
       observedHosts: [...observedHosts],
@@ -411,6 +446,10 @@ async function main() {
         priceImpactPct: candidate.priceImpactPct,
         router: candidate.router,
         feeBps: candidate.feeBps,
+        feeMint: candidate.feeMint,
+        feeAmount: candidate.feeAmount,
+        referralAccount: candidate.referralAccount,
+        referralFeeBps: candidate.referralFeeBps,
         signatureFeeLamports: candidate.signatureFeeLamports,
         prioritizationFeeLamports:
           candidate.prioritizationFeeLamports,
@@ -431,9 +470,16 @@ async function main() {
           ).length,
         ])
       ),
+      selectedPortalProvider:
+        observation.underlyingQuote?.provider ?? null,
+      benchmarkProvider:
+        observation.benchmarkQuote?.provider ?? null,
       quoteSlippageBps: observation.quoteSlippageBps,
       portalQuoteDiscrepancyBps:
         observation.portalQuoteDiscrepancyBps,
+      portalBenchmarkDifferenceBps:
+        observation.portalBenchmarkDifferenceBps,
+      declaredFeeBps: observation.declaredFeeBps,
       routeLabels:
         observation.underlyingQuote?.routeLabels ?? [],
       blockingReasons: observation.blockingReasons,
