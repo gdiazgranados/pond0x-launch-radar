@@ -84,6 +84,16 @@ export type Pond0xVaultFlow = {
   computeUnitsConsumed: number | null
 }
 
+export type Pond0xVaultScanDiagnostic = {
+  tokenAccount: string
+  mint: string
+  signatureCount: number
+  failedSignatureCount: number
+  unavailableTransactionCount: number
+  unreferencedTransactionCount: number
+  flowCount: number
+}
+
 export type Pond0xReferralVaultBalance = {
   tokenAccount: string
   mint: string
@@ -103,6 +113,7 @@ export type Pond0xReferralVaultSnapshot = {
   referralProgram: string
   referralExecutable: false
   balances: ReadonlyArray<Pond0xReferralVaultBalance>
+  vaultScans: ReadonlyArray<Pond0xVaultScanDiagnostic>
   flows: ReadonlyArray<Pond0xVaultFlow>
   depositCount: number
   withdrawalCount: number
@@ -308,6 +319,7 @@ export function buildPond0xReferralVaultSnapshot(input: {
   referralProgram: string
   referralExecutable: boolean
   balances: ReadonlyArray<Pond0xReferralVaultBalance>
+  vaultScans?: ReadonlyArray<Pond0xVaultScanDiagnostic>
   flows: ReadonlyArray<Pond0xVaultFlow>
 }): Pond0xReferralVaultSnapshot {
   if (input.referralAccount !== PONDOX_REFERRAL_ACCOUNT) {
@@ -377,6 +389,7 @@ export function buildPond0xReferralVaultSnapshot(input: {
     referralProgram: input.referralProgram,
     referralExecutable: false,
     balances: input.balances,
+    vaultScans: input.vaultScans ?? [],
     flows: input.flows,
     depositCount,
     withdrawalCount,
