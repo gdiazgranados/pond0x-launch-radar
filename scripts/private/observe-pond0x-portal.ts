@@ -51,6 +51,14 @@ function nullableIntegerString(value: unknown) {
   return null
 }
 
+function stringArray(value: unknown) {
+  return Array.isArray(value)
+    ? value.filter((item): item is string =>
+        typeof item === "string"
+      )
+    : []
+}
+
 function routeLabels(value: unknown) {
   if (!Array.isArray(value)) return []
 
@@ -74,9 +82,117 @@ async function main() {
     const observedHosts = new Set<string>()
     const networkSurfaceMap = new Map<string, Pond0xNetworkSurface>()
     const quoteDiagnostics: Pond0xQuoteDiagnostic[] = []
+    const browserUltraQuotes: Pond0xUnderlyingQuote[] = []
     const quotePromises: Array<
       Promise<Pond0xUnderlyingQuote | null>
     > = []
+
+    await page.exposeFunction(
+      "__pond0xCaptureUltraQuote",
+      (value: unknown) => {
+        const capture = asRecord(value)
+        const payload = asRecord(capture.payload)
+        const candidate: Pond0xUnderlyingQuote = {
+          provider: "JUPITER_ULTRA",
+          sourceHost: nullableString(capture.sourceHost) ?? "",
+          sourcePath: nullableString(capture.sourcePath) ?? "",
+          httpStatus: nullableNumber(capture.httpStatus) ?? 0,
+          inputMint: nullableString(payload.inputMint),
+          inAmount: nullableString(payload.inAmount),
+          outputMint: nullableString(payload.outputMint),
+          outAmount: nullableString(payload.outAmount),
+          otherAmountThreshold:
+            nullableString(payload.otherAmountThreshold),
+          priceImpactPct:
+            nullableString(payload.priceImpactPct),
+          swapMode: nullableString(payload.swapMode),
+          routeLabels: stringArray(payload.routeLabels),
+          router: nullableString(payload.router),
+          feeBps: nullableNumber(payload.feeBps),
+          signatureFeeLamports:
+            nullableIntegerString(payload.signatureFeeLamports),
+          prioritizationFeeLamports:
+            nullableIntegerString(payload.prioritizationFeeLamports),
+          rentFeeLamports:
+            nullableIntegerString(payload.rentFeeLamports),
+        }
+
+        browserUltraQuotes.splice(
+          0,
+          browserUltraQuotes.length,
+          candidate
+        )
+      }
+    )
+
+    await page.addInitScript(() => {
+      const originalFetch = window.fetch.bind(window)
+      const captureWindow = window as typeof window & {
+        __pond0xCaptureUltraQuote?: (
+          value: unknown
+        ) => Promise<void>
+      }
+
+      window.fetch = async (...args) => {
+        const response = await originalFetch(...args)
+
+        try {
+          const url = new URL(response.url)
+          if (
+            url.hostname === "ultra-api.jup.ag" &&
+            url.pathname === "/order"
+          ) {
+            void response.clone().json().then((value: unknown) => {
+              if (!value || typeof value !== "object") return
+              const data = value as Record<string, unknown>
+              const routeLabels = Array.isArray(data.routePlan)
+                ? data.routePlan.flatMap((item) => {
+                    if (!item || typeof item !== "object") return []
+                    const route = item as Record<string, unknown>
+                    const swapInfo =
+                      route.swapInfo &&
+                      typeof route.swapInfo === "object"
+                        ? route.swapInfo as Record<string, unknown>
+                        : {}
+                    return typeof swapInfo.label === "string"
+                      ? [swapInfo.label]
+                      : []
+                  })
+                : []
+
+              return captureWindow.__pond0xCaptureUltraQuote?.({
+                sourceHost: url.hostname,
+                sourcePath: url.pathname,
+                httpStatus: response.status,
+                payload: {
+                  inputMint: data.inputMint,
+                  inAmount: data.inAmount,
+                  outputMint: data.outputMint,
+                  outAmount: data.outAmount,
+                  otherAmountThreshold:
+                    data.otherAmountThreshold,
+                  priceImpactPct:
+                    data.priceImpactPct ?? data.priceImpact,
+                  swapMode: data.swapMode,
+                  routeLabels,
+                  router: data.router,
+                  feeBps: data.feeBps,
+                  signatureFeeLamports:
+                    data.signatureFeeLamports,
+                  prioritizationFeeLamports:
+                    data.prioritizationFeeLamports,
+                  rentFeeLamports: data.rentFeeLamports,
+                },
+              })
+            }).catch(() => undefined)
+          }
+        } catch {
+          // The original portal response remains untouched.
+        }
+
+        return response
+      }
+    })
 
     page.on("request", (request) => {
       try {
@@ -223,12 +339,16 @@ async function main() {
     const portalDisplayedReceiveAmount =
       receiveValues.at(-1) ?? null
     const portalDisplayedAt = new Date().toISOString()
-    const quotes = (
+    const networkQuotes = (
       await Promise.all(quotePromises)
     ).filter(
       (quote): quote is Pond0xUnderlyingQuote =>
         quote !== null
     )
+    const quotes = [
+      ...networkQuotes,
+      ...browserUltraQuotes,
+    ]
     const payAmountBaseUnits =
       decimalToBaseUnits(payAmountSol, 9)
     const quote =
