@@ -153,3 +153,49 @@ test("fails closed on missing or unreconciled portal evidence", () => {
     )
   )
 })
+
+
+test("blocks foreign referral and stale quote combinations", () => {
+  const foreign = evaluate({
+    exit: ultraQuote({
+      inputMint: WPOND_MINT,
+      inAmount: "6400000000",
+      outputMint: WRAPPED_SOL_MINT,
+      outAmount: "9800000",
+      otherAmountThreshold: "9800000",
+      referralAccount: "foreign-referral",
+    }),
+  })
+  assert.equal(foreign.status, "BLOCKED")
+  assert.ok(
+    foreign.blockingReasons.includes(
+      "PONDOX_EXIT_REFERRAL_MISMATCH"
+    )
+  )
+
+  const stale = evaluatePond0xRoundTripEconomics({
+    observedAt: "2026-09-10T21:05:00.000Z",
+    entry: {
+      observedAt: "2026-09-10T21:00:00.000Z",
+      portalDisplayedAmountBaseUnits: "6400000000",
+      quote: ultraQuote(),
+    },
+    exit: {
+      observedAt: "2026-09-10T21:05:00.000Z",
+      portalDisplayedAmountBaseUnits: "9800000",
+      quote: ultraQuote({
+        inputMint: WPOND_MINT,
+        inAmount: "6400000000",
+        outputMint: WRAPPED_SOL_MINT,
+        outAmount: "9800000",
+        otherAmountThreshold: "9800000",
+      }),
+    },
+  })
+  assert.equal(stale.status, "BLOCKED")
+  assert.ok(
+    stale.blockingReasons.includes(
+      "PONDOX_ROUND_TRIP_QUOTE_WINDOW_INVALID"
+    )
+  )
+})
