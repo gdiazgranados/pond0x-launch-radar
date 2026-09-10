@@ -186,9 +186,13 @@ async function main() {
                   feeAmount: data.feeAmount,
                   referralAccount:
                     url.searchParams.get("referralAccount"),
-                  referralFeeBps: Number(
-                    url.searchParams.get("referralFee")
-                  ),
+                  referralFeeBps:
+                    url.searchParams.has("referralFee") &&
+                    Number.isFinite(Number(
+                      url.searchParams.get("referralFee")
+                    ))
+                      ? Number(url.searchParams.get("referralFee"))
+                      : null,
                   signatureFeeLamports:
                     data.signatureFeeLamports,
                   prioritizationFeeLamports:
@@ -257,11 +261,13 @@ async function main() {
         requestAmount: url.searchParams.get("amount"),
         requestReferralAccount:
           url.searchParams.get("referralAccount"),
-        requestReferralFeeBps: Number.isFinite(Number(
-          url.searchParams.get("referralFee")
-        ))
-          ? Number(url.searchParams.get("referralFee"))
-          : null,
+        requestReferralFeeBps:
+          url.searchParams.has("referralFee") &&
+          Number.isFinite(Number(
+            url.searchParams.get("referralFee")
+          ))
+            ? Number(url.searchParams.get("referralFee"))
+            : null,
         parsed: false,
         failureReason: null,
       }
@@ -292,11 +298,13 @@ async function main() {
             feeAmount: nullableIntegerString(payload.feeAmount),
             referralAccount:
               url.searchParams.get("referralAccount"),
-            referralFeeBps: Number.isFinite(Number(
-              url.searchParams.get("referralFee")
-            ))
-              ? Number(url.searchParams.get("referralFee"))
-              : null,
+            referralFeeBps:
+              url.searchParams.has("referralFee") &&
+              Number.isFinite(Number(
+                url.searchParams.get("referralFee")
+              ))
+                ? Number(url.searchParams.get("referralFee"))
+                : null,
             signatureFeeLamports:
               nullableIntegerString(payload.signatureFeeLamports),
             prioritizationFeeLamports:
