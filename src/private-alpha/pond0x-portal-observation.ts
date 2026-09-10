@@ -41,6 +41,10 @@ export type Pond0xUnderlyingQuote = {
   routeLabels: ReadonlyArray<string>
   router: string | null
   feeBps: number | null
+  feeMint: string | null
+  feeAmount: string | null
+  referralAccount: string | null
+  referralFeeBps: number | null
   signatureFeeLamports: string | null
   prioritizationFeeLamports: string | null
   rentFeeLamports: string | null
@@ -124,6 +128,8 @@ export type Pond0xQuoteDiagnostic = {
   requestInputMint: string | null
   requestOutputMint: string | null
   requestAmount: string | null
+  requestReferralAccount: string | null
+  requestReferralFeeBps: number | null
   parsed: boolean
   failureReason: string | null
 }
@@ -144,10 +150,13 @@ export type Pond0xPortalObservation = {
   portalDisplayedAt: string | null
   portalDisplayedReceiveBaseUnits: string | null
   underlyingQuote: Pond0xUnderlyingQuote | null
+  benchmarkQuote: Pond0xUnderlyingQuote | null
   quoteCandidates: ReadonlyArray<Pond0xUnderlyingQuote>
   quoteDiagnostics: ReadonlyArray<Pond0xQuoteDiagnostic>
   quoteSlippageBps: number | null
   portalQuoteDiscrepancyBps: number | null
+  portalBenchmarkDifferenceBps: number | null
+  declaredFeeBps: number | null
   observedHosts: ReadonlyArray<string>
   networkSurfaces: ReadonlyArray<Pond0xNetworkSurface>
   unexpectedHosts: ReadonlyArray<string>
@@ -207,6 +216,7 @@ export function buildPond0xPortalObservation(input: {
   portalDisplayedReceiveAmount: string | null
   portalDisplayedAt?: string | null
   quote: Pond0xUnderlyingQuote | null
+  benchmarkQuote?: Pond0xUnderlyingQuote | null
   quoteCandidates?: ReadonlyArray<Pond0xUnderlyingQuote>
   quoteDiagnostics?: ReadonlyArray<Pond0xQuoteDiagnostic>
   observedHosts: ReadonlyArray<string>
@@ -318,10 +328,13 @@ export function buildPond0xPortalObservation(input: {
       portalDisplayedAt: input.portalDisplayedAt ?? null,
       portalDisplayedReceiveBaseUnits: displayedBaseUnits,
       underlyingQuote: null,
+      benchmarkQuote: input.benchmarkQuote ?? null,
       quoteCandidates: input.quoteCandidates ?? [],
       quoteDiagnostics: input.quoteDiagnostics ?? [],
       quoteSlippageBps: null,
       portalQuoteDiscrepancyBps: null,
+      portalBenchmarkDifferenceBps: null,
+      declaredFeeBps: null,
       observedHosts,
       networkSurfaces,
       unexpectedHosts,
@@ -336,9 +349,17 @@ export function buildPond0xPortalObservation(input: {
     }
   }
 
+  const validLiteSource =
+    quote.provider === "JUPITER_LITE" &&
+    quote.sourceHost === "lite-api.jup.ag" &&
+    quote.sourcePath === "/swap/v1/quote"
+  const validUltraSource =
+    quote.provider === "JUPITER_ULTRA" &&
+    quote.sourceHost === "ultra-api.jup.ag" &&
+    quote.sourcePath === "/order"
+
   if (
-    quote.sourceHost !== "lite-api.jup.ag" ||
-    quote.sourcePath !== "/swap/v1/quote" ||
+    (!validLiteSource && !validUltraSource) ||
     quote.httpStatus !== 200
   ) {
     blockingReasons.push("PONDOX_QUOTE_SOURCE_INVALID")
@@ -352,7 +373,10 @@ export function buildPond0xPortalObservation(input: {
   if (quote.inAmount !== payAmountBaseUnits) {
     blockingReasons.push("PONDOX_QUOTE_INPUT_AMOUNT_MISMATCH")
   }
-  if (quote.swapMode !== "ExactIn") {
+  if (
+    quote.swapMode !== "ExactIn" &&
+    !(quote.provider === "JUPITER_ULTRA" && quote.swapMode === null)
+  ) {
     blockingReasons.push("PONDOX_QUOTE_MODE_MISMATCH")
   }
   if (
@@ -406,6 +430,18 @@ export function buildPond0xPortalObservation(input: {
     }
   }
 
+  let portalBenchmarkDifferenceBps: number | null = null
+  if (
+    positiveInteger(quote.outAmount) &&
+    positiveInteger(input.benchmarkQuote?.outAmount ?? null)
+  ) {
+    portalBenchmarkDifferenceBps = ratioBps(
+      BigInt(quote.outAmount) -
+        BigInt(input.benchmarkQuote.outAmount),
+      BigInt(input.benchmarkQuote.outAmount)
+    )
+  }
+
   const uniqueReasons = [...new Set(blockingReasons)]
 
   return {
@@ -426,10 +462,13 @@ export function buildPond0xPortalObservation(input: {
     portalDisplayedAt: input.portalDisplayedAt ?? null,
     portalDisplayedReceiveBaseUnits: displayedBaseUnits,
     underlyingQuote: quote,
+    benchmarkQuote: input.benchmarkQuote ?? null,
     quoteCandidates: input.quoteCandidates ?? [quote],
     quoteDiagnostics: input.quoteDiagnostics ?? [],
     quoteSlippageBps,
     portalQuoteDiscrepancyBps,
+    portalBenchmarkDifferenceBps,
+    declaredFeeBps: quote.feeBps,
     observedHosts,
     networkSurfaces,
     unexpectedHosts,
