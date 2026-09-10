@@ -139,6 +139,10 @@ function unique(values: ReadonlyArray<string>) {
   return [...new Set(values)].sort()
 }
 
+function optionalInteger(value: unknown) {
+  return Number.isInteger(value) ? Number(value) : null
+}
+
 function ratioBps(numerator: bigint, denominator: bigint) {
   if (denominator <= BigInt(0)) return null
   return Number(
@@ -265,13 +269,11 @@ export function analyzePond0xVaultTransaction(input: {
 
   return {
     signature: input.signature,
-    slot: Number.isInteger(input.transaction.slot)
-      ? Number(input.transaction.slot)
-      : null,
-    blockTime: Number.isInteger(input.transaction.blockTime)
-      ? Number(input.transaction.blockTime)
-      : null,
-    successful: input.transaction.meta?.err == null,
+    slot: optionalInteger(input.transaction.slot),
+    blockTime: optionalInteger(input.transaction.blockTime),
+    successful:
+      input.transaction.meta?.err === null ||
+      input.transaction.meta?.err === undefined,
     vaultTokenAccount: input.vaultTokenAccount,
     mint,
     decimals,
@@ -292,15 +294,11 @@ export function analyzePond0xVaultTransaction(input: {
     destinations,
     authorities,
     networkFeeLamports:
-      Number.isInteger(input.transaction.meta?.fee)
-        ? Number(input.transaction.meta?.fee)
-        : null,
+      optionalInteger(input.transaction.meta?.fee),
     computeUnitsConsumed:
-      Number.isInteger(
+      optionalInteger(
         input.transaction.meta?.computeUnitsConsumed
-      )
-        ? Number(input.transaction.meta?.computeUnitsConsumed)
-        : null,
+      ),
   }
 }
 
@@ -335,7 +333,16 @@ export function buildPond0xReferralVaultSnapshot(input: {
       throw new Error("referral vault balance identity changed")
     }
   }
-  if (input.balances.length !== expectedVaults.size) {
+  const observedMints = new Set(
+    input.balances.map((balance) => balance.mint)
+  )
+  if (
+    input.balances.length !== expectedVaults.size ||
+    observedMints.size !== expectedVaults.size ||
+    [...expectedVaults.keys()].some(
+      (mint) => !observedMints.has(mint)
+    )
+  ) {
     throw new Error("required referral vault balances are missing")
   }
 
