@@ -129,23 +129,38 @@ async function main() {
 
     await payInput.fill(payAmountSol)
 
-    const receiveInput =
-      page.locator('input[placeholder="0.00"][disabled]').first()
+    const receiveInputs = page.locator(
+      'input[placeholder="0.00"][disabled]'
+    )
 
-    await receiveInput.waitFor({
-      state: "visible",
-      timeout: 15_000,
-    })
     await page.waitForFunction(() => {
-      const element = document.querySelector(
-        'input[placeholder="0.00"][disabled]'
-      ) as HTMLInputElement | null
-      return Boolean(element?.value)
-    }, undefined, { timeout: 15_000 })
+      const elements = Array.from(
+        document.querySelectorAll(
+          'input[placeholder="0.00"][disabled]'
+        )
+      )
+      return elements.some(
+        (element) =>
+          element instanceof HTMLInputElement &&
+          element.value.trim().length > 0
+      )
+    }, undefined, { timeout: 30_000 }).catch(() => undefined)
     await page.waitForTimeout(2_000)
 
+    const receiveValues = await receiveInputs.evaluateAll(
+      (elements) =>
+        elements.flatMap((element) => {
+          if (
+            element instanceof HTMLInputElement &&
+            element.value.trim().length > 0
+          ) {
+            return [element.value]
+          }
+          return []
+        })
+    )
     const portalDisplayedReceiveAmount =
-      await receiveInput.inputValue()
+      receiveValues.at(-1) ?? null
     const quotes = (
       await Promise.all(quotePromises)
     ).filter(
