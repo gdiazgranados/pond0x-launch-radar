@@ -1,4 +1,4 @@
-import { mkdir, writeFile } from "node:fs/promises"
+import { mkdir, readFile, writeFile } from "node:fs/promises"
 import { dirname, resolve } from "node:path"
 import {
   analyzePond0xVaultTransaction,
@@ -26,6 +26,10 @@ const outputPath = resolve(
 )
 const dataDirectory = resolve(
   process.env.SHADOW_DATA_DIR ?? "private-data"
+)
+const cursorPath = resolve(
+  process.env.PONDOX_REFERRAL_VAULT_CURSOR_OUTPUT ??
+    "private-data/pond0x-referral-vault-history-cursor.json"
 )
 
 function boundedInteger(
@@ -115,6 +119,86 @@ type TokenAccount = {
 type SignatureInfo = {
   signature?: string
   err?: unknown
+}
+
+type HistoryCursorState = {
+  schemaVersion: 1
+  referralAccount: string
+  updatedAt: string
+  beforeByVault: Record<string, string>
+}
+
+function objectValue(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object"
+    ? value as Record<string, unknown>
+    : {}
+}
+
+async function readJsonFile(path: string): Promise<unknown | null> {
+  try {
+    return JSON.parse(await readFile(path, "utf8"))
+  } catch (error) {
+    if (
+      error &&
+      typeof error === "object" &&
+      "code" in error &&
+      error.code === "ENOENT"
+    ) {
+      return null
+    }
+    throw error
+  }
+}
+
+function parseCursorState(value: unknown) {
+  if (value === null) return null
+  const candidate = objectValue(value)
+  const beforeByVault = objectValue(candidate.beforeByVault)
+  if (
+    candidate.schemaVersion !== 1 ||
+    candidate.referralAccount !== PONDOX_REFERRAL_ACCOUNT
+  ) {
+    throw new Error("Pond0x vault history cursor identity changed")
+  }
+
+  return Object.fromEntries(
+    Object.entries(beforeByVault).filter(
+      (entry): entry is [string, string] =>
+        typeof entry[1] === "string" && entry[1].length > 0
+    )
+  )
+}
+
+function seedCursorsFromSnapshot(value: unknown) {
+  const snapshot = objectValue(value)
+  const flows = Array.isArray(snapshot.flows)
+    ? snapshot.flows.map(objectValue)
+    : []
+  const beforeByVault: Record<string, string> = {}
+
+  for (const vault of [PONDOX_WSOL_VAULT, PONDOX_WPOND_VAULT]) {
+    const oldest = flows
+      .filter((flow) =>
+        flow.vaultTokenAccount === vault &&
+        typeof flow.signature === "string" &&
+        Number.isInteger(flow.blockTime)
+      )
+      .sort(
+        (left, right) =>
+          Number(left.blockTime) - Number(right.blockTime)
+      )[0]
+    if (typeof oldest?.signature === "string") {
+      beforeByVault[vault] = oldest.signature
+    }
+  }
+
+  return beforeByVault
+}
+
+async function loadHistoryCursors() {
+  const stored = parseCursorState(await readJsonFile(cursorPath))
+  if (stored) return stored
+  return seedCursorsFromSnapshot(await readJsonFile(outputPath))
 }
 
 async function wait(milliseconds: number) {
@@ -219,9 +303,11 @@ function parseRequiredBalance(
 async function observeVault(input: {
   tokenAccount: string
   mint: string
+  initialBefore?: string
 }) {
   const flows: Pond0xVaultFlow[] = []
-  let before: string | undefined
+  let before = input.initialBefore
+  let lastProcessedSignature = input.initialBefore
   let signatureCount = 0
   let examinedSignatureCount = 0
   let failedSignatureCount = 0
@@ -286,6 +372,7 @@ async function observeVault(input: {
         signatureInfo.err !== undefined
       ) {
         failedSignatureCount += 1
+        lastProcessedSignature = signatureInfo.signature
         continue
       }
       if (
@@ -309,6 +396,7 @@ async function observeVault(input: {
             },
           ]
         )
+      lastProcessedSignature = signatureInfo.signature
       if (!transaction) {
         unavailableTransactionCount += 1
         continue
@@ -358,6 +446,7 @@ async function observeVault(input: {
     unreferencedTransactionCount,
     transactionRequestCount,
     pageCount,
+    resumeBeforeSignature: lastProcessedSignature ?? null,
     flowCount: flows.length,
     stoppedReason,
   }
@@ -419,6 +508,9 @@ async function main() {
     }),
   ]
 
+  const historyCursors = searchWithdrawals
+    ? await loadHistoryCursors()
+    : {}
   const flows: Pond0xVaultFlow[] = []
   const vaultScans: Pond0xVaultScanDiagnostic[] = []
   for (const vault of balances) {
@@ -426,6 +518,7 @@ async function main() {
     const scan = await observeVault({
       tokenAccount: vault.tokenAccount,
       mint: vault.mint,
+      initialBefore: historyCursors[vault.tokenAccount],
     })
     flows.push(...scan.flows)
     vaultScans.push(scan.diagnostic)
@@ -464,6 +557,28 @@ async function main() {
     mode: 0o600,
   })
 
+  if (searchWithdrawals) {
+    const beforeByVault = Object.fromEntries(
+      vaultScans.flatMap((scan) =>
+        scan.resumeBeforeSignature
+          ? [[scan.tokenAccount, scan.resumeBeforeSignature]]
+          : []
+      )
+    )
+    const cursorState: HistoryCursorState = {
+      schemaVersion: 1,
+      referralAccount: PONDOX_REFERRAL_ACCOUNT,
+      updatedAt: observedAt,
+      beforeByVault,
+    }
+    await mkdir(dirname(cursorPath), { recursive: true })
+    await writeFile(
+      cursorPath,
+      JSON.stringify(cursorState, null, 2),
+      { encoding: "utf8", mode: 0o600 }
+    )
+  }
+
   console.log(JSON.stringify({
     simulationOnly: true,
     readOnly: true,
@@ -485,6 +600,17 @@ async function main() {
     unchangedCount: snapshot.unchangedCount,
     withdrawalDestinations:
       snapshot.withdrawalDestinations,
+    withdrawals: flows
+      .filter((flow) => flow.direction === "WITHDRAWAL")
+      .map((flow) => ({
+        signature: flow.signature,
+        blockTime: flow.blockTime,
+        mint: flow.mint,
+        amountRaw: flow.amountRaw,
+        signers: flow.signers,
+        destinations: flow.destinations,
+        authorities: flow.authorities,
+      })),
     recentFlows: flows.slice(0, 10).map((flow) => ({
       signature: flow.signature,
       mint: flow.mint,
@@ -498,6 +624,7 @@ async function main() {
     })),
     outputPath,
     archivePath,
+    historyCursorPath: searchWithdrawals ? cursorPath : null,
   }, null, 2))
 }
 
