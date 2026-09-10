@@ -33,6 +33,10 @@ function quote(
     routeLabels: ["Raydium CLMM"],
     router: null,
     feeBps: null,
+    feeMint: null,
+    feeAmount: null,
+    referralAccount: null,
+    referralFeeBps: null,
     signatureFeeLamports: null,
     prioritizationFeeLamports: null,
     rentFeeLamports: null,
@@ -224,6 +228,39 @@ test("preserves Ultra economic evidence without selecting it", () => {
   assert.equal(result.quoteCandidates[1]?.feeBps, 100)
 })
 
+test("reconciles the portal against Ultra and keeps Lite as benchmark", () => {
+  const lite = quote({
+    outAmount: "6508969225",
+    otherAmountThreshold: "6476424379",
+  })
+  const ultra = quote({
+    provider: "JUPITER_ULTRA",
+    sourceHost: "ultra-api.jup.ag",
+    sourcePath: "/order",
+    outAmount: "6446163006",
+    otherAmountThreshold: "6446163006",
+    swapMode: null,
+    router: "metis",
+    feeBps: 92,
+  })
+  const result = observation({
+    portalDisplayedReceiveAmount: "6,446,163.006",
+    quote: ultra,
+    benchmarkQuote: lite,
+    quoteCandidates: [lite, ultra],
+  })
+
+  assert.equal(result.status, "MEASURED")
+  assert.equal(result.underlyingQuote?.provider, "JUPITER_ULTRA")
+  assert.equal(result.benchmarkQuote?.provider, "JUPITER_LITE")
+  assert.equal(result.portalQuoteDiscrepancyBps, 0)
+  assert.equal(result.declaredFeeBps, 92)
+  assert.ok(
+    (result.portalBenchmarkDifferenceBps ?? 0) < -96
+  )
+  assert.deepEqual(result.blockingReasons, [])
+})
+
 test("preserves sanitized Ultra diagnostics", () => {
   const result = observation({
     portalDisplayedAt: "2026-09-10T15:00:05.000Z",
@@ -237,6 +274,8 @@ test("preserves sanitized Ultra diagnostics", () => {
       requestInputMint: WRAPPED_SOL_MINT,
       requestOutputMint: WPOND_MINT,
       requestAmount: "10000000",
+      requestReferralAccount: null,
+      requestReferralFeeBps: null,
       parsed: false,
       failureReason: "RESPONSE_JSON_UNAVAILABLE",
     }],
