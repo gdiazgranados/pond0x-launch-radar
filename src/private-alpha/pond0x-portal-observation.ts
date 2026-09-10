@@ -90,14 +90,14 @@ function ratioBps(
   difference: bigint,
   denominator: bigint
 ): number {
-  if (denominator <= 0n) {
+  if (denominator <= BigInt(0)) {
     throw new Error("ratio denominator must be positive")
   }
 
-  const negative = difference < 0n
+  const negative = difference < BigInt(0)
   const absolute = negative ? -difference : difference
   const scaled = Number(
-    (absolute * 100_000_000n) / denominator
+    (absolute * BigInt(100_000_000)) / denominator
   ) / 10_000
 
   return negative ? -scaled : scaled
