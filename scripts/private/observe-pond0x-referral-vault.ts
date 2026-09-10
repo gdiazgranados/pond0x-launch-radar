@@ -60,6 +60,20 @@ const successfulFlowTarget = boundedInteger(
   1,
   20
 )
+const searchWithdrawals =
+  process.env.PONDOX_VAULT_SEARCH_WITHDRAWALS === "1"
+const signaturePageLimit = boundedInteger(
+  "PONDOX_VAULT_PAGE_LIMIT",
+  4,
+  1,
+  20
+)
+const transactionRequestLimit = boundedInteger(
+  "PONDOX_VAULT_TRANSACTION_LIMIT",
+  40,
+  1,
+  100
+)
 const requestDelayMs = boundedInteger(
   "PONDOX_VAULT_REQUEST_DELAY_MS",
   750,
@@ -206,77 +220,138 @@ async function observeVault(input: {
   tokenAccount: string
   mint: string
 }) {
-  const signatures = await rpc<SignatureInfo[]>(
-    "getSignaturesForAddress",
-    [
-      input.tokenAccount,
-      {
-        limit: signatureFetchLimit,
-        commitment: "confirmed",
-      },
-    ]
-  )
   const flows: Pond0xVaultFlow[] = []
+  let before: string | undefined
+  let signatureCount = 0
   let examinedSignatureCount = 0
   let failedSignatureCount = 0
   let unavailableTransactionCount = 0
   let unreferencedTransactionCount = 0
+  let transactionRequestCount = 0
+  let pageCount = 0
+  let stoppedReason: Pond0xVaultScanDiagnostic["stoppedReason"] =
+    "PAGE_LIMIT"
 
-  for (const signatureInfo of signatures) {
-    if (flows.length >= successfulFlowTarget) break
-    examinedSignatureCount += 1
-
-    if (typeof signatureInfo.signature !== "string") {
-      unavailableTransactionCount += 1
-      continue
+  scanPages:
+  for (
+    let page = 0;
+    page < (searchWithdrawals ? signaturePageLimit : 1);
+    page += 1
+  ) {
+    const options: {
+      limit: number
+      commitment: "confirmed"
+      before?: string
+    } = {
+      limit: signatureFetchLimit,
+      commitment: "confirmed",
     }
-    if (
-      signatureInfo.err !== null &&
-      signatureInfo.err !== undefined
-    ) {
-      failedSignatureCount += 1
-      continue
-    }
+    if (before) options.before = before
 
-    await delay()
-    const transaction = await rpc<Pond0xParsedTransaction | null>(
-      "getTransaction",
-      [
-        signatureInfo.signature,
-        {
-          encoding: "jsonParsed",
-          commitment: "confirmed",
-          maxSupportedTransactionVersion: 0,
-        },
-      ]
+    const signatures = await rpc<SignatureInfo[]>(
+      "getSignaturesForAddress",
+      [input.tokenAccount, options]
     )
-    if (!transaction) {
-      unavailableTransactionCount += 1
-      continue
+    pageCount += 1
+    signatureCount += signatures.length
+
+    if (signatures.length === 0) {
+      stoppedReason = "HISTORY_EXHAUSTED"
+      break
     }
 
-    const flow = analyzePond0xVaultTransaction({
-      signature: signatureInfo.signature,
-      vaultTokenAccount: input.tokenAccount,
-      expectedMint: input.mint,
-      transaction,
-    })
-    if (flow) {
-      flows.push(flow)
-    } else {
-      unreferencedTransactionCount += 1
+    for (const signatureInfo of signatures) {
+      if (
+        !searchWithdrawals &&
+        flows.length >= successfulFlowTarget
+      ) {
+        stoppedReason = "TARGET_REACHED"
+        break scanPages
+      }
+      if (
+        searchWithdrawals &&
+        flows.some((flow) => flow.direction === "WITHDRAWAL")
+      ) {
+        stoppedReason = "WITHDRAWAL_FOUND"
+        break scanPages
+      }
+
+      examinedSignatureCount += 1
+      if (typeof signatureInfo.signature !== "string") {
+        unavailableTransactionCount += 1
+        continue
+      }
+      if (
+        signatureInfo.err !== null &&
+        signatureInfo.err !== undefined
+      ) {
+        failedSignatureCount += 1
+        continue
+      }
+      if (
+        transactionRequestCount >= transactionRequestLimit
+      ) {
+        stoppedReason = "TRANSACTION_LIMIT"
+        break scanPages
+      }
+
+      await delay()
+      transactionRequestCount += 1
+      const transaction =
+        await rpc<Pond0xParsedTransaction | null>(
+          "getTransaction",
+          [
+            signatureInfo.signature,
+            {
+              encoding: "jsonParsed",
+              commitment: "confirmed",
+              maxSupportedTransactionVersion: 0,
+            },
+          ]
+        )
+      if (!transaction) {
+        unavailableTransactionCount += 1
+        continue
+      }
+
+      const flow = analyzePond0xVaultTransaction({
+        signature: signatureInfo.signature,
+        vaultTokenAccount: input.tokenAccount,
+        expectedMint: input.mint,
+        transaction,
+      })
+      if (flow) {
+        flows.push(flow)
+      } else {
+        unreferencedTransactionCount += 1
+      }
+    }
+
+    before = signatures.at(-1)?.signature
+    if (!searchWithdrawals) {
+      stoppedReason = flows.length >= successfulFlowTarget
+        ? "TARGET_REACHED"
+        : "RECENT_WINDOW_COMPLETE"
+      break
+    }
+    if (signatures.length < signatureFetchLimit || !before) {
+      stoppedReason = "HISTORY_EXHAUSTED"
+      break
     }
   }
 
   const diagnostic: Pond0xVaultScanDiagnostic = {
     tokenAccount: input.tokenAccount,
     mint: input.mint,
-    signatureCount: signatures.length,
+    signatureCount,
     examinedSignatureCount,
     failedSignatureCount,
     unavailableTransactionCount,
     unreferencedTransactionCount,
+    transactionRequestCount,
+    pageCount,
     flowCount: flows.length,
+    stoppedReason,
   }
 
   return { flows, diagnostic }
@@ -387,8 +462,13 @@ async function main() {
     walletConnected: false,
     transactionRequested: false,
     observedAt,
-    signatureFetchLimitPerVault: signatureFetchLimit,
-    successfulFlowTargetPerVault: successfulFlowTarget,
+    searchWithdrawals,
+    signatureFetchLimitPerPage: signatureFetchLimit,
+    signaturePageLimitPerVault:
+      searchWithdrawals ? signaturePageLimit : 1,
+    transactionRequestLimitPerVault,
+    successfulFlowTargetPerVault:
+      searchWithdrawals ? null : successfulFlowTarget,
     balances,
     vaultScans,
     flowCount: flows.length,
