@@ -61,9 +61,16 @@ function ratioBps(numerator: bigint, denominator: bigint) {
   ) / 10_000
 }
 
+const ALLOWED_PONDOX_ROUTE_LABELS = new Set([
+  "Raydium AMM",
+  "Raydium CLMM",
+])
+
 function validRoute(labels: ReadonlyArray<string>) {
   return labels.length > 0 &&
-    labels.every((label) => label === "Raydium CLMM")
+    labels.every((label) =>
+      ALLOWED_PONDOX_ROUTE_LABELS.has(label)
+    )
 }
 
 export function evaluatePond0xRoundTripEconomics(input: {
