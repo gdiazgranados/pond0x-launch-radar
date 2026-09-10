@@ -1,31 +1,10 @@
 import { IndicatorHelp } from "./IndicatorHelp"
 import { SectionTitle } from "./SectionTitle"
-
-type HealthStage = {
-  status?: string
-  detail?: string
-  checkedAt?: string
-}
+import type { SystemHealth, TelegramHealth } from "../../types/radar"
 
 type SystemHealthPanelProps = {
-  systemHealth?: {
-    overall?: string
-    checkedAt?: string
-    stages?: Record<string, HealthStage>
-    run?: {
-      source?: string | null
-      workflowRunNumber?: number | null
-    }
-  } | null
-  telegramHealth?: {
-    status?: string
-    checkedAt?: string
-    botReachable?: boolean
-    chatReachable?: boolean
-    lastSuccessfulAlertAt?: string | null
-    lastSuccessfulChainAlertAt?: string | null
-    lastError?: string | null
-  } | null
+  systemHealth?: SystemHealth | null
+  telegramHealth?: TelegramHealth | null
 }
 
 function tone(status?: string) {
