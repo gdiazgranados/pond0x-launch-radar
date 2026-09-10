@@ -109,7 +109,7 @@ export function evaluatePond0xRoundTripEconomics(input: {
       input.entry.portalDisplayedAmountBaseUnits !==
       entry.outAmount
     ) {
-      reasons.push.push?.()
+      reasons.push("PONDOX_ENTRY_DISPLAY_MISMATCH")
     }
   }
 
@@ -126,7 +126,7 @@ export function evaluatePond0xRoundTripEconomics(input: {
       exit.inputMint !== WPOND_MINT ||
       exit.outputMint !== WRAPPED_SOL_MINT
     ) {
-      reasons.push.push?.()
+      reasons.push("PONDOX_EXIT_MINT_MISMATCH")
     }
     if (!validRoute(exit.routeLabels)) {
       reasons.push("PONDOX_EXIT_ROUTE_NOT_ALLOWED")
