@@ -1,0 +1,311 @@
+import {
+  WPOND_MINT,
+  WRAPPED_SOL_MINT,
+} from "./wpond-quote-observer"
+
+export const PONDOX_PORTAL_ORIGIN = "https://www.pond0x.com"
+export const PONDOX_SOLANA_SWAP_PATH = "/swap/solana"
+
+export const PONDOX_OBSERVER_ALLOWED_HOSTS = [
+  "www.pond0x.com",
+  "api.web3modal.org",
+  "pulse.walletconnect.org",
+  "mm-sdk-analytics.api.cx.metamask.io",
+  "fonts.googleapis.com",
+  "fonts.gstatic.com",
+  "plugin.jup.ag",
+  "datapi.jup.ag",
+  "lite-api.jup.ag",
+  "ultra-api.jup.ag",
+  "mainnet.helius-rpc.com",
+] as const
+
+export type Pond0xPortalObservationStatus =
+  | "MEASURED"
+  | "BLOCKED"
+  | "UNAVAILABLE"
+
+export type Pond0xUnderlyingQuote = {
+  sourceHost: string
+  sourcePath: string
+  httpStatus: number
+  inputMint: string | null
+  inAmount: string | null
+  outputMint: string | null
+  outAmount: string | null
+  otherAmountThreshold: string | null
+  priceImpactPct: string | null
+  swapMode: string | null
+  routeLabels: ReadonlyArray<string>
+}
+
+export type Pond0xPortalObservation = {
+  schemaVersion: 1
+  simulationOnly: true
+  walletConnected: false
+  transactionRequested: false
+  observedAt: string
+  status: Pond0xPortalObservationStatus
+  portalUrl: string
+  payToken: "SOL"
+  receiveToken: "wPOND"
+  payAmount: string
+  payAmountBaseUnits: string
+  portalDisplayedReceiveAmount: string | null
+  portalDisplayedReceiveBaseUnits: string | null
+  underlyingQuote: Pond0xUnderlyingQuote | null
+  quoteSlippageBps: number | null
+  portalQuoteDiscrepancyBps: number | null
+  observedHosts: ReadonlyArray<string>
+  unexpectedHosts: ReadonlyArray<string>
+  blockingReasons: ReadonlyArray<string>
+  source: "PONDOX_FIREFOX_UI_AND_JUPITER_NETWORK"
+}
+
+function positiveInteger(value: string | null): value is string {
+  return typeof value === "string" && /^[1-9]\d*$/.test(value)
+}
+
+export function decimalToBaseUnits(
+  value: string,
+  decimals: number
+): string {
+  const normalized = value.replace(/,/g, "").trim()
+  const match = normalized.match(/^(0|[1-9]\d*)(?:\.(\d+))?$/)
+  if (!match) throw new Error("amount must be a non-negative decimal")
+
+  const fraction = match[2] ?? ""
+  if (fraction.length > decimals) {
+    throw new Error("amount exceeds supported decimals")
+  }
+
+  const combined =
+    `${match[1]}${fraction.padEnd(decimals, "0")}`
+      .replace(/^0+(?=\d)/, "")
+
+  return combined || "0"
+}
+
+function ratioBps(
+  difference: bigint,
+  denominator: bigint
+): number {
+  if (denominator <= 0n) {
+    throw new Error("ratio denominator must be positive")
+  }
+
+  const negative = difference < 0n
+  const absolute = negative ? -difference : difference
+  const scaled = Number(
+    (absolute * 100_000_000n) / denominator
+  ) / 10_000
+
+  return negative ? -scaled : scaled
+}
+
+function uniqueSorted(values: ReadonlyArray<string>) {
+  return [...new Set(values.filter(Boolean))].sort()
+}
+
+export function buildPond0xPortalObservation(input: {
+  observedAt: string
+  portalUrl: string
+  payAmountSol: string
+  portalDisplayedReceiveAmount: string | null
+  quote: Pond0xUnderlyingQuote | null
+  observedHosts: ReadonlyArray<string>
+  maxPortalDiscrepancyBps?: number
+}): Pond0xPortalObservation {
+  const blockingReasons: string[] = []
+  const maxPortalDiscrepancyBps =
+    input.maxPortalDiscrepancyBps ?? 25
+
+  if (
+    !Number.isFinite(maxPortalDiscrepancyBps) ||
+    maxPortalDiscrepancyBps < 0
+  ) {
+    throw new Error(
+      "maxPortalDiscrepancyBps must be non-negative"
+    )
+  }
+
+  const portal = new URL(input.portalUrl)
+  if (
+    portal.origin !== PONDOX_PORTAL_ORIGIN ||
+    portal.pathname !== PONDOX_SOLANA_SWAP_PATH
+  ) {
+    blockingReasons.push("PONDOX_PORTAL_URL_MISMATCH")
+  }
+  if (portal.searchParams.get("sell") !== WRAPPED_SOL_MINT) {
+    blockingReasons.push("PONDOX_SELL_MINT_MISMATCH")
+  }
+  if (portal.searchParams.get("buy") !== WPOND_MINT) {
+    blockingReasons.push("PONDOX_BUY_MINT_MISMATCH")
+  }
+
+  const payAmountBaseUnits = decimalToBaseUnits(
+    input.payAmountSol,
+    9
+  )
+  if (payAmountBaseUnits === "0") {
+    throw new Error("payAmountSol must be positive")
+  }
+
+  const observedHosts = uniqueSorted(input.observedHosts)
+  const allowedHosts = new Set<string>(
+    PONDOX_OBSERVER_ALLOWED_HOSTS
+  )
+  const unexpectedHosts = observedHosts.filter(
+    (host) => !allowedHosts.has(host)
+  )
+  if (unexpectedHosts.length > 0) {
+    blockingReasons.push("PONDOX_UNEXPECTED_NETWORK_HOST")
+  }
+
+  let displayedBaseUnits: string | null = null
+  if (input.portalDisplayedReceiveAmount) {
+    try {
+      displayedBaseUnits = decimalToBaseUnits(
+        input.portalDisplayedReceiveAmount,
+        3
+      )
+      if (displayedBaseUnits === "0") {
+        blockingReasons.push("PONDOX_DISPLAYED_OUTPUT_INVALID")
+      }
+    } catch {
+      blockingReasons.push("PONDOX_DISPLAYED_OUTPUT_INVALID")
+    }
+  } else {
+    blockingReasons.push("PONDOX_DISPLAYED_OUTPUT_UNAVAILABLE")
+  }
+
+  const quote = input.quote
+  if (!quote) {
+    return {
+      schemaVersion: 1,
+      simulationOnly: true,
+      walletConnected: false,
+      transactionRequested: false,
+      observedAt: input.observedAt,
+      status: "UNAVAILABLE",
+      portalUrl: input.portalUrl,
+      payToken: "SOL",
+      receiveToken: "wPOND",
+      payAmount: input.payAmountSol,
+      payAmountBaseUnits,
+      portalDisplayedReceiveAmount:
+        input.portalDisplayedReceiveAmount,
+      portalDisplayedReceiveBaseUnits: displayedBaseUnits,
+      underlyingQuote: null,
+      quoteSlippageBps: null,
+      portalQuoteDiscrepancyBps: null,
+      observedHosts,
+      unexpectedHosts,
+      blockingReasons: [
+        ...new Set([
+          ...blockingReasons,
+          "PONDOX_UNDERLYING_QUOTE_UNAVAILABLE",
+        ]),
+      ],
+      source:
+        "PONDOX_FIREFOX_UI_AND_JUPITER_NETWORK",
+    }
+  }
+
+  if (
+    quote.sourceHost !== "lite-api.jup.ag" ||
+    quote.sourcePath !== "/swap/v1/quote" ||
+    quote.httpStatus !== 200
+  ) {
+    blockingReasons.push("PONDOX_QUOTE_SOURCE_INVALID")
+  }
+  if (quote.inputMint !== WRAPPED_SOL_MINT) {
+    blockingReasons.push("PONDOX_QUOTE_INPUT_MINT_MISMATCH")
+  }
+  if (quote.outputMint !== WPOND_MINT) {
+    blockingReasons.push("PONDOX_QUOTE_OUTPUT_MINT_MISMATCH")
+  }
+  if (quote.inAmount !== payAmountBaseUnits) {
+    blockingReasons.push("PONDOX_QUOTE_INPUT_AMOUNT_MISMATCH")
+  }
+  if (quote.swapMode !== "ExactIn") {
+    blockingReasons.push("PONDOX_QUOTE_MODE_MISMATCH")
+  }
+  if (
+    quote.routeLabels.length === 0 ||
+    quote.routeLabels.some(
+      (label) => label !== "Raydium CLMM"
+    )
+  ) {
+    blockingReasons.push("PONDOX_QUOTE_ROUTE_NOT_ALLOWED")
+  }
+  if (!positiveInteger(quote.outAmount)) {
+    blockingReasons.push("PONDOX_QUOTE_OUTPUT_INVALID")
+  }
+  if (!positiveInteger(quote.otherAmountThreshold)) {
+    blockingReasons.push("PONDOX_QUOTE_THRESHOLD_INVALID")
+  }
+
+  let quoteSlippageBps: number | null = null
+  if (
+    positiveInteger(quote.outAmount) &&
+    positiveInteger(quote.otherAmountThreshold)
+  ) {
+    const outAmount = BigInt(quote.outAmount)
+    const threshold = BigInt(quote.otherAmountThreshold)
+    if (threshold > outAmount) {
+      blockingReasons.push("PONDOX_QUOTE_THRESHOLD_INVALID")
+    } else {
+      quoteSlippageBps = ratioBps(
+        outAmount - threshold,
+        outAmount
+      )
+    }
+  }
+
+  let portalQuoteDiscrepancyBps: number | null = null
+  if (
+    displayedBaseUnits &&
+    positiveInteger(quote.outAmount)
+  ) {
+    portalQuoteDiscrepancyBps = ratioBps(
+      BigInt(displayedBaseUnits) - BigInt(quote.outAmount),
+      BigInt(quote.outAmount)
+    )
+    if (
+      Math.abs(portalQuoteDiscrepancyBps) >
+      maxPortalDiscrepancyBps
+    ) {
+      blockingReasons.push(
+        "PONDOX_PORTAL_QUOTE_DISCREPANCY"
+      )
+    }
+  }
+
+  const uniqueReasons = [...new Set(blockingReasons)]
+
+  return {
+    schemaVersion: 1,
+    simulationOnly: true,
+    walletConnected: false,
+    transactionRequested: false,
+    observedAt: input.observedAt,
+    status:
+      uniqueReasons.length === 0 ? "MEASURED" : "BLOCKED",
+    portalUrl: input.portalUrl,
+    payToken: "SOL",
+    receiveToken: "wPOND",
+    payAmount: input.payAmountSol,
+    payAmountBaseUnits,
+    portalDisplayedReceiveAmount:
+      input.portalDisplayedReceiveAmount,
+    portalDisplayedReceiveBaseUnits: displayedBaseUnits,
+    underlyingQuote: quote,
+    quoteSlippageBps,
+    portalQuoteDiscrepancyBps,
+    observedHosts,
+    unexpectedHosts,
+    blockingReasons: uniqueReasons,
+    source: "PONDOX_FIREFOX_UI_AND_JUPITER_NETWORK",
+  }
+}
