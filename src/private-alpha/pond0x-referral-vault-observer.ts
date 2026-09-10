@@ -92,7 +92,16 @@ export type Pond0xVaultScanDiagnostic = {
   failedSignatureCount: number
   unavailableTransactionCount: number
   unreferencedTransactionCount: number
+  transactionRequestCount: number
+  pageCount: number
   flowCount: number
+  stoppedReason:
+    | "RECENT_WINDOW_COMPLETE"
+    | "TARGET_REACHED"
+    | "WITHDRAWAL_FOUND"
+    | "TRANSACTION_LIMIT"
+    | "PAGE_LIMIT"
+    | "HISTORY_EXHAUSTED"
 }
 
 export type Pond0xReferralVaultBalance = {
