@@ -3,6 +3,7 @@ import { dirname, resolve } from "node:path"
 import { firefox } from "playwright"
 import {
   buildPond0xPortalObservation,
+  decimalToBaseUnits,
   type Pond0xUnderlyingQuote,
 } from "../../src/private-alpha/pond0x-portal-observation"
 import {
@@ -118,9 +119,8 @@ async function main() {
     })
     await page.waitForTimeout(5_000)
 
-    const inputs = page.locator('input[placeholder="0.00"]')
-    const payInput = inputs
-      .filter({ has: page.locator(":not([disabled])") })
+    const payInput = page
+      .locator('input[placeholder="0.00"]:not([disabled])')
       .first()
 
     if (await payInput.count() === 0) {
@@ -153,7 +153,7 @@ async function main() {
         quote !== null
     )
     const payAmountBaseUnits =
-      String(Math.round(Number(payAmountSol) * 1_000_000_000))
+      decimalToBaseUnits(payAmountSol, 9)
     const quote =
       [...quotes].reverse().find(
         (candidate) =>
