@@ -2,6 +2,9 @@ import type {
   Pond0xUnderlyingQuote,
 } from "./pond0x-portal-observation"
 import {
+  PONDOX_REFERRAL_ACCOUNT,
+} from "./pond0x-referral-vault-observer"
+import {
   WPOND_MINT,
   WRAPPED_SOL_MINT,
 } from "./wpond-quote-observer"
@@ -78,6 +81,25 @@ export function evaluatePond0xRoundTripEconomics(input: {
   if (!entry) reasons.push("PONDOX_ENTRY_QUOTE_UNAVAILABLE")
   if (!exit) reasons.push("PONDOX_EXIT_QUOTE_UNAVAILABLE")
 
+  const entryTime = Date.parse(input.entry.observedAt)
+  const exitTime = Date.parse(input.exit.observedAt)
+  if (!Number.isFinite(entryTime)) {
+    reasons.push("PONDOX_ENTRY_TIMESTAMP_INVALID")
+  }
+  if (!Number.isFinite(exitTime)) {
+    reasons.push("PONDOX_EXIT_TIMESTAMP_INVALID")
+  }
+  if (
+    Number.isFinite(entryTime) &&
+    Number.isFinite(exitTime) &&
+    (
+      exitTime < entryTime ||
+      exitTime - entryTime > 120_000
+    )
+  ) {
+    reasons.push("PONDOX_ROUND_TRIP_QUOTE_WINDOW_INVALID")
+  }
+
   if (entry) {
     if (
       entry.provider !== "JUPITER_ULTRA" ||
@@ -104,6 +126,12 @@ export function evaluatePond0xRoundTripEconomics(input: {
     }
     if (!nonNegativeFee(entry.feeBps)) {
       reasons.push("PONDOX_ENTRY_FEE_INVALID")
+    }
+    if (
+      entry.referralAccount !== PONDOX_REFERRAL_ACCOUNT ||
+      entry.referralFeeBps !== entry.feeBps
+    ) {
+      reasons.push("PONDOX_ENTRY_REFERRAL_MISMATCH")
     }
     if (
       input.entry.portalDisplayedAmountBaseUnits !==
@@ -139,6 +167,12 @@ export function evaluatePond0xRoundTripEconomics(input: {
     }
     if (!nonNegativeFee(exit.feeBps)) {
       reasons.push("PONDOX_EXIT_FEE_INVALID")
+    }
+    if (
+      exit.referralAccount !== PONDOX_REFERRAL_ACCOUNT ||
+      exit.referralFeeBps !== exit.feeBps
+    ) {
+      reasons.push("PONDOX_EXIT_REFERRAL_MISMATCH")
     }
     if (
       input.exit.portalDisplayedAmountBaseUnits !==
