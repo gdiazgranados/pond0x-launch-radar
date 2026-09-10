@@ -3,7 +3,9 @@ import { dirname, resolve } from "node:path"
 import { firefox } from "playwright"
 import {
   buildPond0xPortalObservation,
+  classifyPond0xNetworkSurface,
   decimalToBaseUnits,
+  type Pond0xNetworkSurface,
   type Pond0xUnderlyingQuote,
 } from "../../src/private-alpha/pond0x-portal-observation"
 import {
@@ -34,6 +36,20 @@ function nullableString(value: unknown) {
   return typeof value === "string" ? value : null
 }
 
+function nullableNumber(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value)
+    ? value
+    : null
+}
+
+function nullableIntegerString(value: unknown) {
+  if (typeof value === "string" && /^\\d+$/.test(value)) return value
+  if (typeof value === "number" && Number.isSafeInteger(value) && value >= 0) {
+    return String(value)
+  }
+  return null
+}
+
 function routeLabels(value: unknown) {
   if (!Array.isArray(value)) return []
 
@@ -55,13 +71,28 @@ async function main() {
     })
     const page = await context.newPage()
     const observedHosts = new Set<string>()
+    const networkSurfaceMap = new Map<string, Pond0xNetworkSurface>()
     const quotePromises: Array<
       Promise<Pond0xUnderlyingQuote | null>
     > = []
 
     page.on("request", (request) => {
       try {
-        observedHosts.add(new URL(request.url()).hostname)
+        const url = new URL(request.url())
+        observedHosts.add(url.hostname)
+        const surface = classifyPond0xNetworkSurface({
+          host: url.hostname,
+          path: url.pathname,
+          method: request.method(),
+          resourceType: request.resourceType(),
+        })
+        const key = [
+          surface.host,
+          surface.path,
+          surface.method,
+          surface.resourceType,
+        ].join("|")
+        networkSurfaceMap.set(key, surface)
       } catch {
         // Non-HTTP browser requests are irrelevant.
       }
@@ -75,17 +106,20 @@ async function main() {
         return
       }
 
-      if (
-        url.hostname !== "lite-api.jup.ag" ||
-        url.pathname !== "/swap/v1/quote"
-      ) {
-        return
-      }
+      const isLite =
+        url.hostname === "lite-api.jup.ag" &&
+        url.pathname === "/swap/v1/quote"
+      const isUltra =
+        url.hostname === "ultra-api.jup.ag" &&
+        url.pathname === "/order"
+
+      if (!isLite && !isUltra) return
 
       quotePromises.push((async () => {
         try {
           const payload = asRecord(await response.json())
           return {
+            provider: isLite ? "JUPITER_LITE" : "JUPITER_ULTRA",
             sourceHost: url.hostname,
             sourcePath: url.pathname,
             httpStatus: response.status(),
@@ -99,6 +133,14 @@ async function main() {
               nullableString(payload.priceImpactPct),
             swapMode: nullableString(payload.swapMode),
             routeLabels: routeLabels(payload.routePlan),
+            router: nullableString(payload.router),
+            feeBps: nullableNumber(payload.feeBps),
+            signatureFeeLamports:
+              nullableIntegerString(payload.signatureFeeLamports),
+            prioritizationFeeLamports:
+              nullableIntegerString(payload.prioritizationFeeLamports),
+            rentFeeLamports:
+              nullableIntegerString(payload.rentFeeLamports),
           }
         } catch {
           return null
@@ -172,6 +214,7 @@ async function main() {
     const quote =
       [...quotes].reverse().find(
         (candidate) =>
+          candidate.provider === "JUPITER_LITE" &&
           candidate.inputMint === WRAPPED_SOL_MINT &&
           candidate.outputMint === WPOND_MINT &&
           candidate.inAmount === payAmountBaseUnits
@@ -184,7 +227,9 @@ async function main() {
       payAmountSol,
       portalDisplayedReceiveAmount,
       quote,
+      quoteCandidates: quotes,
       observedHosts: [...observedHosts],
+      networkSurfaces: [...networkSurfaceMap.values()],
       maxPortalDiscrepancyBps: maxDiscrepancyBps,
     })
     const archivePath = resolve(
@@ -216,6 +261,32 @@ async function main() {
         observation.portalDisplayedReceiveAmount,
       underlyingOutAmountBaseUnits:
         observation.underlyingQuote?.outAmount ?? null,
+      quoteCandidates: observation.quoteCandidates.map((candidate) => ({
+        provider: candidate.provider,
+        outAmount: candidate.outAmount,
+        otherAmountThreshold: candidate.otherAmountThreshold,
+        priceImpactPct: candidate.priceImpactPct,
+        router: candidate.router,
+        feeBps: candidate.feeBps,
+        signatureFeeLamports: candidate.signatureFeeLamports,
+        prioritizationFeeLamports:
+          candidate.prioritizationFeeLamports,
+        rentFeeLamports: candidate.rentFeeLamports,
+        routeLabels: candidate.routeLabels,
+      })),
+      networkSurfaceSummary: Object.fromEntries(
+        [...new Set(
+          observation.networkSurfaces.map(
+            (surface) => surface.classification
+          )
+        )].map((classification) => [
+          classification,
+          observation.networkSurfaces.filter(
+            (surface) =>
+              surface.classification === classification
+          ).length,
+        ])
+      ),
       quoteSlippageBps: observation.quoteSlippageBps,
       portalQuoteDiscrepancyBps:
         observation.portalQuoteDiscrepancyBps,
