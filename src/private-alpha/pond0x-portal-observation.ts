@@ -78,10 +78,17 @@ export function classifyPond0xNetworkSurface(input: {
 }): Pond0xNetworkSurface {
   let classification: Pond0xNetworkSurfaceClassification
 
-  if (input.host === "stable-mainnet.vercel.app") {
-    classification = "DENIED_EXECUTION_HOST"
-  } else if (passiveResourceTypes.has(input.resourceType)) {
+  if (
+    passiveResourceTypes.has(input.resourceType) ||
+    (
+      input.host === "fonts.googleapis.com" &&
+      input.method === "GET" &&
+      input.path === "/css2"
+    )
+  ) {
     classification = "PASSIVE_ASSET"
+  } else if (input.host === "stable-mainnet.vercel.app") {
+    classification = "DENIED_EXECUTION_HOST"
   } else if (input.host === "www.pond0x.com") {
     classification = "PONDOX_PORTAL"
   } else if (
