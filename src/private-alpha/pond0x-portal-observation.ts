@@ -431,14 +431,15 @@ export function buildPond0xPortalObservation(input: {
   }
 
   let portalBenchmarkDifferenceBps: number | null = null
+  const benchmarkOutAmount =
+    input.benchmarkQuote?.outAmount ?? null
   if (
     positiveInteger(quote.outAmount) &&
-    positiveInteger(input.benchmarkQuote?.outAmount ?? null)
+    positiveInteger(benchmarkOutAmount)
   ) {
     portalBenchmarkDifferenceBps = ratioBps(
-      BigInt(quote.outAmount) -
-        BigInt(input.benchmarkQuote.outAmount),
-      BigInt(input.benchmarkQuote.outAmount)
+      BigInt(quote.outAmount) - BigInt(benchmarkOutAmount),
+      BigInt(benchmarkOutAmount)
     )
   }
 
