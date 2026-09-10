@@ -161,6 +161,58 @@ export type ClearIntelligence = {
   evidence?: Array<{ type?: string; label?: string; source?: string; url: string }>
 }
 
+export type ActivationTimelineEvent = {
+  id?: string
+  type?: string
+  domain?: string
+  subject?: string
+  detail?: string
+  seenAt?: string
+  confidence?: number
+}
+
+export type FeatureActivationBundleDiff = {
+  comparable?: boolean
+  addedBundles?: unknown[]
+  removedBundles?: unknown[]
+  changedBundles?: Array<{ currentSha256?: string | null }>
+  addedApiRoutes?: string[]
+  removedApiRoutes?: string[]
+  addedRoutes?: string[]
+  addedKeywords?: string[]
+  addedFlags?: string[]
+}
+
+export type ActivationTimeline = {
+  classification?: string
+  score?: number
+  caution?: string
+  evidenceConfidence?: {
+    level?: string
+    score?: number
+    highConfidenceCount?: number
+    methodology?: string
+    strongestEvidence?: ActivationTimelineEvent[]
+  }
+  flagHistory?: { observed?: number; transitionsThisSweep?: number }
+  recent?: { domainCount?: number; events?: ActivationTimelineEvent[] }
+  newEvents?: ActivationTimelineEvent[]
+}
+
+export type ActivationDecision = {
+  state?: string
+  decisionStrength?: number
+  reasons?: string[]
+  interpretation?: string
+  caution?: string
+  scores?: {
+    semanticChange?: number
+    correlation?: number
+    evidenceConfidence?: number
+    activationTimeline?: number
+  }
+}
+
 export type RadarData = {
   id: string
   snapshotId?: string
@@ -288,7 +340,26 @@ export type RadarData = {
 
     convergence?: boolean
     activationCluster?: boolean
+    buildIdSource?: string
+    bundleCount?: number
+    bundleDiff?: FeatureActivationBundleDiff
+    semanticChange?: {
+      level?: string
+      score?: number
+      highValueEvidence?: string[]
+      reasons?: string[]
+    }
   }
+
+  routeApiIntelligence?: {
+    discovered?: { total?: number }
+    freshDiscoveries?: unknown[]
+    dormantToLive?: unknown[]
+    liveToDormant?: unknown[]
+    liveApiRoutes?: unknown[]
+  }
+  activationTimeline?: ActivationTimeline
+  activationDecision?: ActivationDecision
 
   discovery?: DiscoveryMeta
 

@@ -1,5 +1,83 @@
 import { IndicatorHelp } from "./IndicatorHelp"
-function fmt(v: any, digits = 1) {
+
+type Recipient = {
+  wallet?: string
+  frequencyClass?: string
+  totalWPOND?: number
+  transferCount?: number
+  firstSeenAt?: string
+  lastSeenAt?: string
+  lastSignature?: string
+}
+
+type MetricWindow = {
+  rewardTransfers?: number
+  rewards?: number
+  transfers?: number
+  uniqueRecipients?: number
+  wpondDistributed?: number
+}
+
+type ChainIntelligence = {
+  activityState?: string
+  version?: string
+  fundingDetected?: boolean
+  chainConfirmationScore?: number
+  cycleAnalytics?: {
+    automationConfidence?: number
+    cadenceConfidence?: string
+    claimAfterFundingProbabilityPct?: number
+    cycleSignal?: string
+    liveAutomationConfidence?: number
+    medianFundingCadenceSeconds?: number
+  }
+  predictor?: {
+    status?: string
+    nextFundingExpectedAt?: string | null
+    fundingWindowHalfWidthSeconds?: number
+    expectedClaimWindowSeconds?: { start?: number; end?: number }
+  }
+  patternMatch?: {
+    historicalPatternMatchPct?: number
+    status?: string
+    confidence?: string
+    interpretation?: string
+    components?: {
+      cadenceSimilarityPct?: number
+      rewardTransferDelaySimilarityPct?: number
+      claimDelaySimilarityPct?: number
+      predictorProximityPct?: number
+    }
+  }
+  windows?: Record<string, MetricWindow>
+  distributorIntelligence?: {
+    version?: string
+    distributor?: string
+    activityState?: string
+    windows?: Record<string, MetricWindow>
+    recipientMix?: { totalRecipients?: number; newRecipients?: number; repeatRecipients?: number; frequentRecipients?: number }
+    transferProfile?: { medianTransfer?: number; largestTransfer?: number; amountAnomalyCount?: number }
+    bursts?: { count?: number; latest?: { transfers?: number; totalWPOND?: number } }
+    velocity1h?: { volumeVelocityPct?: number; transferVelocityPct?: number }
+    latestTransfer?: { time?: string }
+    lastTransferAgeMinutes?: number | null
+    coverage?: { sampleLimited?: boolean; analyzedTransferSample?: number; fetchedExternalClaims?: number; coverageComplete?: boolean }
+  }
+  recipientLedger?: {
+    recipients?: Recipient[]
+    totalRecipients?: number
+    totalTransfers?: number
+    totalWPOND?: number
+  }
+}
+
+type HistoricalBaseline = {
+  cyclesAnalyzed?: number
+  correlatedCycles?: number
+  correlationRatePct?: number
+}
+
+function fmt(v: unknown, digits = 1) {
   const n = Number(v)
   return Number.isFinite(n)
     ? n.toLocaleString("en-US", { maximumFractionDigits: digits })
@@ -14,7 +92,7 @@ function when(v?: string | null) {
 
 const RECIPIENT_DISPLAY_LIMIT = 10
 
-function recipientPriority(recipient: any) {
+function recipientPriority(recipient: Recipient) {
   if (recipient?.frequencyClass === "FREQUENT") return 3
   if (recipient?.frequencyClass === "REPEAT") return 2
   return 1
@@ -42,7 +120,7 @@ function distributorTone(state?: string) {
   }
 }
 
-function getWindowState(p: any) {
+function getWindowState(p: NonNullable<ChainIntelligence["predictor"]>) {
   const expectedAt = p?.nextFundingExpectedAt
   const halfWidthSeconds = Number(p?.fundingWindowHalfWidthSeconds || 0)
 
@@ -101,8 +179,8 @@ export function ChainIntelligencePanel({
   chain,
   baseline,
 }: {
-  chain?: any
-  baseline?: any
+  chain?: ChainIntelligence
+  baseline?: HistoricalBaseline
 }) {
   if (!chain) return null
 
@@ -118,7 +196,7 @@ export function ChainIntelligencePanel({
     : []
 
   const priorityRecipients = [...recipients]
-    .sort((left: any, right: any) => {
+    .sort((left: Recipient, right: Recipient) => {
       const statusDifference = recipientPriority(right) - recipientPriority(left)
       if (statusDifference) return statusDifference
 
@@ -559,7 +637,7 @@ export function ChainIntelligencePanel({
               </thead>
 
               <tbody>
-                {priorityRecipients.map((recipient: any) => (
+                {priorityRecipients.map((recipient: Recipient) => (
                   <tr
                     key={recipient.wallet}
                     className="border-b border-white/5 text-slate-300 last:border-0"
