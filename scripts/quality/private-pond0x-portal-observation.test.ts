@@ -2,6 +2,7 @@ import test from "node:test"
 import assert from "node:assert/strict"
 import {
   buildPond0xPortalObservation,
+  classifyPond0xNetworkSurface,
   decimalToBaseUnits,
   type Pond0xUnderlyingQuote,
 } from "../../src/private-alpha/pond0x-portal-observation"
@@ -18,6 +19,7 @@ function quote(
   overrides: Partial<Pond0xUnderlyingQuote> = {}
 ): Pond0xUnderlyingQuote {
   return {
+    provider: "JUPITER_LITE",
     sourceHost: "lite-api.jup.ag",
     sourcePath: "/swap/v1/quote",
     httpStatus: 200,
@@ -29,6 +31,11 @@ function quote(
     priceImpactPct: "0.0206260627771521248707748884",
     swapMode: "ExactIn",
     routeLabels: ["Raydium CLMM"],
+    router: null,
+    feeBps: null,
+    signatureFeeLamports: null,
+    prioritizationFeeLamports: null,
+    rentFeeLamports: null,
     ...overrides,
   }
 }
@@ -131,6 +138,68 @@ test("blocks unexpected network hosts", () => {
       "PONDOX_UNEXPECTED_NETWORK_HOST"
     )
   )
+})
+
+test("records passive third-party assets without blocking", () => {
+  const surface = classifyPond0xNetworkSurface({
+    host: "s2.coinmarketcap.com",
+    path: "/static/img/coins/64x64/1.png",
+    method: "GET",
+    resourceType: "image",
+  })
+  const result = observation({
+    observedHosts: ["www.pond0x.com", surface.host],
+    networkSurfaces: [surface],
+  })
+
+  assert.equal(surface.classification, "PASSIVE_ASSET")
+  assert.equal(result.status, "MEASURED")
+  assert.deepEqual(result.unexpectedHosts, [])
+})
+
+test("hard-blocks the Clear execution surface", () => {
+  const surface = classifyPond0xNetworkSurface({
+    host: "stable-mainnet.vercel.app",
+    path: "/swap",
+    method: "GET",
+    resourceType: "document",
+  })
+  const result = observation({
+    observedHosts: ["www.pond0x.com", surface.host],
+    networkSurfaces: [surface],
+  })
+
+  assert.equal(surface.classification, "DENIED_EXECUTION_HOST")
+  assert.equal(result.status, "BLOCKED")
+  assert.deepEqual(result.unexpectedHosts, [
+    "stable-mainnet.vercel.app",
+  ])
+  assert.ok(
+    result.blockingReasons.includes(
+      "PONDOX_DENIED_EXECUTION_HOST"
+    )
+  )
+})
+
+test("preserves Ultra economic evidence without selecting it", () => {
+  const ultra = quote({
+    provider: "JUPITER_ULTRA",
+    sourceHost: "ultra-api.jup.ag",
+    sourcePath: "/order",
+    otherAmountThreshold: null,
+    swapMode: null,
+    router: "jupiterz",
+    feeBps: 100,
+    signatureFeeLamports: "5000",
+  })
+  const result = observation({
+    quoteCandidates: [quote(), ultra],
+  })
+
+  assert.equal(result.status, "MEASURED")
+  assert.equal(result.underlyingQuote?.provider, "JUPITER_LITE")
+  assert.equal(result.quoteCandidates.length, 2)
+  assert.equal(result.quoteCandidates[1]?.feeBps, 100)
 })
 
 test("fails closed when the underlying quote is absent", () => {
