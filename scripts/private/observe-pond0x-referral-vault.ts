@@ -474,7 +474,7 @@ async function main() {
     signatureFetchLimitPerPage: signatureFetchLimit,
     signaturePageLimitPerVault:
       searchWithdrawals ? signaturePageLimit : 1,
-    transactionRequestLimitPerVault,
+    transactionRequestLimitPerVault: transactionRequestLimit,
     successfulFlowTargetPerVault:
       searchWithdrawals ? null : successfulFlowTarget,
     balances,
