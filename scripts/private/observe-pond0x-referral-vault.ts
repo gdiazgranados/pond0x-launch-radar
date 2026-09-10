@@ -48,11 +48,17 @@ function boundedInteger(
   return value
 }
 
-const signatureLimit = boundedInteger(
+const signatureFetchLimit = boundedInteger(
   "PONDOX_VAULT_SIGNATURE_LIMIT",
+  25,
+  1,
+  100
+)
+const successfulFlowTarget = boundedInteger(
+  "PONDOX_VAULT_FLOW_TARGET",
   5,
   1,
-  50
+  20
 )
 const requestDelayMs = boundedInteger(
   "PONDOX_VAULT_REQUEST_DELAY_MS",
@@ -205,17 +211,21 @@ async function observeVault(input: {
     [
       input.tokenAccount,
       {
-        limit: signatureLimit,
+        limit: signatureFetchLimit,
         commitment: "confirmed",
       },
     ]
   )
   const flows: Pond0xVaultFlow[] = []
+  let examinedSignatureCount = 0
   let failedSignatureCount = 0
   let unavailableTransactionCount = 0
   let unreferencedTransactionCount = 0
 
   for (const signatureInfo of signatures) {
+    if (flows.length >= successfulFlowTarget) break
+    examinedSignatureCount += 1
+
     if (typeof signatureInfo.signature !== "string") {
       unavailableTransactionCount += 1
       continue
@@ -262,6 +272,7 @@ async function observeVault(input: {
     tokenAccount: input.tokenAccount,
     mint: input.mint,
     signatureCount: signatures.length,
+    examinedSignatureCount,
     failedSignatureCount,
     unavailableTransactionCount,
     unreferencedTransactionCount,
@@ -376,7 +387,8 @@ async function main() {
     walletConnected: false,
     transactionRequested: false,
     observedAt,
-    signatureLimitPerVault: signatureLimit,
+    signatureFetchLimitPerVault: signatureFetchLimit,
+    successfulFlowTargetPerVault: successfulFlowTarget,
     balances,
     vaultScans,
     flowCount: flows.length,
