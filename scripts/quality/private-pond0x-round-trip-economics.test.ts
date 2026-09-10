@@ -206,17 +206,18 @@ test("blocks foreign referral and stale quote combinations", () => {
 })
 
 
-test("blocks a route outside observed Pond0x Raydium venues", () => {
+test("preserves a portal-orchestrated route without venue blocking", () => {
   const result = evaluate({
     entry: ultraQuote({
-      routeLabels: ["unknown venue"],
+      routeLabels: ["future Pond0x venue"],
+      router: "future-router",
     }),
   })
 
-  assert.equal(result.status, "BLOCKED")
-  assert.ok(
-    result.blockingReasons.includes(
-      "PONDOX_ENTRY_ROUTE_NOT_ALLOWED"
-    )
+  assert.equal(result.status, "MEASURED")
+  assert.deepEqual(
+    result.entryRouteLabels,
+    ["future Pond0x venue"]
   )
+  assert.deepEqual(result.blockingReasons, [])
 })
