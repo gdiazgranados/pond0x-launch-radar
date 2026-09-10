@@ -157,6 +157,28 @@ test("records passive third-party assets without blocking", () => {
   assert.deepEqual(result.unexpectedHosts, [])
 })
 
+test("treats a Clear image as passive without trusting the app", () => {
+  const surface = classifyPond0xNetworkSurface({
+    host: "stable-mainnet.vercel.app",
+    path: "/_next/static/media/paper.png",
+    method: "GET",
+    resourceType: "image",
+  })
+
+  assert.equal(surface.classification, "PASSIVE_ASSET")
+})
+
+test("treats the exact Google Fonts stylesheet as passive", () => {
+  const surface = classifyPond0xNetworkSurface({
+    host: "fonts.googleapis.com",
+    path: "/css2",
+    method: "GET",
+    resourceType: "fetch",
+  })
+
+  assert.equal(surface.classification, "PASSIVE_ASSET")
+})
+
 test("hard-blocks the Clear execution surface", () => {
   const surface = classifyPond0xNetworkSurface({
     host: "stable-mainnet.vercel.app",
