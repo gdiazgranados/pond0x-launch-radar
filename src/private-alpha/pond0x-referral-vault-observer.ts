@@ -94,6 +94,7 @@ export type Pond0xVaultScanDiagnostic = {
   unreferencedTransactionCount: number
   transactionRequestCount: number
   pageCount: number
+  resumeBeforeSignature: string | null
   flowCount: number
   stoppedReason:
     | "RECENT_WINDOW_COMPLETE"
