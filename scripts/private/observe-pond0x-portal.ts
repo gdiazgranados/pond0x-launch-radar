@@ -6,6 +6,7 @@ import {
   classifyPond0xNetworkSurface,
   decimalToBaseUnits,
   type Pond0xNetworkSurface,
+  type Pond0xQuoteDiagnostic,
   type Pond0xUnderlyingQuote,
 } from "../../src/private-alpha/pond0x-portal-observation"
 import {
@@ -72,6 +73,7 @@ async function main() {
     const page = await context.newPage()
     const observedHosts = new Set<string>()
     const networkSurfaceMap = new Map<string, Pond0xNetworkSurface>()
+    const quoteDiagnostics: Pond0xQuoteDiagnostic[] = []
     const quotePromises: Array<
       Promise<Pond0xUnderlyingQuote | null>
     > = []
@@ -115,9 +117,25 @@ async function main() {
 
       if (!isLite && !isUltra) return
 
+      const diagnostic: Pond0xQuoteDiagnostic = {
+        provider: isLite ? "JUPITER_LITE" : "JUPITER_ULTRA",
+        sourceHost: url.hostname,
+        sourcePath: url.pathname,
+        observedAt: new Date().toISOString(),
+        httpStatus: response.status(),
+        contentType: response.headers()["content-type"] ?? null,
+        requestInputMint: url.searchParams.get("inputMint"),
+        requestOutputMint: url.searchParams.get("outputMint"),
+        requestAmount: url.searchParams.get("amount"),
+        parsed: false,
+        failureReason: null,
+      }
+      quoteDiagnostics.push(diagnostic)
+
       quotePromises.push((async () => {
         try {
           const payload = asRecord(await response.json())
+          diagnostic.parsed = true
           return {
             provider: isLite ? "JUPITER_LITE" : "JUPITER_ULTRA",
             sourceHost: url.hostname,
@@ -143,6 +161,7 @@ async function main() {
               nullableIntegerString(payload.rentFeeLamports),
           }
         } catch {
+          diagnostic.failureReason = "RESPONSE_JSON_UNAVAILABLE"
           return null
         }
       })())
@@ -187,7 +206,7 @@ async function main() {
           element.value.trim().length > 0
       )
     }, undefined, { timeout: 30_000 }).catch(() => undefined)
-    await page.waitForTimeout(2_000)
+    await page.waitForTimeout(5_000)
 
     const receiveValues = await receiveInputs.evaluateAll(
       (elements) =>
@@ -203,6 +222,7 @@ async function main() {
     )
     const portalDisplayedReceiveAmount =
       receiveValues.at(-1) ?? null
+    const portalDisplayedAt = new Date().toISOString()
     const quotes = (
       await Promise.all(quotePromises)
     ).filter(
@@ -226,8 +246,10 @@ async function main() {
       portalUrl: page.url(),
       payAmountSol,
       portalDisplayedReceiveAmount,
+      portalDisplayedAt,
       quote,
       quoteCandidates: quotes,
+      quoteDiagnostics,
       observedHosts: [...observedHosts],
       networkSurfaces: [...networkSurfaceMap.values()],
       maxPortalDiscrepancyBps: maxDiscrepancyBps,
@@ -261,6 +283,7 @@ async function main() {
         observation.portalDisplayedReceiveAmount,
       underlyingOutAmountBaseUnits:
         observation.underlyingQuote?.outAmount ?? null,
+      portalDisplayedAt: observation.portalDisplayedAt,
       quoteCandidates: observation.quoteCandidates.map((candidate) => ({
         provider: candidate.provider,
         outAmount: candidate.outAmount,
@@ -274,6 +297,7 @@ async function main() {
         rentFeeLamports: candidate.rentFeeLamports,
         routeLabels: candidate.routeLabels,
       })),
+      quoteDiagnostics: observation.quoteDiagnostics,
       networkSurfaceSummary: Object.fromEntries(
         [...new Set(
           observation.networkSurfaces.map(
