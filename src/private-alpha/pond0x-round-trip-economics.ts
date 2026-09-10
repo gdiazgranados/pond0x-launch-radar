@@ -61,18 +61,6 @@ function ratioBps(numerator: bigint, denominator: bigint) {
   ) / 10_000
 }
 
-const ALLOWED_PONDOX_ROUTE_LABELS = new Set([
-  "Raydium AMM",
-  "Raydium CLMM",
-])
-
-function validRoute(labels: ReadonlyArray<string>) {
-  return labels.length > 0 &&
-    labels.every((label) =>
-      ALLOWED_PONDOX_ROUTE_LABELS.has(label)
-    )
-}
-
 export function evaluatePond0xRoundTripEconomics(input: {
   observedAt: string
   entry: Pond0xRoundTripQuoteLeg
@@ -122,9 +110,6 @@ export function evaluatePond0xRoundTripEconomics(input: {
     ) {
       reasons.push("PONDOX_ENTRY_MINT_MISMATCH")
     }
-    if (!validRoute(entry.routeLabels)) {
-      reasons.push("PONDOX_ENTRY_ROUTE_NOT_ALLOWED")
-    }
     if (
       !positiveInteger(entry.inAmount) ||
       !positiveInteger(entry.outAmount)
@@ -162,9 +147,6 @@ export function evaluatePond0xRoundTripEconomics(input: {
       exit.outputMint !== WRAPPED_SOL_MINT
     ) {
       reasons.push("PONDOX_EXIT_MINT_MISMATCH")
-    }
-    if (!validRoute(exit.routeLabels)) {
-      reasons.push("PONDOX_EXIT_ROUTE_NOT_ALLOWED")
     }
     if (
       !positiveInteger(exit.inAmount) ||
