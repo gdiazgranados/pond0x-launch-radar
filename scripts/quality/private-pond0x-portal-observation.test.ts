@@ -224,6 +224,33 @@ test("preserves Ultra economic evidence without selecting it", () => {
   assert.equal(result.quoteCandidates[1]?.feeBps, 100)
 })
 
+test("preserves sanitized Ultra diagnostics", () => {
+  const result = observation({
+    portalDisplayedAt: "2026-09-10T15:00:05.000Z",
+    quoteDiagnostics: [{
+      provider: "JUPITER_ULTRA",
+      sourceHost: "ultra-api.jup.ag",
+      sourcePath: "/order",
+      observedAt: "2026-09-10T15:00:04.000Z",
+      httpStatus: 200,
+      contentType: "application/json",
+      requestInputMint: WRAPPED_SOL_MINT,
+      requestOutputMint: WPOND_MINT,
+      requestAmount: "10000000",
+      parsed: false,
+      failureReason: "RESPONSE_JSON_UNAVAILABLE",
+    }],
+  })
+
+  assert.equal(result.portalDisplayedAt, "2026-09-10T15:00:05.000Z")
+  assert.equal(result.quoteDiagnostics.length, 1)
+  assert.equal(result.quoteDiagnostics[0]?.provider, "JUPITER_ULTRA")
+  assert.equal(
+    result.quoteDiagnostics[0]?.failureReason,
+    "RESPONSE_JSON_UNAVAILABLE"
+  )
+})
+
 test("fails closed when the underlying quote is absent", () => {
   const result = observation({ quote: null })
 
