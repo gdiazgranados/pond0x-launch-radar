@@ -7,7 +7,7 @@ export const PONDOX_REFERRAL_ACCOUNT =
   "9VjBWxGnJMzDaRxFHLWjDwRZcCpcH5cq8G5V4o1ymecj"
 export const PONDOX_REFERRAL_PROGRAM =
   "REFER4ZgmyYx9c6He5XfaTMiGfdLwRnkV4RPp9t9iF3"
-export const PONDOX_WS0L_VAULT =
+export const PONDOX_WSOL_VAULT =
   "GJdPHD8U12hM6Aaw3GtWfY8dqeaZxDrNoWKYg4sKhmNN"
 export const PONDOX_WPOND_VAULT =
   "CBqvmpXFgzbw1F8XEwKrfpq3RKMhwwiKFoXkLwtCXgxA"
@@ -323,7 +323,7 @@ export function buildPond0xReferralVaultSnapshot(input: {
   }
 
   const expectedVaults = new Map([
-    [WRAPPED_SOL_MINT, PONDOX_WS0L_VAULT],
+    [WRAPPED_SOL_MINT, PONDOX_WSOL_VAULT],
     [WPOND_MINT, PONDOX_WPOND_VAULT],
   ])
   for (const balance of input.balances) {
