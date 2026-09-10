@@ -114,6 +114,20 @@ export function classifyPond0xNetworkSurface(input: {
   return { ...input, classification }
 }
 
+export type Pond0xQuoteDiagnostic = {
+  provider: "JUPITER_LITE" | "JUPITER_ULTRA"
+  sourceHost: string
+  sourcePath: string
+  observedAt: string
+  httpStatus: number | null
+  contentType: string | null
+  requestInputMint: string | null
+  requestOutputMint: string | null
+  requestAmount: string | null
+  parsed: boolean
+  failureReason: string | null
+}
+
 export type Pond0xPortalObservation = {
   schemaVersion: 1
   simulationOnly: true
@@ -127,9 +141,11 @@ export type Pond0xPortalObservation = {
   payAmount: string
   payAmountBaseUnits: string
   portalDisplayedReceiveAmount: string | null
+  portalDisplayedAt: string | null
   portalDisplayedReceiveBaseUnits: string | null
   underlyingQuote: Pond0xUnderlyingQuote | null
   quoteCandidates: ReadonlyArray<Pond0xUnderlyingQuote>
+  quoteDiagnostics: ReadonlyArray<Pond0xQuoteDiagnostic>
   quoteSlippageBps: number | null
   portalQuoteDiscrepancyBps: number | null
   observedHosts: ReadonlyArray<string>
@@ -189,8 +205,10 @@ export function buildPond0xPortalObservation(input: {
   portalUrl: string
   payAmountSol: string
   portalDisplayedReceiveAmount: string | null
+  portalDisplayedAt?: string | null
   quote: Pond0xUnderlyingQuote | null
   quoteCandidates?: ReadonlyArray<Pond0xUnderlyingQuote>
+  quoteDiagnostics?: ReadonlyArray<Pond0xQuoteDiagnostic>
   observedHosts: ReadonlyArray<string>
   networkSurfaces?: ReadonlyArray<Pond0xNetworkSurface>
   maxPortalDiscrepancyBps?: number
@@ -297,9 +315,11 @@ export function buildPond0xPortalObservation(input: {
       payAmountBaseUnits,
       portalDisplayedReceiveAmount:
         input.portalDisplayedReceiveAmount,
+      portalDisplayedAt: input.portalDisplayedAt ?? null,
       portalDisplayedReceiveBaseUnits: displayedBaseUnits,
       underlyingQuote: null,
       quoteCandidates: input.quoteCandidates ?? [],
+      quoteDiagnostics: input.quoteDiagnostics ?? [],
       quoteSlippageBps: null,
       portalQuoteDiscrepancyBps: null,
       observedHosts,
@@ -403,9 +423,11 @@ export function buildPond0xPortalObservation(input: {
     payAmountBaseUnits,
     portalDisplayedReceiveAmount:
       input.portalDisplayedReceiveAmount,
+    portalDisplayedAt: input.portalDisplayedAt ?? null,
     portalDisplayedReceiveBaseUnits: displayedBaseUnits,
     underlyingQuote: quote,
     quoteCandidates: input.quoteCandidates ?? [quote],
+    quoteDiagnostics: input.quoteDiagnostics ?? [],
     quoteSlippageBps,
     portalQuoteDiscrepancyBps,
     observedHosts,
