@@ -49,13 +49,13 @@ function boundedInteger(
 
 const signatureLimit = boundedInteger(
   "PONDOX_VAULT_SIGNATURE_LIMIT",
-  10,
+  5,
   1,
   50
 )
 const requestDelayMs = boundedInteger(
   "PONDOX_VAULT_REQUEST_DELAY_MS",
-  350,
+  750,
   0,
   5_000
 )
@@ -96,43 +96,68 @@ type SignatureInfo = {
   err?: unknown
 }
 
+async function wait(milliseconds: number) {
+  if (milliseconds === 0) return
+  await new Promise((resolveWait) => {
+    setTimeout(resolveWait, milliseconds)
+  })
+}
+
 async function rpc<T>(
   method: string,
   params: ReadonlyArray<unknown>
 ): Promise<T> {
-  const response = await fetch(rpcUrl, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      jsonrpc: "2.0",
-      id: 1,
-      method,
-      params,
-    }),
-    cache: "no-store",
-    signal: AbortSignal.timeout(20_000),
-  })
-  if (!response.ok) {
-    throw new Error(
-      "Solana RPC failed with HTTP " + response.status
+  const maximumAttempts = 4
+
+  for (let attempt = 1; attempt <= maximumAttempts; attempt += 1) {
+    const response = await fetch(rpcUrl, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method,
+        params,
+      }),
+      cache: "no-store",
+      signal: AbortSignal.timeout(20_000),
+    })
+
+    if (response.ok) {
+      const payload = await response.json() as RpcEnvelope<T>
+      if (payload.error || payload.result === undefined) {
+        throw new Error(
+          "Solana RPC " + method + " failed: " +
+          (payload.error?.message ?? "missing result")
+        )
+      }
+      return payload.result
+    }
+
+    const retryable =
+      response.status === 429 || response.status >= 500
+    if (!retryable || attempt === maximumAttempts) {
+      throw new Error(
+        "Solana RPC failed with HTTP " + response.status
+      )
+    }
+
+    const retryAfter = Number(
+      response.headers.get("retry-after")
     )
+    const fallbackDelay = 1_000 * (2 ** (attempt - 1))
+    const retryDelay = Number.isFinite(retryAfter) &&
+      retryAfter > 0
+      ? Math.min(retryAfter * 1_000, 15_000)
+      : fallbackDelay
+    await wait(retryDelay)
   }
 
-  const payload = await response.json() as RpcEnvelope<T>
-  if (payload.error || payload.result === undefined) {
-    throw new Error(
-      "Solana RPC " + method + " failed: " +
-      (payload.error?.message ?? "missing result")
-    )
-  }
-  return payload.result
+  throw new Error("Solana RPC retry loop exhausted")
 }
 
 async function delay() {
-  if (requestDelayMs === 0) return
-  await new Promise((resolveDelay) => {
-    setTimeout(resolveDelay, requestDelayMs)
-  })
+  await wait(requestDelayMs)
 }
 
 function parseRequiredBalance(
