@@ -82,7 +82,12 @@ function evaluate(input: {
 }
 
 test("measures exact Pond0x round-trip break-even economics", () => {
-  const result = evaluate()
+  const result = evaluate({
+    entry: ultraQuote({
+      routeLabels: ["Raydium AMM", "Raydium CLMM"],
+      router: "dflow",
+    }),
+  })
 
   assert.equal(result.status, "MEASURED")
   assert.equal(result.entryInputLamports, "10000000")
@@ -196,6 +201,22 @@ test("blocks foreign referral and stale quote combinations", () => {
   assert.ok(
     stale.blockingReasons.includes(
       "PONDOX_ROUND_TRIP_QUOTE_WINDOW_INVALID"
+    )
+  )
+})
+
+
+test("blocks a route outside observed Pond0x Raydium venues", () => {
+  const result = evaluate({
+    entry: ultraQuote({
+      routeLabels: ["unknown venue"],
+    }),
+  })
+
+  assert.equal(result.status, "BLOCKED")
+  assert.ok(
+    result.blockingReasons.includes(
+      "PONDOX_ENTRY_ROUTE_NOT_ALLOWED"
     )
   )
 })
