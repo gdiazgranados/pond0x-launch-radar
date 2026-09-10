@@ -228,7 +228,9 @@ function timestampKey(value: string) {
 }
 
 async function main() {
-  const referral = await rpc<AccountInfo | null>(
+  const referralResponse = await rpc<{
+    value?: AccountInfo | null
+  }>(
     "getAccountInfo",
     [
       PONDOX_REFERRAL_ACCOUNT,
@@ -238,6 +240,7 @@ async function main() {
       },
     ]
   )
+  const referral = referralResponse.value
   if (
     !referral ||
     referral.owner !== PONDOX_REFERRAL_PROGRAM ||
