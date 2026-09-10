@@ -75,16 +75,16 @@ function normalizeRadarItem(item: RadarData): RadarData {
     intensityClass: item.intensityClass || undefined,
     overdrive: Boolean(item.overdrive),
 
-    portalArmed: Boolean((item as any).portalArmed),
-    launchImminent: Boolean((item as any).launchImminent),
+    portalArmed: Boolean(item.portalArmed),
+    launchImminent: Boolean(item.launchImminent),
 
-    eventType: (item as any).eventType || "",
-    signalFusion: (item as any).signalFusion || "",
-    signalRegime: (item as any).signalRegime || "",
-    alphaClass: (item as any).alphaClass || "",
-    triggerState: (item as any).triggerState || "",
-    suggestedAction: (item as any).suggestedAction || "",
-    eta: (item as any).eta || "",
+    eventType: item.eventType || "",
+    signalFusion: item.signalFusion || "",
+    signalRegime: item.signalRegime || "",
+    alphaClass: item.alphaClass || "",
+    triggerState: item.triggerState || "",
+    suggestedAction: item.suggestedAction || "",
+    eta: item.eta || "",
 
     signals: Array.isArray(item.signals) ? item.signals : [],
     patterns: Array.isArray(item.patterns) ? item.patterns : [],
@@ -110,27 +110,27 @@ function normalizeAlertItem(item: AlertItem): AlertItem {
     generatedAt: item.generatedAt || undefined,
 
     score: Number(item.score ?? 0),
-    rawScore: Number((item as any).rawScore ?? item.score ?? 0),
-    scorePercent: Number((item as any).scorePercent ?? item.score ?? 0),
+    rawScore: Number(item.rawScore ?? item.score ?? 0),
+    scorePercent: Number(item.scorePercent ?? item.score ?? 0),
 
     trend: Number(item.trend ?? 0),
 
     movementPct: Number(item.movementPct ?? 0),
-    movementPercent: Number((item as any).movementPercent ?? item.movementPct ?? 0),
+    movementPercent: Number(item.movementPercent ?? item.movementPct ?? 0),
 
     level: item.level || "LOW",
     tags: Array.isArray(item.tags) ? item.tags : [],
     patterns: Array.isArray(item.patterns) ? item.patterns : [],
     summary: item.summary || "",
     insight: item.insight || "",
-    focusAreas: Array.isArray((item as any).focusAreas) ? (item as any).focusAreas : [],
-    signals: Array.isArray((item as any).signals) ? (item as any).signals : [],
+    focusAreas: Array.isArray(item.focusAreas) ? item.focusAreas : [],
+    signals: Array.isArray(item.signals) ? item.signals : [],
 
-    portalArmed: Boolean((item as any).portalArmed),
-    launchImminent: Boolean((item as any).launchImminent),
-    eventType: (item as any).eventType || "",
-    signalFusion: (item as any).signalFusion || "",
-    signalRegime: (item as any).signalRegime || "",
+    portalArmed: Boolean(item.portalArmed),
+    launchImminent: Boolean(item.launchImminent),
+    eventType: item.eventType || "",
+    signalFusion: item.signalFusion || "",
+    signalRegime: item.signalRegime || "",
   }
 }
 
@@ -154,8 +154,8 @@ function sortRadarHistory(items: RadarData[]) {
 
 function sortAlerts(items: AlertItem[]) {
   return [...items].sort((a, b) => {
-    const aTs = getSafeTime((a as any).sentAt || a.generatedAt)
-    const bTs = getSafeTime((b as any).sentAt || b.generatedAt)
+    const aTs = getSafeTime(a.sentAt || a.generatedAt)
+    const bTs = getSafeTime(b.sentAt || b.generatedAt)
     return bTs - aTs
   })
 }
