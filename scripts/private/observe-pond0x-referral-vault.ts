@@ -10,6 +10,7 @@ import {
   type Pond0xParsedTransaction,
   type Pond0xReferralVaultBalance,
   type Pond0xVaultFlow,
+  type Pond0xVaultScanDiagnostic,
 } from "../../src/private-alpha/pond0x-referral-vault-observer"
 import {
   WPOND_MINT,
@@ -210,15 +211,20 @@ async function observeVault(input: {
     ]
   )
   const flows: Pond0xVaultFlow[] = []
+  let failedSignatureCount = 0
+  let unavailableTransactionCount = 0
+  let unreferencedTransactionCount = 0
 
   for (const signatureInfo of signatures) {
+    if (typeof signatureInfo.signature !== "string") {
+      unavailableTransactionCount += 1
+      continue
+    }
     if (
-      typeof signatureInfo.signature !== "string" ||
-      (
-        signatureInfo.err !== null &&
-        signatureInfo.err !== undefined
-      )
+      signatureInfo.err !== null &&
+      signatureInfo.err !== undefined
     ) {
+      failedSignatureCount += 1
       continue
     }
 
@@ -234,7 +240,10 @@ async function observeVault(input: {
         },
       ]
     )
-    if (!transaction) continue
+    if (!transaction) {
+      unavailableTransactionCount += 1
+      continue
+    }
 
     const flow = analyzePond0xVaultTransaction({
       signature: signatureInfo.signature,
@@ -242,10 +251,24 @@ async function observeVault(input: {
       expectedMint: input.mint,
       transaction,
     })
-    if (flow) flows.push(flow)
+    if (flow) {
+      flows.push(flow)
+    } else {
+      unreferencedTransactionCount += 1
+    }
   }
 
-  return flows
+  const diagnostic: Pond0xVaultScanDiagnostic = {
+    tokenAccount: input.tokenAccount,
+    mint: input.mint,
+    signatureCount: signatures.length,
+    failedSignatureCount,
+    unavailableTransactionCount,
+    unreferencedTransactionCount,
+    flowCount: flows.length,
+  }
+
+  return { flows, diagnostic }
 }
 
 function timestampKey(value: string) {
@@ -303,12 +326,15 @@ async function main() {
   ]
 
   const flows: Pond0xVaultFlow[] = []
+  const vaultScans: Pond0xVaultScanDiagnostic[] = []
   for (const vault of balances) {
     await delay()
-    flows.push(...await observeVault({
+    const scan = await observeVault({
       tokenAccount: vault.tokenAccount,
       mint: vault.mint,
-    }))
+    })
+    flows.push(...scan.flows)
+    vaultScans.push(scan.diagnostic)
   }
   flows.sort(
     (left, right) =>
@@ -322,6 +348,7 @@ async function main() {
     referralProgram: PONDOX_REFERRAL_PROGRAM,
     referralExecutable: false,
     balances,
+    vaultScans,
     flows,
   })
   const archivePath = resolve(
@@ -351,6 +378,7 @@ async function main() {
     observedAt,
     signatureLimitPerVault: signatureLimit,
     balances,
+    vaultScans,
     flowCount: flows.length,
     depositCount: snapshot.depositCount,
     withdrawalCount: snapshot.withdrawalCount,
