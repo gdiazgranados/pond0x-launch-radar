@@ -327,6 +327,14 @@ async function observeVault(input: {
       }
     }
 
+    if (
+      searchWithdrawals &&
+      flows.some((flow) => flow.direction === "WITHDRAWAL")
+    ) {
+      stoppedReason = "WITHDRAWAL_FOUND"
+      break
+    }
+
     before = signatures.at(-1)?.signature
     if (!searchWithdrawals) {
       stoppedReason = flows.length >= successfulFlowTarget
