@@ -18,6 +18,7 @@ export const PONDOX_OBSERVER_ALLOWED_HOSTS = [
   "lite-api.jup.ag",
   "ultra-api.jup.ag",
   "mainnet.helius-rpc.com",
+  "jup.ag",
 ] as const
 
 export type Pond0xPortalObservationStatus =
@@ -26,6 +27,7 @@ export type Pond0xPortalObservationStatus =
   | "UNAVAILABLE"
 
 export type Pond0xUnderlyingQuote = {
+  provider: "JUPITER_LITE" | "JUPITER_ULTRA"
   sourceHost: string
   sourcePath: string
   httpStatus: number
@@ -37,6 +39,72 @@ export type Pond0xUnderlyingQuote = {
   priceImpactPct: string | null
   swapMode: string | null
   routeLabels: ReadonlyArray<string>
+  router: string | null
+  feeBps: number | null
+  signatureFeeLamports: string | null
+  prioritizationFeeLamports: string | null
+  rentFeeLamports: string | null
+}
+
+export type Pond0xNetworkSurfaceClassification =
+  | "PONDOX_PORTAL"
+  | "QUOTE_API"
+  | "RPC"
+  | "WALLET_INFRASTRUCTURE"
+  | "PASSIVE_ASSET"
+  | "DENIED_EXECUTION_HOST"
+  | "UNKNOWN_ACTIVE"
+
+export type Pond0xNetworkSurface = {
+  host: string
+  path: string
+  method: string
+  resourceType: string
+  classification: Pond0xNetworkSurfaceClassification
+}
+
+const passiveResourceTypes = new Set([
+  "font",
+  "image",
+  "media",
+  "stylesheet",
+])
+
+export function classifyPond0xNetworkSurface(input: {
+  host: string
+  path: string
+  method: string
+  resourceType: string
+}): Pond0xNetworkSurface {
+  let classification: Pond0xNetworkSurfaceClassification
+
+  if (input.host === "stable-mainnet.vercel.app") {
+    classification = "DENIED_EXECUTION_HOST"
+  } else if (passiveResourceTypes.has(input.resourceType)) {
+    classification = "PASSIVE_ASSET"
+  } else if (input.host === "www.pond0x.com") {
+    classification = "PONDOX_PORTAL"
+  } else if (
+    input.host === "lite-api.jup.ag" ||
+    input.host === "ultra-api.jup.ag" ||
+    input.host === "datapi.jup.ag" ||
+    input.host === "plugin.jup.ag" ||
+    input.host === "jup.ag"
+  ) {
+    classification = "QUOTE_API"
+  } else if (input.host === "mainnet.helius-rpc.com") {
+    classification = "RPC"
+  } else if (
+    input.host === "api.web3modal.org" ||
+    input.host === "pulse.walletconnect.org" ||
+    input.host === "mm-sdk-analytics.api.cx.metamask.io"
+  ) {
+    classification = "WALLET_INFRASTRUCTURE"
+  } else {
+    classification = "UNKNOWN_ACTIVE"
+  }
+
+  return { ...input, classification }
 }
 
 export type Pond0xPortalObservation = {
@@ -54,9 +122,11 @@ export type Pond0xPortalObservation = {
   portalDisplayedReceiveAmount: string | null
   portalDisplayedReceiveBaseUnits: string | null
   underlyingQuote: Pond0xUnderlyingQuote | null
+  quoteCandidates: ReadonlyArray<Pond0xUnderlyingQuote>
   quoteSlippageBps: number | null
   portalQuoteDiscrepancyBps: number | null
   observedHosts: ReadonlyArray<string>
+  networkSurfaces: ReadonlyArray<Pond0xNetworkSurface>
   unexpectedHosts: ReadonlyArray<string>
   blockingReasons: ReadonlyArray<string>
   source: "PONDOX_FIREFOX_UI_AND_JUPITER_NETWORK"
@@ -113,7 +183,9 @@ export function buildPond0xPortalObservation(input: {
   payAmountSol: string
   portalDisplayedReceiveAmount: string | null
   quote: Pond0xUnderlyingQuote | null
+  quoteCandidates?: ReadonlyArray<Pond0xUnderlyingQuote>
   observedHosts: ReadonlyArray<string>
+  networkSurfaces?: ReadonlyArray<Pond0xNetworkSurface>
   maxPortalDiscrepancyBps?: number
 }): Pond0xPortalObservation {
   const blockingReasons: string[] = []
@@ -155,10 +227,33 @@ export function buildPond0xPortalObservation(input: {
   const allowedHosts = new Set<string>(
     PONDOX_OBSERVER_ALLOWED_HOSTS
   )
-  const unexpectedHosts = observedHosts.filter(
-    (host) => !allowedHosts.has(host)
+  const networkSurfaces = input.networkSurfaces ?? []
+  const deniedExecutionHosts = uniqueSorted(
+    networkSurfaces
+      .filter((surface) =>
+        surface.classification === "DENIED_EXECUTION_HOST"
+      )
+      .map((surface) => surface.host)
   )
-  if (unexpectedHosts.length > 0) {
+  const unknownActiveHosts = uniqueSorted(
+    networkSurfaces
+      .filter((surface) =>
+        surface.classification === "UNKNOWN_ACTIVE"
+      )
+      .map((surface) => surface.host)
+  )
+  const legacyUnexpectedHosts = networkSurfaces.length === 0
+    ? observedHosts.filter((host) => !allowedHosts.has(host))
+    : []
+  const unexpectedHosts = uniqueSorted([
+    ...deniedExecutionHosts,
+    ...unknownActiveHosts,
+    ...legacyUnexpectedHosts,
+  ])
+  if (deniedExecutionHosts.length > 0) {
+    blockingReasons.push("PONDOX_DENIED_EXECUTION_HOST")
+  }
+  if (unknownActiveHosts.length > 0 || legacyUnexpectedHosts.length > 0) {
     blockingReasons.push("PONDOX_UNEXPECTED_NETWORK_HOST")
   }
 
@@ -197,9 +292,11 @@ export function buildPond0xPortalObservation(input: {
         input.portalDisplayedReceiveAmount,
       portalDisplayedReceiveBaseUnits: displayedBaseUnits,
       underlyingQuote: null,
+      quoteCandidates: input.quoteCandidates ?? [],
       quoteSlippageBps: null,
       portalQuoteDiscrepancyBps: null,
       observedHosts,
+      networkSurfaces,
       unexpectedHosts,
       blockingReasons: [
         ...new Set([
@@ -301,9 +398,11 @@ export function buildPond0xPortalObservation(input: {
       input.portalDisplayedReceiveAmount,
     portalDisplayedReceiveBaseUnits: displayedBaseUnits,
     underlyingQuote: quote,
+    quoteCandidates: input.quoteCandidates ?? [quote],
     quoteSlippageBps,
     portalQuoteDiscrepancyBps,
     observedHosts,
+    networkSurfaces,
     unexpectedHosts,
     blockingReasons: uniqueReasons,
     source: "PONDOX_FIREFOX_UI_AND_JUPITER_NETWORK",
