@@ -25,8 +25,8 @@ async function main() {
     process.env.SHADOW_DATA_DIR ?? "private-data"
   )
   const inputPath = resolve(
-    process.env.SHADOW_OBSERVATION_INPUT ??
-      "private-data/shadow-observation-input.json"
+    process.env.SHADOW_EXIT_INPUT ??
+      "private-data/shadow-exit-input.json"
   )
   const envelope = JSON.parse(
     await readFile(inputPath, "utf8")
