@@ -88,6 +88,7 @@ export type Pond0xVaultScanDiagnostic = {
   tokenAccount: string
   mint: string
   signatureCount: number
+  examinedSignatureCount: number
   failedSignatureCount: number
   unavailableTransactionCount: number
   unreferencedTransactionCount: number
