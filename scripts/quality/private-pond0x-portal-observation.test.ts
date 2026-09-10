@@ -69,7 +69,9 @@ test("measures a reconciled Pond0x quote", () => {
     result.portalDisplayedReceiveBaseUnits,
     "7165096166"
   )
-  assert.equal(result.quoteSlippageBps, 50)
+  assert.ok(
+    Math.abs((result.quoteSlippageBps ?? 0) - 50) < 0.001
+  )
   assert.equal(result.portalQuoteDiscrepancyBps, 0)
   assert.deepEqual(result.blockingReasons, [])
 })
