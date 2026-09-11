@@ -37,7 +37,7 @@ function encodedTransaction(options: {
         blockhash: blockhash(
           "11111111111111111111111111111111"
         ),
-        lastValidBlockHeight: 100n,
+        lastValidBlockHeight: BigInt(100),
       },
       message
     )
