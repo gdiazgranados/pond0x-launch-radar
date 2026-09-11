@@ -102,11 +102,15 @@ test("blocks the observed portal and quote discrepancy", () => {
   )
 })
 
-test("blocks mint and route changes", () => {
+test("blocks a mint change but preserves an orchestrated route", () => {
   const result = observation({
     quote: quote({
       outputMint: "replacement-mint",
-      routeLabels: ["replacement-route"],
+      routeLabels: [
+        "Raydium CLMM",
+        "Raydium CP",
+        "Raydium CP",
+      ],
     }),
   })
 
@@ -116,11 +120,31 @@ test("blocks mint and route changes", () => {
       "PONDOX_QUOTE_OUTPUT_MINT_MISMATCH"
     )
   )
-  assert.ok(
+  assert.equal(
     result.blockingReasons.includes(
       "PONDOX_QUOTE_ROUTE_NOT_ALLOWED"
-    )
+    ),
+    false
   )
+})
+
+test("measures a reconciled multi-venue Pond0x route", () => {
+  const result = observation({
+    quote: quote({
+      routeLabels: [
+        "Raydium CLMM",
+        "Raydium CP",
+        "Raydium CP",
+      ],
+    }),
+  })
+
+  assert.equal(result.status, "MEASURED")
+  assert.deepEqual(
+    result.underlyingQuote?.routeLabels,
+    ["Raydium CLMM", "Raydium CP", "Raydium CP"]
+  )
+  assert.deepEqual(result.blockingReasons, [])
 })
 
 test("blocks unexpected network hosts", () => {
