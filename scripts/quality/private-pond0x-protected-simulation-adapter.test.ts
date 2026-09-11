@@ -11,6 +11,9 @@ import {
   setTransactionMessageFeePayer,
   setTransactionMessageLifetimeUsingBlockhash,
 } from "@solana/kit"
+import type {
+  Address,
+} from "@solana/kit"
 import {
   evaluatePond0xProtectedSimulation,
 } from "../../src/private-alpha/pond0x-protected-simulation-adapter"
@@ -40,7 +43,7 @@ const SYSTEM_PROGRAM = address(
 )
 
 function encodedTransaction(
-  feePayer = DEDICATED_WALLET,
+  feePayer: Address = DEDICATED_WALLET,
   withInstruction = true
 ) {
   const base = pipe(
