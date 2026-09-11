@@ -75,6 +75,14 @@ export function inspectSolanaWireTransaction(
       getCompiledTransactionMessageDecoder().decode(
         transaction.messageBytes
       )
+    if (message.version !== "legacy" && message.version !== 0) {
+      return {
+        ...blocked("PONDOX_WIRE_VERSION_UNSUPPORTED"),
+        transactionVersion: message.version,
+        wireByteLength: wireBytes.length,
+      }
+    }
+
     const staticAccounts = message.staticAccounts.map(String)
     const signerCount = message.header.numSignerAccounts
     const requiredSigners = staticAccounts.slice(0, signerCount)
