@@ -1,21 +1,21 @@
 {
   "version": 1,
-  "checkedAt": "2026-09-12T17:33:28.543Z",
-  "snapshotId": "2026-09-12_173302",
-  "state": "RUNTIME_ACTIVATION",
-  "severity": "HIGH",
-  "decisionStrength": 53,
+  "checkedAt": "2026-09-12T18:33:25.608Z",
+  "snapshotId": "2026-09-12_183300",
+  "state": "WATCH",
+  "severity": "LOW",
+  "decisionStrength": 28,
   "scores": {
-    "semanticChange": 44,
-    "correlation": 41,
-    "evidenceConfidence": 74,
-    "activationTimeline": 32
+    "semanticChange": 0,
+    "correlation": 0,
+    "evidenceConfidence": 58,
+    "activationTimeline": 14
   },
   "gates": {
-    "activationTransition": true,
-    "runtimeEvidence": true,
+    "activationTransition": false,
+    "runtimeEvidence": false,
     "distributionEvidence": false,
-    "domainCount": 2,
+    "domainCount": 1,
     "highConfidenceEvidence": 0
   },
   "thresholds": {
@@ -31,18 +31,10 @@
     "strongSemantic": 60
   },
   "reasons": [
-    "A feature flag or dormant surface transitioned into an active state with sufficient evidence quality."
+    "Fresh evidence exists, but it does not yet satisfy runtime-activation or multi-domain convergence gates.",
+    "Evidence quality remains limited; weak sources are intentionally prevented from driving a stronger decision state."
   ],
   "strongestEvidence": [
-    {
-      "type": "ROUTE_DORMANT_TO_LIVE",
-      "domain": "route",
-      "subject": "/bubbles",
-      "seenAt": "2026-09-12T17:33:21.126Z",
-      "confidence": 82,
-      "sourceClass": "HTTP_SURFACE_PROBE",
-      "detail": "ROUTE /bubbles became live"
-    },
     {
       "type": "SEMANTIC_MATERIAL_CHANGE",
       "domain": "semantic",
@@ -53,6 +45,6 @@
       "detail": "/api/aqua"
     }
   ],
-  "interpretation": "A runtime/state activation transition is confirmed observationally, but broader convergence may still be incomplete.",
+  "interpretation": "There is fresh evidence worth watching, but promotion gates are not satisfied.",
   "caution": "Activation Decision is an explainable evidence state, not a probability of launch, causality, claim readiness, or reward eligibility."
 }
