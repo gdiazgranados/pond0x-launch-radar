@@ -1,11 +1,11 @@
 {
   "version": 3,
-  "generatedAt": "2026-09-12T16:33:25.637Z",
-  "sampleCount": 366,
+  "generatedAt": "2026-09-12T17:33:30.395Z",
+  "sampleCount": 367,
   "historySampleCount": 200,
-  "exactArchiveEntryCount": 366,
+  "exactArchiveEntryCount": 367,
   "firstObservedAt": "2026-08-28T17:33:00.830Z",
-  "lastObservedAt": "2026-09-12T16:33:23.958Z",
+  "lastObservedAt": "2026-09-12T17:33:28.543Z",
   "defaultProfile": "DEFAULT",
   "rows": [
     {
@@ -8059,19 +8059,42 @@
       },
       "replayQuality": "EXACT_SWEEP_ARCHIVE",
       "profile": "DEFAULT"
+    },
+    {
+      "generatedAt": "2026-09-12T17:33:28.543Z",
+      "snapshotId": "2026-09-12_173302",
+      "state": "RUNTIME_ACTIVATION",
+      "severity": "HIGH",
+      "decisionStrength": 53,
+      "scores": {
+        "semanticChange": 44,
+        "correlation": 41,
+        "evidenceConfidence": 74,
+        "activationTimeline": 32
+      },
+      "gates": {
+        "activationTransition": true,
+        "runtimeEvidence": true,
+        "distributionEvidence": false,
+        "domainCount": 2,
+        "highConfidenceEvidence": 0
+      },
+      "replayQuality": "EXACT_SWEEP_ARCHIVE",
+      "profile": "DEFAULT"
     }
   ],
   "summary": {
     "distribution": {
       "QUIET": 359,
-      "WATCH": 7
+      "WATCH": 7,
+      "RUNTIME_ACTIVATION": 1
     },
-    "nonQuietCount": 7,
-    "runtimeOrHigherCount": 0,
-    "exactSweepCount": 366,
+    "nonQuietCount": 8,
+    "runtimeOrHigherCount": 1,
+    "exactSweepCount": 367,
     "reconstructedEvidenceCount": 0,
-    "usableEvidenceCount": 366,
-    "maxDecisionStrength": 11
+    "usableEvidenceCount": 367,
+    "maxDecisionStrength": 53
   },
   "groundTruth": {
     "registryVersion": 1,
@@ -8081,15 +8104,15 @@
     ],
     "defaultMetrics": {
       "eventCount": 4,
-      "signalCount": 7,
+      "signalCount": 8,
       "detectedEvents": 0,
       "missedEvents": 4,
       "truePositiveSignals": 0,
-      "falsePositiveSignals": 7,
+      "falsePositiveSignals": 8,
       "precision": 0,
       "recall": 0,
       "missRate": 100,
-      "falsePositiveRate": 1.91,
+      "falsePositiveRate": 2.18,
       "medianLeadMinutes": null,
       "lookbackMinutes": 1440,
       "postEventGraceMinutes": 60,
@@ -8140,7 +8163,7 @@
   "coverage": {
     "mode": "HYBRID_EXACT_AND_COMPATIBILITY_REPLAY",
     "exactHistoricalTimelineAvailable": true,
-    "exactSweepCount": 366,
+    "exactSweepCount": 367,
     "note": "New sweeps use exact archived decision evidence. Older periods fall back to compatibility reconstruction from history.json. Ground-truth metrics remain coverage-sensitive for events that predate the exact archive."
   }
 }

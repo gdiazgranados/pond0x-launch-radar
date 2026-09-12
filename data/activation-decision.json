@@ -1,21 +1,21 @@
 {
   "version": 1,
-  "checkedAt": "2026-09-12T15:33:24.426Z",
-  "snapshotId": "2026-09-12_153301",
-  "state": "QUIET",
-  "severity": "INFO",
-  "decisionStrength": 0,
+  "checkedAt": "2026-09-12T17:33:28.543Z",
+  "snapshotId": "2026-09-12_173302",
+  "state": "RUNTIME_ACTIVATION",
+  "severity": "HIGH",
+  "decisionStrength": 53,
   "scores": {
-    "semanticChange": 0,
-    "correlation": 0,
-    "evidenceConfidence": 0,
-    "activationTimeline": 0
+    "semanticChange": 44,
+    "correlation": 41,
+    "evidenceConfidence": 74,
+    "activationTimeline": 32
   },
   "gates": {
-    "activationTransition": false,
-    "runtimeEvidence": false,
+    "activationTransition": true,
+    "runtimeEvidence": true,
     "distributionEvidence": false,
-    "domainCount": 0,
+    "domainCount": 2,
     "highConfidenceEvidence": 0
   },
   "thresholds": {
@@ -31,9 +31,28 @@
     "strongSemantic": 60
   },
   "reasons": [
-    "No fresh activation evidence is present in the current decision window."
+    "A feature flag or dormant surface transitioned into an active state with sufficient evidence quality."
   ],
-  "strongestEvidence": [],
-  "interpretation": "No fresh decision-grade activation evidence is present.",
+  "strongestEvidence": [
+    {
+      "type": "ROUTE_DORMANT_TO_LIVE",
+      "domain": "route",
+      "subject": "/bubbles",
+      "seenAt": "2026-09-12T17:33:21.126Z",
+      "confidence": 82,
+      "sourceClass": "HTTP_SURFACE_PROBE",
+      "detail": "ROUTE /bubbles became live"
+    },
+    {
+      "type": "SEMANTIC_MATERIAL_CHANGE",
+      "domain": "semantic",
+      "subject": "first-party-bundles",
+      "seenAt": "2026-09-12T17:33:28.295Z",
+      "confidence": 58,
+      "sourceClass": "STATIC_BUNDLE_EVIDENCE",
+      "detail": "/api/aqua"
+    }
+  ],
+  "interpretation": "A runtime/state activation transition is confirmed observationally, but broader convergence may still be incomplete.",
   "caution": "Activation Decision is an explainable evidence state, not a probability of launch, causality, claim readiness, or reward eligibility."
 }

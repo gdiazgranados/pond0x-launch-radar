@@ -1,14 +1,21 @@
 {
-  "checkedAt": "2026-09-12T15:33:20.039Z",
-  "sourceSnapshotId": "2026-09-12_153301",
-  "snapshotDir": "2026-09-12_153301",
-  "newUnknownChange": false,
-  "keyFunctionCandidate": null,
+  "checkedAt": "2026-09-12T17:33:21.079Z",
+  "sourceSnapshotId": "2026-09-12_173302",
+  "snapshotDir": "2026-09-12_173302",
+  "newUnknownChange": true,
+  "keyFunctionCandidate": "critical:signmessage",
   "newLabels": [],
   "newRoutes": [],
-  "newApiRoutes": [],
+  "newApiRoutes": [
+    "/api/ai/context/memory/v2",
+    "/api/ai/trigger",
+    "/api/max/search",
+    "/api/stats/memes_new"
+  ],
   "newKeywords": [],
-  "criticalKeywords": [],
+  "criticalKeywords": [
+    "signmessage"
+  ],
   "observedLabels": [
     "connect",
     "change wallet",
@@ -33,29 +40,29 @@
   ],
   "liveApiRoutes": [
     "/api/version",
+    "/api/max/search",
     "/api/auth/session",
     "/api/rewards/feed"
   ],
-  "newLiveApiRoutes": [],
+  "newLiveApiRoutes": [
+    "/api/max/search"
+  ],
   "declaredApiRoutes": [
+    "/api/ai/context/memory/v2",
+    "/api/ai/trigger",
     "/api/broadcast",
     "/api/chat",
     "/api/chat/health",
     "/api/geoff/pair",
+    "/api/max/search",
     "/api/mp/broadcast",
     "/api/mp/build",
-    "/api/mp/fund-build"
+    "/api/mp/fund-build",
+    "/api/stats/memes_new"
   ],
   "declaredOnlyApiRoutes": [
-    "/api/broadcast",
-    "/api/chat",
-    "/api/chat/health",
-    "/api/geoff/pair",
-    "/api/mp/broadcast",
-    "/api/mp/build",
-    "/api/mp/fund-build"
-  ],
-  "observedApiRoutes": [
+    "/api/ai/context/memory/v2",
+    "/api/ai/trigger",
     "/api/broadcast",
     "/api/chat",
     "/api/chat/health",
@@ -63,6 +70,20 @@
     "/api/mp/broadcast",
     "/api/mp/build",
     "/api/mp/fund-build",
+    "/api/stats/memes_new"
+  ],
+  "observedApiRoutes": [
+    "/api/ai/context/memory/v2",
+    "/api/ai/trigger",
+    "/api/broadcast",
+    "/api/chat",
+    "/api/chat/health",
+    "/api/geoff/pair",
+    "/api/max/search",
+    "/api/mp/broadcast",
+    "/api/mp/build",
+    "/api/mp/fund-build",
+    "/api/stats/memes_new",
     "/api/version",
     "/api/auth/session",
     "/api/rewards/feed"
@@ -74,6 +95,58 @@
         "buildId"
       ],
       "size": 27,
+      "status": 200
+    },
+    "/api/max/search": {
+      "schemaFingerprint": "8b50ea30213d7094b0e846f30b0e7eb17e0b685ab1b59893d8b7d97702a65a30",
+      "schemaPaths": [
+        "markets",
+        "markets[]",
+        "markets[].category",
+        "markets[].icon",
+        "markets[].kind",
+        "markets[].slug",
+        "markets[].title",
+        "network",
+        "query",
+        "sources",
+        "sources.dexscreener",
+        "sources.jupiter",
+        "sources.okx",
+        "sources.predictions",
+        "sources.pump",
+        "sources.uniswap",
+        "tokens",
+        "tokens[]",
+        "tokens[].address",
+        "tokens[].change24h",
+        "tokens[].icon",
+        "tokens[].liquidity",
+        "tokens[].marketCap",
+        "tokens[].name",
+        "tokens[].network",
+        "tokens[].price",
+        "tokens[].symbol",
+        "tokens[].verified",
+        "tokens[].volume24h",
+        "trending",
+        "trending[]",
+        "trending[].address",
+        "trending[].change24h",
+        "trending[].icon",
+        "trending[].liquidity",
+        "trending[].marketCap",
+        "trending[].name",
+        "trending[].network",
+        "trending[].price",
+        "trending[].symbol",
+        "trending[].verified",
+        "trending[].volume24h",
+        "wallets",
+        "wallets[]",
+        "wallets[]:EMPTY_ARRAY"
+      ],
+      "size": 3540,
       "status": 200
     },
     "/api/auth/session": {
@@ -120,26 +193,26 @@
     "account",
     "verify",
     "signin",
+    "signmessage",
     "verifysignature",
     "nonce",
     "reward",
-    "rewards",
-    "portal"
+    "rewards"
   ],
   "diagnostics": {
-    "previousSnapshotId": "2026-09-12_143258",
+    "previousSnapshotId": "2026-09-12_153301",
     "freshCounts": {
       "labels": 0,
       "routes": 0,
-      "apiRoutes": 0,
-      "liveApiRoutes": 0,
+      "apiRoutes": 4,
+      "liveApiRoutes": 1,
       "keywords": 0,
-      "criticalKeywords": 0
+      "criticalKeywords": 1
     },
     "observedCounts": {
       "labels": 15,
       "routes": 3,
-      "apiRoutes": 10,
+      "apiRoutes": 14,
       "keywords": 9,
       "criticalKeywords": 13
     }
