@@ -1,21 +1,21 @@
 {
   "version": 1,
-  "checkedAt": "2026-09-12T18:33:25.608Z",
-  "snapshotId": "2026-09-12_183300",
-  "state": "WATCH",
-  "severity": "LOW",
-  "decisionStrength": 28,
+  "checkedAt": "2026-09-12T19:33:29.863Z",
+  "snapshotId": "2026-09-12_193304",
+  "state": "QUIET",
+  "severity": "INFO",
+  "decisionStrength": 0,
   "scores": {
     "semanticChange": 0,
     "correlation": 0,
-    "evidenceConfidence": 58,
-    "activationTimeline": 14
+    "evidenceConfidence": 0,
+    "activationTimeline": 0
   },
   "gates": {
     "activationTransition": false,
     "runtimeEvidence": false,
     "distributionEvidence": false,
-    "domainCount": 1,
+    "domainCount": 0,
     "highConfidenceEvidence": 0
   },
   "thresholds": {
@@ -31,20 +31,9 @@
     "strongSemantic": 60
   },
   "reasons": [
-    "Fresh evidence exists, but it does not yet satisfy runtime-activation or multi-domain convergence gates.",
-    "Evidence quality remains limited; weak sources are intentionally prevented from driving a stronger decision state."
+    "No fresh activation evidence is present in the current decision window."
   ],
-  "strongestEvidence": [
-    {
-      "type": "SEMANTIC_MATERIAL_CHANGE",
-      "domain": "semantic",
-      "subject": "first-party-bundles",
-      "seenAt": "2026-09-12T17:33:28.295Z",
-      "confidence": 58,
-      "sourceClass": "STATIC_BUNDLE_EVIDENCE",
-      "detail": "/api/aqua"
-    }
-  ],
-  "interpretation": "There is fresh evidence worth watching, but promotion gates are not satisfied.",
+  "strongestEvidence": [],
+  "interpretation": "No fresh decision-grade activation evidence is present.",
   "caution": "Activation Decision is an explainable evidence state, not a probability of launch, causality, claim readiness, or reward eligibility."
 }
