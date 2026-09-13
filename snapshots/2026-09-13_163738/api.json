@@ -26,14 +26,18 @@
     "status": 200,
     "contentType": "application/json",
     "file": "api/api_max_search.json",
-    "sha256": "e82f496c70a28c1dc1645cf2496d089c83c35b23cddbe75c2400bc7bdee3c0fd",
-    "size": 3490,
+    "sha256": "5674340c684882ef0e045bc5467ccae576d01e6cab9ec2de339840490eac1b1d",
+    "size": 3234,
     "isApiLike": true,
     "endpointHints": [
       "wallet"
     ],
     "backendSignals": [],
     "schemaPaths": [
+      "availability",
+      "availability.markets",
+      "availability.tokens",
+      "availability.wallets",
       "markets",
       "markets[]",
       "markets[].category",
@@ -43,13 +47,6 @@
       "markets[].title",
       "network",
       "query",
-      "sources",
-      "sources.dexscreener",
-      "sources.jupiter",
-      "sources.okx",
-      "sources.predictions",
-      "sources.pump",
-      "sources.uniswap",
       "tokens",
       "tokens[]",
       "tokens[].address",
@@ -80,8 +77,8 @@
       "wallets[]",
       "wallets[]:EMPTY_ARRAY"
     ],
-    "schemaFingerprint": "8b50ea30213d7094b0e846f30b0e7eb17e0b685ab1b59893d8b7d97702a65a30",
-    "bodyPreview": "{\"query\":\"\",\"network\":\"all\",\"tokens\":[{\"address\":\"3JgFwoYV74f6LwWjQWnr3YDPFnmBdwQfNyubv99jqUoq\",\"network\":\"solana\",\"symbol\":\"wPOND\",\"name\":\"POND COIN - WARPED\",\"icon\":\"https://cdn.dexscreener.com/cms/images/29cfbd8f8c46319dffd9bd4d80c816593105a7174876491fe0c5b40ffdccb759?width=800&height=800&quality=95&format=auto\",\"verified\":false,\"price\":1.375e-7,\"marketCap\":3819609,\"liquidity\":182905.98,\"volume24h\":1278.77,\"change24h\":7.66},{\"address\":\"Ep83qXdvJbofEgpPqphGRq4eMnpjBVUGPYz32QyrWaaC\",\"network\":\"solana\",\"symbol\":\"pondSOL\",\"name\":\"pondSOL\",\"icon\":null,\"verified\":false,\"price\":190.65,\"marketCap\":83105,\"liquidity\":2360.51,\"volume24h\":1364.63,\"change24h\":-4.14},{\"address\":\"So11111111111111111111111111111111111111112\",\"network\":\"solana\",\"symbol\":\"SOL\",\"name\":\"Wrapped SOL\",\"icon\":\"https://cdn.dexscreener.com/cms/images/fcfb87378d3198fe753ca08ba51a5552a84f34cf48cd09d83971aa195bdf00d2?width=800&height=800&quality=95&format=auto\",\"verified\":false,\"price\":101.99,\"marketCap\":null,\"liquidity\":30249313.2,\"volume24h\":76705055.55,\"change24h\":-1.19},{\"address\":\"A7bdiYdS5GjqGFtxf17ppRHtDKPkkRqbKtR27dxvQXaS\",\"network\":\"solana\",\"symbol\":\"ZEC\",\"name\":\"Zcash\",\"icon\":null,\"verified\":false,\"price\":1125.13"
+    "schemaFingerprint": "b033be8910c912395de110294e92411bb1f4c18fded5eeea530d9eb83a88859c",
+    "bodyPreview": "{\"query\":\"\",\"network\":\"all\",\"availability\":{\"tokens\":true,\"markets\":true,\"wallets\":false},\"tokens\":[{\"address\":\"3JgFwoYV74f6LwWjQWnr3YDPFnmBdwQfNyubv99jqUoq\",\"symbol\":\"wPOND\",\"name\":\"POND COIN - WARPED\",\"network\":\"solana\",\"verified\":false,\"price\":1.285e-7,\"marketCap\":3571994,\"volume24h\":12393.91,\"liquidity\":194931.9,\"change24h\":-5.21,\"icon\":\"/max/v1/tokens/501/3JgFwoYV74f6LwWjQWnr3YDPFnmBdwQfNyubv99jqUoq/image?v=2397436668c4\"},{\"address\":\"Ep83qXdvJbofEgpPqphGRq4eMnpjBVUGPYz32QyrWaaC\",\"symbol\":\"pondSOL\",\"name\":\"pondSOL\",\"network\":\"solana\",\"verified\":false,\"price\":183.63,\"marketCap\":80048,\"volume24h\":1197.61,\"liquidity\":2301.25,\"change24h\":-7.26,\"icon\":\"/max/v1/tokens/501/Ep83qXdvJbofEgpPqphGRq4eMnpjBVUGPYz32QyrWaaC/image?v=5e9ecc7f8594\"},{\"address\":\"So11111111111111111111111111111111111111112\",\"symbol\":\"SOL\",\"name\":\"Wrapped SOL\",\"network\":\"solana\",\"verified\":false,\"price\":100.52,\"marketCap\":null,\"volume24h\":74129672.9,\"liquidity\":31072727.16,\"change24h\":-1.38,\"icon\":\"/max/v1/tokens/501/So11111111111111111111111111111111111111112/image?v=5ec3b8d4e7e6\"},{\"address\":\"A7bdiYdS5GjqGFtxf17ppRHtDKPkkRqbKtR27dxvQXaS\",\"symbol\":\"ZEC\",\"name\":\"Zcash\",\"network\":\"solana\",\"verified\":false,\"price\":1"
   },
   {
     "url": "https://www.pond0x.com/api/auth/session",
@@ -130,6 +127,25 @@
     ],
     "schemaFingerprint": "6b0c26f18f3156518d69a8e6d6252f254375d9bbfbf2ed05227e475e86476402",
     "bodyPreview": "{\"rewards\":[]}"
+  },
+  {
+    "url": "https://mm-sdk-analytics.api.cx.metamask.io/v1/events",
+    "sourceHost": "mm-sdk-analytics.api.cx.metamask.io",
+    "sourceClass": "THIRD_PARTY",
+    "method": "POST",
+    "status": 200,
+    "contentType": "application/json",
+    "file": "api/v1_events.json",
+    "sha256": "762c2749580c286a68d4528d912a4afa02a17dc2025c6c65b17b0dfab8291408",
+    "size": 16,
+    "isApiLike": true,
+    "endpointHints": [],
+    "backendSignals": [],
+    "schemaPaths": [
+      "message"
+    ],
+    "schemaFingerprint": "ab530a13e45914982b79f9b7e3fba994cfd1f3fb22f71cea1afbf02b460c6d1d",
+    "bodyPreview": "{\"message\":\"ok\"}"
   },
   {
     "url": "https://api.web3modal.org/getWallets?page=1&entries=2&include=a797aa35c0fadbfc1a53e7f675162ed5226968b44a19ee3d24385c64d1d3c393%2Cc57ca95b47569778a828d19178114f4db188b89b763c899ba0be274e97267d96",
@@ -191,7 +207,7 @@
     "status": 200,
     "contentType": "application/json; charset=UTF-8",
     "file": "api/getWallets.json",
-    "sha256": "de23d2f6b342880c560c9677a162bab6cb3cf41fe69365a60da954a81ba765c4",
+    "sha256": "c335e653049d8a1c005fad7d426aace911bec1573673294ec805abf9b36cec6e",
     "size": 5897,
     "isApiLike": true,
     "endpointHints": [
@@ -230,7 +246,7 @@
       "previousPage"
     ],
     "schemaFingerprint": "7b2ff3402b4fd43cb0401f0bdbef61a10ac521dbd0349d0b88addcd717be498a",
-    "bodyPreview": "{\"count\":608,\"nextPage\":2,\"previousPage\":null,\"data\":[{\"id\":\"26a582067b4f960e9104768704ec6fa642970450acefa04c782dbbccc575b3b8\",\"name\":\"My Wallet\",\"homepage\":\"https://mywallet.io/?utm_source=wc\",\"image_id\":\"d78ca835-8b66-4674-4cfd-0359bb8af000\",\"order\":10,\"mobile_link\":\"mywallet-wc://\",\"desktop_link\":\"mywallet-wc://\",\"link_mode\":\"https://my.tt/wc/\",\"webapp_link\":null,\"rdns_web_wallet\":null,\"app_store\":\"https://get.mywallet.io/ios-store?utm_source=wc\",\"play_store\":\"https://get.mywallet.io/android-store?utm_source=wc\",\"rdns\":null,\"chrome_store\":null,\"injected\":null,\"chains\":[\"eip155:1\",\"eip155:137\",\"eip155:143\",\"eip155:42161\",\"eip155:43114\",\"eip155:56\",\"eip155:8453\",\"solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp\",\"solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1\"],\"categories\":[\"1e6917ca-16b1-4e03-aaf2-7b9a1229cd0d\",\"e127a2ef-09e5-417b-9304-3e2e567a0f87\"],\"description\":\"Safe and powerful wallet for TON, TRON, Solana, and beyond.\\n\\nThe first multichain wallet on TON, trusted by over 9 million users worldwide. With CertiK security, user-friendly interface, and powerful features, My Wallet is perfect for both beginners and advanced users. Enjoy high-yield TON Liquid Staking, smart swaps, and access ac"
+    "bodyPreview": "{\"count\":607,\"nextPage\":2,\"previousPage\":null,\"data\":[{\"id\":\"26a582067b4f960e9104768704ec6fa642970450acefa04c782dbbccc575b3b8\",\"name\":\"My Wallet\",\"homepage\":\"https://mywallet.io/?utm_source=wc\",\"image_id\":\"d78ca835-8b66-4674-4cfd-0359bb8af000\",\"order\":10,\"mobile_link\":\"mywallet-wc://\",\"desktop_link\":\"mywallet-wc://\",\"link_mode\":\"https://my.tt/wc/\",\"webapp_link\":null,\"rdns_web_wallet\":null,\"app_store\":\"https://get.mywallet.io/ios-store?utm_source=wc\",\"play_store\":\"https://get.mywallet.io/android-store?utm_source=wc\",\"rdns\":null,\"chrome_store\":null,\"injected\":null,\"chains\":[\"eip155:1\",\"eip155:137\",\"eip155:143\",\"eip155:42161\",\"eip155:43114\",\"eip155:56\",\"eip155:8453\",\"solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp\",\"solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1\"],\"categories\":[\"1e6917ca-16b1-4e03-aaf2-7b9a1229cd0d\",\"e127a2ef-09e5-417b-9304-3e2e567a0f87\"],\"description\":\"Safe and powerful wallet for TON, TRON, Solana, and beyond.\\n\\nThe first multichain wallet on TON, trusted by over 9 million users worldwide. With CertiK security, user-friendly interface, and powerful features, My Wallet is perfect for both beginners and advanced users. Enjoy high-yield TON Liquid Staking, smart swaps, and access ac"
   },
   {
     "url": "https://api.web3modal.org/getAnalyticsConfig",
@@ -256,25 +272,6 @@
     "bodyPreview": "{\"isAnalyticsEnabled\":false,\"isAppKitAuthEnabled\":false}"
   },
   {
-    "url": "https://mm-sdk-analytics.api.cx.metamask.io/v1/events",
-    "sourceHost": "mm-sdk-analytics.api.cx.metamask.io",
-    "sourceClass": "THIRD_PARTY",
-    "method": "POST",
-    "status": 200,
-    "contentType": "application/json",
-    "file": "api/v1_events.json",
-    "sha256": "762c2749580c286a68d4528d912a4afa02a17dc2025c6c65b17b0dfab8291408",
-    "size": 16,
-    "isApiLike": true,
-    "endpointHints": [],
-    "backendSignals": [],
-    "schemaPaths": [
-      "message"
-    ],
-    "schemaFingerprint": "ab530a13e45914982b79f9b7e3fba994cfd1f3fb22f71cea1afbf02b460c6d1d",
-    "bodyPreview": "{\"message\":\"ok\"}"
-  },
-  {
     "url": "https://pulse.walletconnect.org/e",
     "sourceHost": "pulse.walletconnect.org",
     "sourceClass": "THIRD_PARTY",
@@ -282,6 +279,44 @@
     "status": 202,
     "contentType": "text/plain;charset=UTF-8",
     "file": "api/e.bin",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "size": 0,
+    "isApiLike": true,
+    "endpointHints": [
+      "wallet"
+    ],
+    "backendSignals": [],
+    "schemaPaths": [],
+    "schemaFingerprint": null,
+    "bodyPreview": ""
+  },
+  {
+    "url": "https://api.web3modal.org/getWalletImage/4e7d6f52-f663-4fc1-4b88-eebe7fc72800",
+    "sourceHost": "api.web3modal.org",
+    "sourceClass": "THIRD_PARTY",
+    "method": "GET",
+    "status": 200,
+    "contentType": "image/webp",
+    "file": "api/getWalletImage_4e7d6f52-f663-4fc1-4b88-eebe7fc72800.bin",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "size": 0,
+    "isApiLike": true,
+    "endpointHints": [
+      "wallet"
+    ],
+    "backendSignals": [],
+    "schemaPaths": [],
+    "schemaFingerprint": null,
+    "bodyPreview": ""
+  },
+  {
+    "url": "https://api.web3modal.org/getWalletImage/e30d09fe-c0dd-4b61-81e2-d6dc09eb9700",
+    "sourceHost": "api.web3modal.org",
+    "sourceClass": "THIRD_PARTY",
+    "method": "GET",
+    "status": 200,
+    "contentType": "image/webp",
+    "file": "api/getWalletImage_e30d09fe-c0dd-4b61-81e2-d6dc09eb9700.bin",
     "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     "size": 0,
     "isApiLike": true,
@@ -313,13 +348,13 @@
     "bodyPreview": ""
   },
   {
-    "url": "https://api.web3modal.org/getWalletImage/4e7d6f52-f663-4fc1-4b88-eebe7fc72800",
+    "url": "https://api.web3modal.org/getWalletImage/d78ca835-8b66-4674-4cfd-0359bb8af000",
     "sourceHost": "api.web3modal.org",
     "sourceClass": "THIRD_PARTY",
     "method": "GET",
     "status": 200,
     "contentType": "image/webp",
-    "file": "api/getWalletImage_4e7d6f52-f663-4fc1-4b88-eebe7fc72800.bin",
+    "file": "api/getWalletImage_d78ca835-8b66-4674-4cfd-0359bb8af000.bin",
     "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     "size": 0,
     "isApiLike": true,
@@ -358,44 +393,6 @@
     "status": 200,
     "contentType": "image/webp",
     "file": "api/getWalletImage_3386dde1-8b24-48c8-4b81-16979e342000.bin",
-    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-    "size": 0,
-    "isApiLike": true,
-    "endpointHints": [
-      "wallet"
-    ],
-    "backendSignals": [],
-    "schemaPaths": [],
-    "schemaFingerprint": null,
-    "bodyPreview": ""
-  },
-  {
-    "url": "https://api.web3modal.org/getWalletImage/d78ca835-8b66-4674-4cfd-0359bb8af000",
-    "sourceHost": "api.web3modal.org",
-    "sourceClass": "THIRD_PARTY",
-    "method": "GET",
-    "status": 200,
-    "contentType": "image/webp",
-    "file": "api/getWalletImage_d78ca835-8b66-4674-4cfd-0359bb8af000.bin",
-    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-    "size": 0,
-    "isApiLike": true,
-    "endpointHints": [
-      "wallet"
-    ],
-    "backendSignals": [],
-    "schemaPaths": [],
-    "schemaFingerprint": null,
-    "bodyPreview": ""
-  },
-  {
-    "url": "https://api.web3modal.org/getWalletImage/e30d09fe-c0dd-4b61-81e2-d6dc09eb9700",
-    "sourceHost": "api.web3modal.org",
-    "sourceClass": "THIRD_PARTY",
-    "method": "GET",
-    "status": 200,
-    "contentType": "image/webp",
-    "file": "api/getWalletImage_e30d09fe-c0dd-4b61-81e2-d6dc09eb9700.bin",
     "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     "size": 0,
     "isApiLike": true,
