@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-09-13T23:43:11.548Z",
+  "generatedAt": "2026-09-13T23:52:39.764Z",
   "retention": {
     "maxObservations": 720,
     "intendedCadenceMinutes": 60
@@ -238681,6 +238681,1035 @@
           "marketCountObserved": 11,
           "aggregateObservedLiquidityUsd": 260987.66999999998,
           "aggregateObservedVolume24hUsd": 14486.41,
+          "executableQuotes": {
+            "status": "NOT_MEASURED_V1",
+            "note": "DEX market snapshots are not executable quotes. Size-aware buy/sell quotes will be added separately."
+          },
+          "source": {
+            "provider": "DexScreener",
+            "endpoint": "https://api.dexscreener.com/token-pairs/v1/solana/3JgFwoYV74f6LwWjQWnr3YDPFnmBdwQfNyubv99jqUoq"
+          }
+        },
+        {
+          "id": "paper",
+          "symbol": "PAPER",
+          "name": "PAPER",
+          "chain": "solana",
+          "address": "PAPERu8xjrqfjBLj8XG6FCiokuk7pG1GzUbRTYwX1nU",
+          "family": "event",
+          "status": "NO_MARKET_FOUND",
+          "observationQuality": "INSUFFICIENT_DATA",
+          "scoreNeutral": true,
+          "primaryMarket": null,
+          "topMarkets": [],
+          "marketCountObserved": 0,
+          "aggregateObservedLiquidityUsd": 0,
+          "aggregateObservedVolume24hUsd": 0,
+          "executableQuotes": {
+            "status": "NOT_MEASURED_V1",
+            "note": "DEX market snapshots are not executable quotes. Size-aware buy/sell quotes will be added separately."
+          },
+          "source": {
+            "provider": "DexScreener",
+            "endpoint": "https://api.dexscreener.com/token-pairs/v1/solana/PAPERu8xjrqfjBLj8XG6FCiokuk7pG1GzUbRTYwX1nU"
+          }
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "generatedAt": "2026-09-13T23:52:39.764Z",
+      "status": "PARTIAL",
+      "scoreNeutral": true,
+      "purpose": "Cross-chain factual market observation for PNDC, PORK, wPOND and PAPER. No trading recommendation or Radar score impact.",
+      "coverage": {
+        "requested": 4,
+        "observed": 3,
+        "ethereum": 2,
+        "solana": 1
+      },
+      "tokens": [
+        {
+          "id": "pndc",
+          "symbol": "PNDC",
+          "name": "Pond Coin",
+          "chain": "ethereum",
+          "address": "0x423f4e6138E475D85CF7Ea071AC92097Ed631eea",
+          "family": "core",
+          "status": "OBSERVED",
+          "observationQuality": "MARKET_SNAPSHOT",
+          "scoreNeutral": true,
+          "primaryMarket": {
+            "dexId": "uniswap",
+            "pairAddress": "0xc64350c0eab6faeD8f17CC2CDff0761C53fb4152",
+            "url": "https://dexscreener.com/ethereum/0xc64350c0eab6faed8f17cc2cdff0761c53fb4152",
+            "baseToken": {
+              "address": "0x423f4e6138E475D85CF7Ea071AC92097Ed631eea",
+              "symbol": "PNDC",
+              "name": "Pond Coin"
+            },
+            "quoteToken": {
+              "address": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+              "symbol": "WETH",
+              "name": "Wrapped Ether"
+            },
+            "priceNative": 4.879e-11,
+            "priceUsd": 1.206e-7,
+            "liquidityUsd": 118291.87,
+            "fdv": 50752663,
+            "marketCap": 2720689,
+            "volume": {
+              "m5": 0,
+              "h1": 62.26,
+              "h6": 1598.52,
+              "h24": 5891.49
+            },
+            "priceChangePct": {
+              "m5": null,
+              "h1": -2.14,
+              "h6": 2.59,
+              "h24": -1.63
+            },
+            "transactions": {
+              "m5": {
+                "buys": 0,
+                "sells": 0
+              },
+              "h1": {
+                "buys": 0,
+                "sells": 1
+              },
+              "h6": {
+                "buys": 5,
+                "sells": 12
+              },
+              "h24": {
+                "buys": 27,
+                "sells": 39
+              }
+            },
+            "pairCreatedAt": 1691195663000
+          },
+          "topMarkets": [
+            {
+              "dexId": "uniswap",
+              "pairAddress": "0xc64350c0eab6faeD8f17CC2CDff0761C53fb4152",
+              "url": "https://dexscreener.com/ethereum/0xc64350c0eab6faed8f17cc2cdff0761c53fb4152",
+              "baseToken": {
+                "address": "0x423f4e6138E475D85CF7Ea071AC92097Ed631eea",
+                "symbol": "PNDC",
+                "name": "Pond Coin"
+              },
+              "quoteToken": {
+                "address": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+                "symbol": "WETH",
+                "name": "Wrapped Ether"
+              },
+              "priceNative": 4.879e-11,
+              "priceUsd": 1.206e-7,
+              "liquidityUsd": 118291.87,
+              "fdv": 50752663,
+              "marketCap": 2720689,
+              "volume": {
+                "m5": 0,
+                "h1": 62.26,
+                "h6": 1598.52,
+                "h24": 5891.49
+              },
+              "priceChangePct": {
+                "m5": null,
+                "h1": -2.14,
+                "h6": 2.59,
+                "h24": -1.63
+              },
+              "transactions": {
+                "m5": {
+                  "buys": 0,
+                  "sells": 0
+                },
+                "h1": {
+                  "buys": 0,
+                  "sells": 1
+                },
+                "h6": {
+                  "buys": 5,
+                  "sells": 12
+                },
+                "h24": {
+                  "buys": 27,
+                  "sells": 39
+                }
+              },
+              "pairCreatedAt": 1691195663000
+            },
+            {
+              "dexId": "uniswap",
+              "pairAddress": "0x4e3e944cac53e85d7c2b3bdfa3621c4a306de19c98e46494fa7477cd14e9e7a2",
+              "url": "https://dexscreener.com/ethereum/0x4e3e944cac53e85d7c2b3bdfa3621c4a306de19c98e46494fa7477cd14e9e7a2",
+              "baseToken": {
+                "address": "0x423f4e6138E475D85CF7Ea071AC92097Ed631eea",
+                "symbol": "PNDC",
+                "name": "Pond Coin"
+              },
+              "quoteToken": {
+                "address": "0x0000000000000000000000000000000000000000",
+                "symbol": "ETH",
+                "name": "Ether"
+              },
+              "priceNative": 4.875e-11,
+              "priceUsd": 1.207e-7,
+              "liquidityUsd": 63111.55,
+              "fdv": 50800180,
+              "marketCap": 2723236,
+              "volume": {
+                "m5": 0,
+                "h1": 167.97,
+                "h6": 5551.19,
+                "h24": 12011.35
+              },
+              "priceChangePct": {
+                "m5": null,
+                "h1": -0.73,
+                "h6": 2.82,
+                "h24": -1.22
+              },
+              "transactions": {
+                "m5": {
+                  "buys": 0,
+                  "sells": 0
+                },
+                "h1": {
+                  "buys": 0,
+                  "sells": 3
+                },
+                "h6": {
+                  "buys": 5,
+                  "sells": 16
+                },
+                "h24": {
+                  "buys": 14,
+                  "sells": 41
+                }
+              },
+              "pairCreatedAt": 1742204519000
+            },
+            {
+              "dexId": "uniswap",
+              "pairAddress": "0xe8ea96efbe7b8e393159d5baa2b7c8e9a4d2304d6bb3e9f08f8f25a5499dad38",
+              "url": "https://dexscreener.com/ethereum/0xe8ea96efbe7b8e393159d5baa2b7c8e9a4d2304d6bb3e9f08f8f25a5499dad38",
+              "baseToken": {
+                "address": "0x423f4e6138E475D85CF7Ea071AC92097Ed631eea",
+                "symbol": "PNDC",
+                "name": "Pond Coin"
+              },
+              "quoteToken": {
+                "address": "0xb9f599ce614Feb2e1BBe58F180F370D05b39344E",
+                "symbol": "PORK",
+                "name": "PepeFork"
+              },
+              "priceNative": 6.6346,
+              "priceUsd": 1.19e-7,
+              "liquidityUsd": 42129.34,
+              "fdv": 50062568,
+              "marketCap": 2683695,
+              "volume": {
+                "m5": 0,
+                "h1": 81.36,
+                "h6": 905.35,
+                "h24": 2276.03
+              },
+              "priceChangePct": {
+                "m5": null,
+                "h1": -0.75,
+                "h6": 2.87,
+                "h24": 1.82
+              },
+              "transactions": {
+                "m5": {
+                  "buys": 0,
+                  "sells": 0
+                },
+                "h1": {
+                  "buys": 2,
+                  "sells": 0
+                },
+                "h6": {
+                  "buys": 5,
+                  "sells": 5
+                },
+                "h24": {
+                  "buys": 20,
+                  "sells": 9
+                }
+              },
+              "pairCreatedAt": 1738358291000
+            },
+            {
+              "dexId": "uniswap",
+              "pairAddress": "0xc026eB864dc9F9E820e010DdeeEB3c7cBaEbf365",
+              "url": "https://dexscreener.com/ethereum/0xc026eb864dc9f9e820e010ddeeeb3c7cbaebf365",
+              "baseToken": {
+                "address": "0x423f4e6138E475D85CF7Ea071AC92097Ed631eea",
+                "symbol": "PNDC",
+                "name": "Pond Coin"
+              },
+              "quoteToken": {
+                "address": "0xb9f599ce614Feb2e1BBe58F180F370D05b39344E",
+                "symbol": "PORK",
+                "name": "PepeFork"
+              },
+              "priceNative": 6.6295,
+              "priceUsd": 1.219e-7,
+              "liquidityUsd": 18343.75,
+              "fdv": 51299867,
+              "marketCap": 2750022,
+              "volume": {
+                "m5": 0,
+                "h1": 0,
+                "h6": 381.95,
+                "h24": 630.55
+              },
+              "priceChangePct": {
+                "m5": null,
+                "h1": null,
+                "h6": 3.74,
+                "h24": 1.16
+              },
+              "transactions": {
+                "m5": {
+                  "buys": 0,
+                  "sells": 0
+                },
+                "h1": {
+                  "buys": 0,
+                  "sells": 0
+                },
+                "h6": {
+                  "buys": 4,
+                  "sells": 1
+                },
+                "h24": {
+                  "buys": 12,
+                  "sells": 4
+                }
+              },
+              "pairCreatedAt": 1706601083000
+            },
+            {
+              "dexId": "uniswap",
+              "pairAddress": "0x45393A85bC48798C48d19EaA61fF6B0b3aadB490",
+              "url": "https://dexscreener.com/ethereum/0x45393a85bc48798c48d19eaa61ff6b0b3aadb490",
+              "baseToken": {
+                "address": "0xfF541139c60bB38CE2159A13d656f0f38aA96ff4",
+                "symbol": "DI",
+                "name": "Degen Index"
+              },
+              "quoteToken": {
+                "address": "0x423f4e6138E475D85CF7Ea071AC92097Ed631eea",
+                "symbol": "PNDC",
+                "name": "Pond Coin"
+              },
+              "priceNative": 3375.4937,
+              "priceUsd": 0.0004161,
+              "liquidityUsd": 4181.63,
+              "fdv": 41614,
+              "marketCap": 41614,
+              "volume": {
+                "m5": 0,
+                "h1": 0,
+                "h6": 26.43,
+                "h24": 147.12
+              },
+              "priceChangePct": {
+                "m5": null,
+                "h1": null,
+                "h6": 0.12,
+                "h24": 3.67
+              },
+              "transactions": {
+                "m5": {
+                  "buys": 0,
+                  "sells": 0
+                },
+                "h1": {
+                  "buys": 0,
+                  "sells": 0
+                },
+                "h6": {
+                  "buys": 1,
+                  "sells": 2
+                },
+                "h24": {
+                  "buys": 6,
+                  "sells": 4
+                }
+              },
+              "pairCreatedAt": 1696396463000
+            }
+          ],
+          "marketCountObserved": 15,
+          "aggregateObservedLiquidityUsd": 249396.56999999998,
+          "aggregateObservedVolume24hUsd": 21124.53,
+          "executableQuotes": {
+            "status": "NOT_MEASURED_V1",
+            "note": "DEX market snapshots are not executable quotes. Size-aware buy/sell quotes will be added separately."
+          },
+          "source": {
+            "provider": "DexScreener",
+            "endpoint": "https://api.dexscreener.com/token-pairs/v1/ethereum/0x423f4e6138E475D85CF7Ea071AC92097Ed631eea"
+          }
+        },
+        {
+          "id": "pork",
+          "symbol": "PORK",
+          "name": "PepeFork",
+          "chain": "ethereum",
+          "address": "0xb9f599ce614feb2e1bbe58f180f370d05b39344e",
+          "family": "core",
+          "status": "OBSERVED",
+          "observationQuality": "MARKET_SNAPSHOT",
+          "scoreNeutral": true,
+          "primaryMarket": {
+            "dexId": "uniswap",
+            "pairAddress": "0x331399c614cA67DEe86733E5A2FBA40DbB16827c",
+            "url": "https://dexscreener.com/ethereum/0x331399c614ca67dee86733e5a2fba40dbb16827c",
+            "baseToken": {
+              "address": "0xb9f599ce614Feb2e1BBe58F180F370D05b39344E",
+              "symbol": "PORK",
+              "name": "PepeFork"
+            },
+            "quoteToken": {
+              "address": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+              "symbol": "WETH",
+              "name": "Wrapped Ether"
+            },
+            "priceNative": 7.264e-12,
+            "priceUsd": 1.8e-8,
+            "liquidityUsd": 347291.64,
+            "fdv": 6992353,
+            "marketCap": 7574489,
+            "volume": {
+              "m5": 0,
+              "h1": 36.66,
+              "h6": 2579.19,
+              "h24": 4239.02
+            },
+            "priceChangePct": {
+              "m5": null,
+              "h1": -0.77,
+              "h6": 7.33,
+              "h24": -4.94
+            },
+            "transactions": {
+              "m5": {
+                "buys": 0,
+                "sells": 0
+              },
+              "h1": {
+                "buys": 0,
+                "sells": 1
+              },
+              "h6": {
+                "buys": 7,
+                "sells": 8
+              },
+              "h24": {
+                "buys": 20,
+                "sells": 28
+              }
+            },
+            "pairCreatedAt": 1706595743000
+          },
+          "topMarkets": [
+            {
+              "dexId": "uniswap",
+              "pairAddress": "0x331399c614cA67DEe86733E5A2FBA40DbB16827c",
+              "url": "https://dexscreener.com/ethereum/0x331399c614ca67dee86733e5a2fba40dbb16827c",
+              "baseToken": {
+                "address": "0xb9f599ce614Feb2e1BBe58F180F370D05b39344E",
+                "symbol": "PORK",
+                "name": "PepeFork"
+              },
+              "quoteToken": {
+                "address": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+                "symbol": "WETH",
+                "name": "Wrapped Ether"
+              },
+              "priceNative": 7.264e-12,
+              "priceUsd": 1.8e-8,
+              "liquidityUsd": 347291.64,
+              "fdv": 6992353,
+              "marketCap": 7574489,
+              "volume": {
+                "m5": 0,
+                "h1": 36.66,
+                "h6": 2579.19,
+                "h24": 4239.02
+              },
+              "priceChangePct": {
+                "m5": null,
+                "h1": -0.77,
+                "h6": 7.33,
+                "h24": -4.94
+              },
+              "transactions": {
+                "m5": {
+                  "buys": 0,
+                  "sells": 0
+                },
+                "h1": {
+                  "buys": 0,
+                  "sells": 1
+                },
+                "h6": {
+                  "buys": 7,
+                  "sells": 8
+                },
+                "h24": {
+                  "buys": 20,
+                  "sells": 28
+                }
+              },
+              "pairCreatedAt": 1706595743000
+            },
+            {
+              "dexId": "uniswap",
+              "pairAddress": "0xd009a8caca18d542f8971cd343288965e6e61a544f16b52acd046e906480c8bc",
+              "url": "https://dexscreener.com/ethereum/0xd009a8caca18d542f8971cd343288965e6e61a544f16b52acd046e906480c8bc",
+              "baseToken": {
+                "address": "0xb9f599ce614Feb2e1BBe58F180F370D05b39344E",
+                "symbol": "PORK",
+                "name": "PepeFork"
+              },
+              "quoteToken": {
+                "address": "0x0000000000000000000000000000000000000000",
+                "symbol": "ETH",
+                "name": "Ether"
+              },
+              "priceNative": 7.24e-12,
+              "priceUsd": 1.793e-8,
+              "liquidityUsd": 291832.04,
+              "fdv": 6965898,
+              "marketCap": 7545832,
+              "volume": {
+                "m5": 0,
+                "h1": 14.33,
+                "h6": 2839.02,
+                "h24": 5273.7
+              },
+              "priceChangePct": {
+                "m5": null,
+                "h1": -1.35,
+                "h6": 6.34,
+                "h24": -1.49
+              },
+              "transactions": {
+                "m5": {
+                  "buys": 0,
+                  "sells": 0
+                },
+                "h1": {
+                  "buys": 1,
+                  "sells": 0
+                },
+                "h6": {
+                  "buys": 8,
+                  "sells": 9
+                },
+                "h24": {
+                  "buys": 28,
+                  "sells": 19
+                }
+              },
+              "pairCreatedAt": 1739128607000
+            },
+            {
+              "dexId": "uniswap",
+              "pairAddress": "0xe8ea96efbe7b8e393159d5baa2b7c8e9a4d2304d6bb3e9f08f8f25a5499dad38",
+              "url": "https://dexscreener.com/ethereum/0xe8ea96efbe7b8e393159d5baa2b7c8e9a4d2304d6bb3e9f08f8f25a5499dad38",
+              "baseToken": {
+                "address": "0x423f4e6138E475D85CF7Ea071AC92097Ed631eea",
+                "symbol": "PNDC",
+                "name": "Pond Coin"
+              },
+              "quoteToken": {
+                "address": "0xb9f599ce614Feb2e1BBe58F180F370D05b39344E",
+                "symbol": "PORK",
+                "name": "PepeFork"
+              },
+              "priceNative": 6.6346,
+              "priceUsd": 1.19e-7,
+              "liquidityUsd": 42129.34,
+              "fdv": 50062568,
+              "marketCap": 2683695,
+              "volume": {
+                "m5": 0,
+                "h1": 81.36,
+                "h6": 905.35,
+                "h24": 2276.03
+              },
+              "priceChangePct": {
+                "m5": null,
+                "h1": -0.75,
+                "h6": 2.87,
+                "h24": 1.82
+              },
+              "transactions": {
+                "m5": {
+                  "buys": 0,
+                  "sells": 0
+                },
+                "h1": {
+                  "buys": 2,
+                  "sells": 0
+                },
+                "h6": {
+                  "buys": 5,
+                  "sells": 5
+                },
+                "h24": {
+                  "buys": 20,
+                  "sells": 9
+                }
+              },
+              "pairCreatedAt": 1738358291000
+            },
+            {
+              "dexId": "uniswap",
+              "pairAddress": "0xc026eB864dc9F9E820e010DdeeEB3c7cBaEbf365",
+              "url": "https://dexscreener.com/ethereum/0xc026eb864dc9f9e820e010ddeeeb3c7cbaebf365",
+              "baseToken": {
+                "address": "0x423f4e6138E475D85CF7Ea071AC92097Ed631eea",
+                "symbol": "PNDC",
+                "name": "Pond Coin"
+              },
+              "quoteToken": {
+                "address": "0xb9f599ce614Feb2e1BBe58F180F370D05b39344E",
+                "symbol": "PORK",
+                "name": "PepeFork"
+              },
+              "priceNative": 6.6295,
+              "priceUsd": 1.219e-7,
+              "liquidityUsd": 18343.75,
+              "fdv": 51299867,
+              "marketCap": 2750022,
+              "volume": {
+                "m5": 0,
+                "h1": 0,
+                "h6": 381.95,
+                "h24": 630.55
+              },
+              "priceChangePct": {
+                "m5": null,
+                "h1": null,
+                "h6": 3.74,
+                "h24": 1.16
+              },
+              "transactions": {
+                "m5": {
+                  "buys": 0,
+                  "sells": 0
+                },
+                "h1": {
+                  "buys": 0,
+                  "sells": 0
+                },
+                "h6": {
+                  "buys": 4,
+                  "sells": 1
+                },
+                "h24": {
+                  "buys": 12,
+                  "sells": 4
+                }
+              },
+              "pairCreatedAt": 1706601083000
+            },
+            {
+              "dexId": "uniswap",
+              "pairAddress": "0xb3e94c3c1ac6afed7b37a5aae333776cd2da2840295663d35722119902654792",
+              "url": "https://dexscreener.com/ethereum/0xb3e94c3c1ac6afed7b37a5aae333776cd2da2840295663d35722119902654792",
+              "baseToken": {
+                "address": "0xb9f599ce614Feb2e1BBe58F180F370D05b39344E",
+                "symbol": "PORK",
+                "name": "PepeFork"
+              },
+              "quoteToken": {
+                "address": "0x0000000000000000000000000000000000000000",
+                "symbol": "ETH",
+                "name": "Ether"
+              },
+              "priceNative": 6.976e-12,
+              "priceUsd": 1.746e-8,
+              "liquidityUsd": 704.29,
+              "fdv": 6781797,
+              "marketCap": 7346403,
+              "volume": {
+                "m5": 0,
+                "h1": 0,
+                "h6": 0,
+                "h24": 9.33
+              },
+              "priceChangePct": {
+                "m5": null,
+                "h1": null,
+                "h6": null,
+                "h24": -5.72
+              },
+              "transactions": {
+                "m5": {
+                  "buys": 0,
+                  "sells": 0
+                },
+                "h1": {
+                  "buys": 0,
+                  "sells": 0
+                },
+                "h6": {
+                  "buys": 0,
+                  "sells": 0
+                },
+                "h24": {
+                  "buys": 0,
+                  "sells": 4
+                }
+              },
+              "pairCreatedAt": 1762960631000
+            }
+          ],
+          "marketCountObserved": 10,
+          "aggregateObservedLiquidityUsd": 700934.8200000001,
+          "aggregateObservedVolume24hUsd": 12461.100000000002,
+          "executableQuotes": {
+            "status": "NOT_MEASURED_V1",
+            "note": "DEX market snapshots are not executable quotes. Size-aware buy/sell quotes will be added separately."
+          },
+          "source": {
+            "provider": "DexScreener",
+            "endpoint": "https://api.dexscreener.com/token-pairs/v1/ethereum/0xb9f599ce614feb2e1bbe58f180f370d05b39344e"
+          }
+        },
+        {
+          "id": "wpond",
+          "symbol": "wPOND",
+          "name": "POND COIN - WARPED",
+          "chain": "solana",
+          "address": "3JgFwoYV74f6LwWjQWnr3YDPFnmBdwQfNyubv99jqUoq",
+          "family": "core",
+          "status": "OBSERVED",
+          "observationQuality": "MARKET_SNAPSHOT",
+          "scoreNeutral": true,
+          "primaryMarket": {
+            "dexId": "meteora",
+            "pairAddress": "4Hj64HZw7DVNUGe17PDiNcgRSm1AXuMJ1va2D7Ja2zGx",
+            "url": "https://dexscreener.com/solana/4hj64hzw7dvnuge17pdincgrsm1axumj1va2d7ja2zgx",
+            "baseToken": {
+              "address": "3JgFwoYV74f6LwWjQWnr3YDPFnmBdwQfNyubv99jqUoq",
+              "symbol": "wPOND",
+              "name": "POND COIN - WARPED"
+            },
+            "quoteToken": {
+              "address": "So11111111111111111111111111111111111111112",
+              "symbol": "SOL",
+              "name": "Wrapped SOL"
+            },
+            "priceNative": 1.276e-9,
+            "priceUsd": 1.27e-7,
+            "liquidityUsd": 192654.85,
+            "fdv": 3529804,
+            "marketCap": 3529804,
+            "volume": {
+              "m5": 9.18,
+              "h1": 426.97,
+              "h6": 1718.92,
+              "h24": 11474.38
+            },
+            "priceChangePct": {
+              "m5": -0.05,
+              "h1": -0.33,
+              "h6": -3.31,
+              "h24": -6.04
+            },
+            "transactions": {
+              "m5": {
+                "buys": 1,
+                "sells": 4
+              },
+              "h1": {
+                "buys": 174,
+                "sells": 116
+              },
+              "h6": {
+                "buys": 232,
+                "sells": 146
+              },
+              "h24": {
+                "buys": 310,
+                "sells": 288
+              }
+            },
+            "pairCreatedAt": 1742780879000
+          },
+          "topMarkets": [
+            {
+              "dexId": "meteora",
+              "pairAddress": "4Hj64HZw7DVNUGe17PDiNcgRSm1AXuMJ1va2D7Ja2zGx",
+              "url": "https://dexscreener.com/solana/4hj64hzw7dvnuge17pdincgrsm1axumj1va2d7ja2zgx",
+              "baseToken": {
+                "address": "3JgFwoYV74f6LwWjQWnr3YDPFnmBdwQfNyubv99jqUoq",
+                "symbol": "wPOND",
+                "name": "POND COIN - WARPED"
+              },
+              "quoteToken": {
+                "address": "So11111111111111111111111111111111111111112",
+                "symbol": "SOL",
+                "name": "Wrapped SOL"
+              },
+              "priceNative": 1.276e-9,
+              "priceUsd": 1.27e-7,
+              "liquidityUsd": 192654.85,
+              "fdv": 3529804,
+              "marketCap": 3529804,
+              "volume": {
+                "m5": 9.18,
+                "h1": 426.97,
+                "h6": 1718.92,
+                "h24": 11474.38
+              },
+              "priceChangePct": {
+                "m5": -0.05,
+                "h1": -0.33,
+                "h6": -3.31,
+                "h24": -6.04
+              },
+              "transactions": {
+                "m5": {
+                  "buys": 1,
+                  "sells": 4
+                },
+                "h1": {
+                  "buys": 174,
+                  "sells": 116
+                },
+                "h6": {
+                  "buys": 232,
+                  "sells": 146
+                },
+                "h24": {
+                  "buys": 310,
+                  "sells": 288
+                }
+              },
+              "pairCreatedAt": 1742780879000
+            },
+            {
+              "dexId": "raydium",
+              "pairAddress": "HdM9481g5mXApUUsMSMxwVcRVcTde7nqLjGsgqMMf4P2",
+              "url": "https://dexscreener.com/solana/hdm9481g5mxapuusmsmxwvcrvctde7nqljgsgqmmf4p2",
+              "baseToken": {
+                "address": "3JgFwoYV74f6LwWjQWnr3YDPFnmBdwQfNyubv99jqUoq",
+                "symbol": "wPOND",
+                "name": "POND COIN - WARPED"
+              },
+              "quoteToken": {
+                "address": "So11111111111111111111111111111111111111112",
+                "symbol": "SOL",
+                "name": "Wrapped SOL"
+              },
+              "priceNative": 1.289e-9,
+              "priceUsd": 1.299e-7,
+              "liquidityUsd": 60123.34,
+              "fdv": 3610581,
+              "marketCap": 3610581,
+              "volume": {
+                "m5": 0,
+                "h1": 0,
+                "h6": 0.55,
+                "h24": 2395.8
+              },
+              "priceChangePct": {
+                "m5": null,
+                "h1": null,
+                "h6": -0.26,
+                "h24": -4.41
+              },
+              "transactions": {
+                "m5": {
+                  "buys": 0,
+                  "sells": 0
+                },
+                "h1": {
+                  "buys": 0,
+                  "sells": 0
+                },
+                "h6": {
+                  "buys": 2,
+                  "sells": 3
+                },
+                "h24": {
+                  "buys": 82,
+                  "sells": 51
+                }
+              },
+              "pairCreatedAt": 1728504877000
+            },
+            {
+              "dexId": "meteora",
+              "pairAddress": "GMyf2rWMyyGQFKsBMqE8AmsoNLhJCQsf1CYJG3GhYU6g",
+              "url": "https://dexscreener.com/solana/gmyf2rwmyygqfksbmqe8amsonlhjcqsf1cyjg3ghyu6g",
+              "baseToken": {
+                "address": "3JgFwoYV74f6LwWjQWnr3YDPFnmBdwQfNyubv99jqUoq",
+                "symbol": "wPOND",
+                "name": "POND COIN - WARPED"
+              },
+              "quoteToken": {
+                "address": "So11111111111111111111111111111111111111112",
+                "symbol": "SOL",
+                "name": "Wrapped SOL"
+              },
+              "priceNative": 1.289e-9,
+              "priceUsd": 1.298e-7,
+              "liquidityUsd": 3523.77,
+              "fdv": 3607401,
+              "marketCap": 3607401,
+              "volume": {
+                "m5": 0,
+                "h1": 0,
+                "h6": 0.06,
+                "h24": 46.34
+              },
+              "priceChangePct": {
+                "m5": null,
+                "h1": null,
+                "h6": 0.78,
+                "h24": -4.45
+              },
+              "transactions": {
+                "m5": {
+                  "buys": 0,
+                  "sells": 0
+                },
+                "h1": {
+                  "buys": 0,
+                  "sells": 0
+                },
+                "h6": {
+                  "buys": 2,
+                  "sells": 1
+                },
+                "h24": {
+                  "buys": 10,
+                  "sells": 6
+                }
+              },
+              "pairCreatedAt": 1781407577000
+            },
+            {
+              "dexId": "raydium",
+              "pairAddress": "4dZYxq34pbhawy5aPPHYnMeBjUNeS6LXrKTnhHPKSMSB",
+              "url": "https://dexscreener.com/solana/4dzyxq34pbhawy5apphynmebjunes6lxrktnhhpksmsb",
+              "baseToken": {
+                "address": "GoGoxxkBetBo4EYsHWhiyStVYkvbsAKdrp6dBpcy8a9E",
+                "symbol": "GOGO",
+                "name": "Gogo the Dragon"
+              },
+              "quoteToken": {
+                "address": "3JgFwoYV74f6LwWjQWnr3YDPFnmBdwQfNyubv99jqUoq",
+                "symbol": "wPOND",
+                "name": "POND COIN - WARPED"
+              },
+              "priceNative": 0.0009383,
+              "priceUsd": 1.194e-10,
+              "liquidityUsd": 864.52,
+              "fdv": 11938,
+              "marketCap": 11938,
+              "volume": {
+                "m5": 0,
+                "h1": 0,
+                "h6": 0,
+                "h24": 3.18
+              },
+              "priceChangePct": {
+                "m5": null,
+                "h1": null,
+                "h6": null,
+                "h24": 1.52
+              },
+              "transactions": {
+                "m5": {
+                  "buys": 0,
+                  "sells": 0
+                },
+                "h1": {
+                  "buys": 0,
+                  "sells": 0
+                },
+                "h6": {
+                  "buys": 0,
+                  "sells": 0
+                },
+                "h24": {
+                  "buys": 4,
+                  "sells": 0
+                }
+              },
+              "pairCreatedAt": 1729454994000
+            },
+            {
+              "dexId": "raydium",
+              "pairAddress": "D5bcacry1J8PjYkE6Q4XY5YPqKfDVRSi6L4CxnwMcDP7",
+              "url": "https://dexscreener.com/solana/d5bcacry1j8pjyke6q4xy5ypqkfdvrsi6l4cxnwmcdp7",
+              "baseToken": {
+                "address": "21Dt6Ne2tQ8wQ5j6G2zahtF1tskJqRmtSaaSwXjyBJVz",
+                "symbol": "PEPE",
+                "name": "PEPE DIAMOND"
+              },
+              "quoteToken": {
+                "address": "3JgFwoYV74f6LwWjQWnr3YDPFnmBdwQfNyubv99jqUoq",
+                "symbol": "wPOND",
+                "name": "POND COIN - WARPED"
+              },
+              "priceNative": 1039.07902,
+              "priceUsd": 0.0001345,
+              "liquidityUsd": 778.53,
+              "fdv": 131756,
+              "marketCap": 131756,
+              "volume": {
+                "m5": 0,
+                "h1": 0,
+                "h6": 0.09,
+                "h24": 9.99
+              },
+              "priceChangePct": {
+                "m5": null,
+                "h1": null,
+                "h6": 1.72,
+                "h24": -5.1
+              },
+              "transactions": {
+                "m5": {
+                  "buys": 0,
+                  "sells": 0
+                },
+                "h1": {
+                  "buys": 0,
+                  "sells": 0
+                },
+                "h6": {
+                  "buys": 1,
+                  "sells": 0
+                },
+                "h24": {
+                  "buys": 6,
+                  "sells": 3
+                }
+              },
+              "pairCreatedAt": 1742504120000
+            }
+          ],
+          "marketCountObserved": 11,
+          "aggregateObservedLiquidityUsd": 258419.75999999998,
+          "aggregateObservedVolume24hUsd": 14076.54,
           "executableQuotes": {
             "status": "NOT_MEASURED_V1",
             "note": "DEX market snapshots are not executable quotes. Size-aware buy/sell quotes will be added separately."
