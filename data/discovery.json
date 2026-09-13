@@ -1,7 +1,7 @@
 {
-  "checkedAt": "2026-09-13T03:33:30.228Z",
-  "sourceSnapshotId": "2026-09-13_033310",
-  "snapshotDir": "2026-09-13_033310",
+  "checkedAt": "2026-09-13T16:18:16.140Z",
+  "sourceSnapshotId": "2026-09-13_161757",
+  "snapshotDir": "2026-09-13_161757",
   "newUnknownChange": false,
   "keyFunctionCandidate": null,
   "newLabels": [],
@@ -89,8 +89,12 @@
       "status": 200
     },
     "/api/max/search": {
-      "schemaFingerprint": "8b50ea30213d7094b0e846f30b0e7eb17e0b685ab1b59893d8b7d97702a65a30",
+      "schemaFingerprint": "b033be8910c912395de110294e92411bb1f4c18fded5eeea530d9eb83a88859c",
       "schemaPaths": [
+        "availability",
+        "availability.markets",
+        "availability.tokens",
+        "availability.wallets",
         "markets",
         "markets[]",
         "markets[].category",
@@ -100,13 +104,6 @@
         "markets[].title",
         "network",
         "query",
-        "sources",
-        "sources.dexscreener",
-        "sources.jupiter",
-        "sources.okx",
-        "sources.predictions",
-        "sources.pump",
-        "sources.uniswap",
         "tokens",
         "tokens[]",
         "tokens[].address",
@@ -137,7 +134,7 @@
         "wallets[]",
         "wallets[]:EMPTY_ARRAY"
       ],
-      "size": 3500,
+      "size": 3232,
       "status": 200
     },
     "/api/auth/session": {
@@ -160,9 +157,33 @@
     }
   },
   "apiResponseDrift": {
-    "detected": false,
-    "changedRouteCount": 0,
-    "changedRoutes": []
+    "detected": true,
+    "changedRouteCount": 1,
+    "changedRoutes": [
+      {
+        "route": "/api/max/search",
+        "previousFingerprint": "8b50ea30213d7094b0e846f30b0e7eb17e0b685ab1b59893d8b7d97702a65a30",
+        "currentFingerprint": "b033be8910c912395de110294e92411bb1f4c18fded5eeea530d9eb83a88859c",
+        "previousSize": 3500,
+        "currentSize": 3232,
+        "sizeDelta": -268,
+        "addedPaths": [
+          "availability",
+          "availability.markets",
+          "availability.tokens",
+          "availability.wallets"
+        ],
+        "removedPaths": [
+          "sources",
+          "sources.dexscreener",
+          "sources.jupiter",
+          "sources.okx",
+          "sources.predictions",
+          "sources.pump",
+          "sources.uniswap"
+        ]
+      }
+    ]
   },
   "observedKeywords": [
     "water",
@@ -191,7 +212,7 @@
     "rewards"
   ],
   "diagnostics": {
-    "previousSnapshotId": "2026-09-13_023300",
+    "previousSnapshotId": "2026-09-13_033310",
     "freshCounts": {
       "labels": 0,
       "routes": 0,
