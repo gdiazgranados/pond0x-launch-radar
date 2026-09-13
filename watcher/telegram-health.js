@@ -18,21 +18,43 @@ async function readJsonSafe(file) {
   }
 }
 
-async function telegramCall(method, body = {}) {
-  const response = await fetch(`https://api.telegram.org/bot${TOKEN}/${method}`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(body),
-  });
+async function telegramCall(method, body = {}, attempts = 3) {
+  let lastError = null;
 
-  const payload = await response.json().catch(() => null);
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      const response = await fetch(
+        `https://api.telegram.org/bot${TOKEN}/${method}`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(body),
+          signal: AbortSignal.timeout(10000),
+        }
+      );
 
-  if (!response.ok || !payload?.ok) {
-    const description = payload?.description || `HTTP ${response.status}`;
-    throw new Error(`${method}: ${description}`);
+      const payload = await response.json().catch(() => null);
+
+      if (!response.ok || !payload?.ok) {
+        const description =
+          payload?.description || `HTTP ${response.status}`;
+
+        throw new Error(`${method}: ${description}`);
+      }
+
+      return payload.result;
+    } catch (error) {
+      lastError = error;
+
+      if (attempt < attempts) {
+        await new Promise((resolve) =>
+          setTimeout(resolve, attempt * 1000)
+        );
+      }
+    }
   }
 
-  return payload.result;
+  throw lastError || new Error(`${method}: Telegram request failed`);
 }
 
 async function main() {
