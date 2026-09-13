@@ -110,6 +110,10 @@ jobs:
         run: node watcher/activation-decision.js
       - name: Archive exact sweep evidence v1
         run: node watcher/historical-evidence-archive.js
+      - name: Build historical daily summary v1
+        run: node watcher/historical-daily-summary.js
+      - name: Build historical monthly summary v1
+        run: node watcher/historical-monthly-summary.js
       - name: Run historical replay and calibration v3
         run: node watcher/historical-replay.js
       - name: Auto-label ground truth and correlate pre-event evidence v1
