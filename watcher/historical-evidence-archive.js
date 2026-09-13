@@ -5,7 +5,7 @@ const path = require("path");
 
 const PUBLIC_DATA = path.join(__dirname, "..", "public", "data");
 const OUTPUT_FILE = path.join(PUBLIC_DATA, "historical-evidence-archive.json");
-const MAX_ENTRIES = 5000;
+const MAX_ENTRIES = 720;
 
 const FILES = {
   latest: "latest.json",
@@ -131,7 +131,6 @@ function buildEntry({ latest, timeline, decision, chain, recipients, routeApi })
         newTransfersThisSweep: n(recipients?.newTransfersThisSweep),
         newRecipientsThisSweep: n(recipients?.newRecipientsThisSweep),
         lastObservedAt: recipients?.lastObservedAt || null,
-        recipients: arr(recipients?.recipients).map(compactRecipient),
       },
       chainSummary: {
         checkedAt: chain?.checkedAt || chain?.updatedAt || null,
