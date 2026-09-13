@@ -151,7 +151,7 @@ jobs:
         run: |
           rm -rf .publish
           mkdir -p .publish/data .publish/snapshots
-          rsync -a --exclude='historical-evidence-archive.json' public/data/ .publish/data/
+          rsync -a public/data/ .publish/data/
           if [ -d snapshots ]; then rsync -a --delete snapshots/ .publish/snapshots/; fi
       - name: Verify heartbeat publish bundle
         run: |
