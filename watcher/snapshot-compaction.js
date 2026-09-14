@@ -2,7 +2,8 @@
 
 const fs = require("fs-extra");
 const path = require("path");
-const { arr, n, readJsonRequired } = require("./lib/runtime-data");
+const { arr, readJsonRequired } = require("./lib/runtime-data");
+const { evidenceReasons } = require("./lib/snapshot-policy");
 
 const ROOT = path.join(__dirname, "..");
 const runtimeArg = process.argv.find((arg) => arg.startsWith("--runtime="));
@@ -82,53 +83,6 @@ async function getSnapshotIds() {
     .filter((entry) => entry.isDirectory())
     .map((entry) => entry.name)
     .sort();
-}
-
-function evidenceReasons(entry) {
-  if (!entry) return [];
-
-  const reasons = [];
-
-  if (entry?.states?.decision && entry.states.decision !== "QUIET") {
-    reasons.push(`decision_${entry.states.decision}`);
-  }
-
-  if (n(entry?.scores?.radar) > 0) reasons.push("radar_score_positive");
-  if (n(entry?.scores?.correlation) > 0) reasons.push("correlation_positive");
-
-  if (n(entry?.scores?.evidenceConfidence) > 0) {
-    reasons.push("evidence_confidence_positive");
-  }
-
-  if (entry?.gates?.activationTransition === true) {
-    reasons.push("activation_transition");
-  }
-
-  if (entry?.gates?.runtimeEvidence === true) {
-    reasons.push("runtime_evidence");
-  }
-
-  if (entry?.gates?.distributionEvidence === true) {
-    reasons.push("distribution_evidence");
-  }
-
-  if (entry?.onchain?.movement === true) {
-    reasons.push("onchain_movement");
-  }
-
-  if (arr(entry?.surfaces?.dormantToLive).length) {
-    reasons.push("dormant_to_live");
-  }
-
-  if (arr(entry?.surfaces?.freshDiscoveries).length) {
-    reasons.push("fresh_discovery");
-  }
-
-  if (arr(entry?.evidence?.recentEvents).length) {
-    reasons.push("recent_evidence_event");
-  }
-
-  return [...new Set(reasons)];
 }
 
 function buildPlan(rows) {

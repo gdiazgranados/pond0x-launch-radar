@@ -131,7 +131,7 @@ jobs:
       - name: Compact redundant quiet snapshots
         run: node watcher/snapshot-compaction.js --production --apply
       - name: Prune old snapshots
-        run: node watcher/prune-snapshots.js
+        run: node watcher/prune-snapshots.js --production --apply
       - name: Evaluate shared evidence (observation only)
         run: node watcher/evidence-observe.js
       - name: Write heartbeat success
