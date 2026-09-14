@@ -1,7 +1,7 @@
 {
-  "checkedAt": "2026-09-14T11:33:10.248Z",
-  "sourceSnapshotId": "2026-09-14_113252",
-  "snapshotDir": "2026-09-14_113252",
+  "checkedAt": "2026-09-14T12:33:22.293Z",
+  "sourceSnapshotId": "2026-09-14_123302",
+  "snapshotDir": "2026-09-14_123302",
   "newUnknownChange": false,
   "keyFunctionCandidate": null,
   "newLabels": [],
@@ -97,7 +97,7 @@
       "status": 200
     },
     "/api/max/search": {
-      "schemaFingerprint": "b033be8910c912395de110294e92411bb1f4c18fded5eeea530d9eb83a88859c",
+      "schemaFingerprint": "2b46c18db8e6c0c98dcda44b94c572429f88f32caac0aeff94b3fc7015029d5d",
       "schemaPaths": [
         "availability",
         "availability.markets",
@@ -127,22 +127,12 @@
         "tokens[].volume24h",
         "trending",
         "trending[]",
-        "trending[].address",
-        "trending[].change24h",
-        "trending[].icon",
-        "trending[].liquidity",
-        "trending[].marketCap",
-        "trending[].name",
-        "trending[].network",
-        "trending[].price",
-        "trending[].symbol",
-        "trending[].verified",
-        "trending[].volume24h",
+        "trending[]:EMPTY_ARRAY",
         "wallets",
         "wallets[]",
         "wallets[]:EMPTY_ARRAY"
       ],
-      "size": 3316,
+      "size": 1535,
       "status": 200
     },
     "/api/rewards/feed": {
@@ -157,9 +147,34 @@
     }
   },
   "apiResponseDrift": {
-    "detected": false,
-    "changedRouteCount": 0,
-    "changedRoutes": []
+    "detected": true,
+    "changedRouteCount": 1,
+    "changedRoutes": [
+      {
+        "route": "/api/max/search",
+        "previousFingerprint": "b033be8910c912395de110294e92411bb1f4c18fded5eeea530d9eb83a88859c",
+        "currentFingerprint": "2b46c18db8e6c0c98dcda44b94c572429f88f32caac0aeff94b3fc7015029d5d",
+        "previousSize": 3316,
+        "currentSize": 1535,
+        "sizeDelta": -1781,
+        "addedPaths": [
+          "trending[]:EMPTY_ARRAY"
+        ],
+        "removedPaths": [
+          "trending[].address",
+          "trending[].change24h",
+          "trending[].icon",
+          "trending[].liquidity",
+          "trending[].marketCap",
+          "trending[].name",
+          "trending[].network",
+          "trending[].price",
+          "trending[].symbol",
+          "trending[].verified",
+          "trending[].volume24h"
+        ]
+      }
+    ]
   },
   "observedKeywords": [
     "water",
@@ -188,7 +203,7 @@
     "rewards"
   ],
   "diagnostics": {
-    "previousSnapshotId": "2026-09-14_103305",
+    "previousSnapshotId": "2026-09-14_113252",
     "freshCounts": {
       "labels": 0,
       "routes": 0,
