@@ -1,35 +1,13 @@
 {
   "version": 3,
-  "generatedAt": "2026-09-14T07:33:40.375Z",
+  "generatedAt": "2026-09-14T08:33:36.357Z",
   "sampleCount": 200,
   "historySampleCount": 200,
-  "exactArchiveEntryCount": 24,
-  "firstObservedAt": "2026-09-05T22:33:10.999Z",
-  "lastObservedAt": "2026-09-14T07:33:39.926Z",
+  "exactArchiveEntryCount": 25,
+  "firstObservedAt": "2026-09-05T23:33:16.062Z",
+  "lastObservedAt": "2026-09-14T08:33:35.805Z",
   "defaultProfile": "DEFAULT",
   "rows": [
-    {
-      "generatedAt": "2026-09-05T22:33:10.999Z",
-      "snapshotId": "2026-09-05_223242",
-      "state": "QUIET",
-      "severity": "INFO",
-      "decisionStrength": 0,
-      "scores": {
-        "semanticChange": 0,
-        "correlation": 0,
-        "evidenceConfidence": 0,
-        "activationTimeline": 0
-      },
-      "gates": {
-        "activationTransition": false,
-        "runtimeEvidence": false,
-        "distributionEvidence": false,
-        "domainCount": 0,
-        "highConfidenceEvidence": 0
-      },
-      "replayQuality": "RECORDED_QUIET_OR_INCOMPLETE",
-      "profile": "DEFAULT"
-    },
     {
       "generatedAt": "2026-09-05T23:33:16.062Z",
       "snapshotId": "2026-09-05_233246",
@@ -4407,19 +4385,41 @@
       },
       "replayQuality": "EXACT_SWEEP_ARCHIVE",
       "profile": "DEFAULT"
+    },
+    {
+      "generatedAt": "2026-09-14T08:33:35.805Z",
+      "snapshotId": "2026-09-14_083307",
+      "state": "WATCH",
+      "severity": "LOW",
+      "decisionStrength": 7,
+      "scores": {
+        "semanticChange": 0,
+        "correlation": 12,
+        "evidenceConfidence": 0,
+        "activationTimeline": 0
+      },
+      "gates": {
+        "activationTransition": false,
+        "runtimeEvidence": false,
+        "distributionEvidence": false,
+        "domainCount": 0,
+        "highConfidenceEvidence": 0
+      },
+      "replayQuality": "EXACT_SWEEP_ARCHIVE",
+      "profile": "DEFAULT"
     }
   ],
   "summary": {
     "distribution": {
-      "QUIET": 191,
-      "WATCH": 8,
+      "QUIET": 190,
+      "WATCH": 9,
       "STRUCTURAL_CHANGE": 1
     },
-    "nonQuietCount": 9,
+    "nonQuietCount": 10,
     "runtimeOrHigherCount": 0,
-    "exactSweepCount": 24,
+    "exactSweepCount": 25,
     "reconstructedEvidenceCount": 1,
-    "usableEvidenceCount": 25,
+    "usableEvidenceCount": 26,
     "maxDecisionStrength": 47
   },
   "groundTruth": {
@@ -4430,15 +4430,15 @@
     ],
     "defaultMetrics": {
       "eventCount": 4,
-      "signalCount": 9,
+      "signalCount": 10,
       "detectedEvents": 0,
       "missedEvents": 4,
       "truePositiveSignals": 0,
-      "falsePositiveSignals": 9,
+      "falsePositiveSignals": 10,
       "precision": 0,
       "recall": 0,
       "missRate": 100,
-      "falsePositiveRate": 4.5,
+      "falsePositiveRate": 5,
       "medianLeadMinutes": null,
       "lookbackMinutes": 1440,
       "postEventGraceMinutes": 60,
@@ -4489,7 +4489,7 @@
   "coverage": {
     "mode": "HYBRID_EXACT_AND_COMPATIBILITY_REPLAY",
     "exactHistoricalTimelineAvailable": true,
-    "exactSweepCount": 24,
+    "exactSweepCount": 25,
     "note": "New sweeps use exact archived decision evidence. Older periods fall back to compatibility reconstruction from history.json. Ground-truth metrics remain coverage-sensitive for events that predate the exact archive."
   }
 }

@@ -1,35 +1,49 @@
 {
   "version": 1,
-  "generatedAt": "2026-09-14T07:33:40.286Z",
-  "regime": "COOLING",
-  "confidence": 65,
-  "candidateRegime": "COOLING",
-  "candidateConfidence": 65,
+  "generatedAt": "2026-09-14T08:33:36.252Z",
+  "regime": "ELEVATED",
+  "confidence": 80,
+  "candidateRegime": "ELEVATED",
+  "candidateConfidence": 80,
   "history": {
     "stage": "PRELIMINARY",
-    "exactSweepCount": 24,
+    "exactSweepCount": 25,
     "usableForRegimeClassification": true
   },
   "current": {
-    "snapshotId": "2026-09-14_073310",
-    "generatedAt": "2026-09-14T07:33:39.926Z",
-    "decisionState": "QUIET",
-    "activityScore": 0
+    "snapshotId": "2026-09-14_083307",
+    "generatedAt": "2026-09-14T08:33:35.805Z",
+    "decisionState": "WATCH",
+    "activityScore": 19
   },
   "baseline": {
     "recentWindowSweeps": 6,
     "previousWindowSweeps": 6,
-    "recentSixSweepAverageActivity": 3.17,
-    "previousSixSweepAverageActivity": 9.5
+    "recentSixSweepAverageActivity": 0,
+    "previousSixSweepAverageActivity": 12.67
   },
   "trendContext": {
     "status": "PRELIMINARY_BASELINE",
-    "anomalyScore": 0,
-    "driverCount": 0,
-    "drivers": []
+    "anomalyScore": 89.6,
+    "driverCount": 2,
+    "drivers": [
+      {
+        "metric": "correlation",
+        "value": 12,
+        "percentile": 89.6,
+        "trend": "FALLING"
+      },
+      {
+        "metric": "decisionStrength",
+        "value": 7,
+        "percentile": 89.6,
+        "trend": "FALLING"
+      }
+    ]
   },
   "reasons": [
-    "Recent activity has materially declined from the preceding baseline."
+    "Historical anomaly score is 89.6.",
+    "2 high-percentile historical drivers are active."
   ],
   "methodology": "Score-neutral regime classification derived from exact sweep history and Historical Trend Intelligence. Stronger regimes require corroborating historical or multi-domain evidence.",
   "caution": "Regime Detection is descriptive only. It does not modify Radar scoring, establish launch probability, predict rewards, or constitute trading advice."
