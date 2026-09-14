@@ -137,7 +137,12 @@ export async function capturePond0xUnsignedOrder(input: {
   if (wireInspection.feePayer !== input.taker) {
     reasons.push("PONDOX_ORDER_FEE_PAYER_MISMATCH")
   }
-
+  if (
+    wireInspection.requiredSigners.length !== 1 ||
+    wireInspection.requiredSigners[0] !== input.taker
+  ) {
+    reasons.push("PONDOX_ORDER_REQUIRED_SIGNERS_MISMATCH")
+  }
   return {
     schemaVersion: 1,
     status: reasons.length === 0 ? "CAPTURED" : "BLOCKED",

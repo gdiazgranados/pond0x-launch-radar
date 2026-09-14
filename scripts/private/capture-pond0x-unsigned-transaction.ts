@@ -15,46 +15,81 @@ const portalObservationPath = resolve(
   process.env.PONDOX_OBSERVATION_OUTPUT ??
     "private-data/pond0x-portal-observation.json"
 )
+
 const outputPath = resolve(
   process.env.PONDOX_UNSIGNED_TRANSACTION_INPUT ??
     "private-data/pond0x-unsigned-transaction.json"
 )
 
+const PONDOX_CAPTURE_REFERRAL_FEE_BPS = 95
+
 function record(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== "object") {
     throw new Error("portal observation is invalid")
   }
+
   return value as Record<string, unknown>
 }
 
 async function main() {
   const taker = process.env.PONDOX_DEDICATED_WALLET ?? ""
+
   if (!taker) {
     throw new Error("PONDOX_DEDICATED_WALLET is required")
   }
 
-  const observation = record(JSON.parse(
-    await readFile(portalObservationPath, "utf8")
-  ))
+  const observation = record(
+    JSON.parse(
+      await readFile(portalObservationPath, "utf8")
+    )
+  )
+
   if (observation.status !== "MEASURED") {
-    throw new Error("fresh measured portal observation is required")
+    throw new Error(
+      "fresh measured portal observation is required"
+    )
   }
+
   const quote = record(observation.underlyingQuote)
-  const capturedAt = Date.parse(String(observation.observedAt ?? ""))
+  const capturedAt = Date.parse(
+    String(observation.observedAt ?? "")
+  )
+  const now = Date.now()
+
   if (
     !Number.isFinite(capturedAt) ||
-    Date.now() - capturedAt > 30_000
+    capturedAt > now ||
+    now - capturedAt > 30_000
   ) {
-    throw new Error("portal observation is stale; run it again")
+    throw new Error(
+      "portal observation is stale; run it again"
+    )
   }
+
   const amount = String(quote.inAmount ?? "")
-  const referralFeeBps = Number(quote.referralFeeBps)
+  const isUltra = quote.provider === "JUPITER_ULTRA"
+  const isLite = quote.provider === "JUPITER_LITE"
+
+  const referralFeeBps = PONDOX_CAPTURE_REFERRAL_FEE_BPS
+
+  const referralIdentityValid =
+    (
+      isUltra &&
+      quote.referralAccount === PONDOX_REFERRAL_ACCOUNT &&
+      quote.referralFeeBps === referralFeeBps
+    ) ||
+    (
+      isLite &&
+      quote.referralAccount === null &&
+      quote.referralFeeBps === null
+    )
+
   if (
+    (!isUltra && !isLite) ||
     quote.inputMint !== WRAPPED_SOL_MINT ||
     quote.outputMint !== WPOND_MINT ||
-    quote.referralAccount !== PONDOX_REFERRAL_ACCOUNT ||
-    !/^[1-9]\d*$/.test(amount) ||
-    !Number.isSafeInteger(referralFeeBps)
+    !referralIdentityValid ||
+    !/^[1-9]\d*$/.test(amount)
   ) {
     throw new Error("portal quote identity is incomplete")
   }
@@ -67,29 +102,51 @@ async function main() {
     referralAccount: PONDOX_REFERRAL_ACCOUNT,
     referralFeeBps,
   })
-  await mkdir(dirname(outputPath), { recursive: true })
-  await writeFile(outputPath, JSON.stringify({
-    transactionBase64: capture.transactionBase64,
-    watchedAccounts: capture.watchedAccounts,
-    capture,
-  }, null, 2), {
-    encoding: "utf8",
-    mode: 0o600,
+
+  await mkdir(dirname(outputPath), {
+    recursive: true,
   })
 
-  console.log(JSON.stringify({
-    watchOnly: true,
-    signingEnabled: false,
-    transactionSubmitted: false,
-    status: capture.status,
-    requestId: capture.requestId,
-    transactionVersion:
-      capture.wireInspection?.transactionVersion ?? null,
-    feePayer: capture.wireInspection?.feePayer ?? null,
-    blockingReasons: capture.blockingReasons,
+  await writeFile(
     outputPath,
-  }, null, 2))
-  if (capture.status !== "CAPTURED") process.exitCode = 1
+    JSON.stringify(
+      {
+        transactionBase64: capture.transactionBase64,
+        watchedAccounts: capture.watchedAccounts,
+        capture,
+      },
+      null,
+      2
+    ),
+    {
+      encoding: "utf8",
+      mode: 0o600,
+    }
+  )
+
+  console.log(
+    JSON.stringify(
+      {
+        watchOnly: true,
+        signingEnabled: false,
+        transactionSubmitted: false,
+        status: capture.status,
+        requestId: capture.requestId,
+        transactionVersion:
+          capture.wireInspection?.transactionVersion ?? null,
+        feePayer:
+          capture.wireInspection?.feePayer ?? null,
+        blockingReasons: capture.blockingReasons,
+        outputPath,
+      },
+      null,
+      2
+    )
+  )
+
+  if (capture.status !== "CAPTURED") {
+    process.exitCode = 1
+  }
 }
 
 main().catch((error) => {
