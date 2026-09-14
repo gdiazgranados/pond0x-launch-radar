@@ -1,10 +1,10 @@
 {
   "version": 1,
-  "generatedAt": "2026-09-14T00:33:34.848Z",
+  "generatedAt": "2026-09-14T00:36:27.165Z",
   "history": {
     "stage": "LEARNING",
-    "exactSweepCount": 14,
-    "baselineSweepCount": 13,
+    "exactSweepCount": 15,
+    "baselineSweepCount": 14,
     "thresholds": {
       "preliminary": 24,
       "usable": 72,
@@ -12,9 +12,9 @@
     }
   },
   "current": {
-    "snapshotId": "2026-09-14_003305",
-    "generatedAt": "2026-09-14T00:33:34.573Z",
-    "decisionState": "QUIET"
+    "snapshotId": "2026-09-14_003559",
+    "generatedAt": "2026-09-14T00:36:26.945Z",
+    "decisionState": "WATCH"
   },
   "status": "INSUFFICIENT_HISTORY",
   "anomalyScore": null,
@@ -36,11 +36,11 @@
       "shortTrend": "FLAT"
     },
     "correlation": {
-      "current": 0,
-      "historicalAverage": 0.92,
+      "current": 12,
+      "historicalAverage": 0.86,
       "historicalMax": 12,
-      "percentile": 46.2,
-      "percentileClass": "NORMAL",
+      "percentile": 96.4,
+      "percentileClass": "EXTREME",
       "shortTrend": "FLAT"
     },
     "evidenceConfidence": {
@@ -60,11 +60,11 @@
       "shortTrend": "FLAT"
     },
     "decisionStrength": {
-      "current": 0,
-      "historicalAverage": 0.54,
+      "current": 7,
+      "historicalAverage": 0.5,
       "historicalMax": 7,
-      "percentile": 46.2,
-      "percentileClass": "NORMAL",
+      "percentile": 96.4,
+      "percentileClass": "EXTREME",
       "shortTrend": "FLAT"
     },
     "domainCount": {
@@ -116,7 +116,20 @@
       "shortTrend": "FLAT"
     }
   },
-  "drivers": [],
+  "drivers": [
+    {
+      "metric": "correlation",
+      "value": 12,
+      "percentile": 96.4,
+      "trend": "FLAT"
+    },
+    {
+      "metric": "decisionStrength",
+      "value": 7,
+      "percentile": 96.4,
+      "trend": "FLAT"
+    }
+  ],
   "methodology": "Score-neutral historical comparison of the latest exact sweep against prior exact sweeps. Percentiles and short trends are descriptive only and do not modify Radar scoring.",
   "caution": "Historical Trend Intelligence must not be interpreted as launch probability, reward probability, causal evidence, or trading advice. Low sample counts remain explicitly classified as learning or preliminary."
 }
