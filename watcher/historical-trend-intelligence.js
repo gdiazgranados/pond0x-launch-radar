@@ -3,6 +3,14 @@
 const fs = require("fs-extra");
 const path = require("path");
 
+const {
+  arr,
+  n,
+  round,
+  average,
+  readJsonRequired,
+} = require("./lib/runtime-data");
+
 const PUBLIC_DATA = path.join(__dirname, "..", "public", "data");
 
 const ARCHIVE_FILE = path.join(
@@ -18,34 +26,6 @@ const OUTPUT_FILE = path.join(
 const MIN_PRELIMINARY_SWEEPS = 24;
 const MIN_USABLE_SWEEPS = 72;
 const MIN_STRONG_SWEEPS = 168;
-
-async function readJson(file, fallback) {
-  try {
-    return await fs.readJson(file);
-  } catch {
-    return fallback;
-  }
-}
-
-function arr(value) {
-  return Array.isArray(value) ? value : [];
-}
-
-function n(value) {
-  const parsed = Number(value || 0);
-  return Number.isFinite(parsed) ? parsed : 0;
-}
-
-function round(value, digits = 2) {
-  const factor = 10 ** digits;
-  return Math.round(n(value) * factor) / factor;
-}
-
-function average(values) {
-  const clean = values.map(n);
-  if (!clean.length) return 0;
-  return clean.reduce((sum, value) => sum + value, 0) / clean.length;
-}
 
 function percentileRank(values, current) {
   const clean = values.map(n);
@@ -238,9 +218,8 @@ function buildAnomalyScore(metrics) {
 async function main() {
   await fs.ensureDir(PUBLIC_DATA);
 
-  const archive = await readJson(
-    ARCHIVE_FILE,
-    { entries: [] }
+  const archive = await readJsonRequired(
+    ARCHIVE_FILE
   );
 
   const entries = arr(archive?.entries)

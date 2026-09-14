@@ -3,41 +3,32 @@
 const fs = require("fs-extra");
 const path = require("path");
 
+const {
+  arr,
+  n,
+  uniq,
+  readJsonRequired,
+  readJsonOptional,
+} = require("./lib/runtime-data");
+
 const PUBLIC_DATA = path.join(__dirname, "..", "public", "data");
 const ARCHIVE_FILE = path.join(PUBLIC_DATA, "historical-evidence-archive.json");
 const OUTPUT_FILE = path.join(PUBLIC_DATA, "historical-daily-summary.json");
 
 const MAX_DAYS = 365;
 
-async function readJson(file, fallback) {
-  try {
-    return await fs.readJson(file);
-  } catch {
-    return fallback;
-  }
-}
-
-function arr(value) {
-  return Array.isArray(value) ? value : [];
-}
-
-function n(value) {
-  const parsed = Number(value || 0);
-  return Number.isFinite(parsed) ? parsed : 0;
-}
-
 function dayKey(value) {
   const date = new Date(value);
-  if (!Number.isFinite(date.getTime())) return null;
-  return date.toISOString().slice(0, 10);
-}
-
-function uniq(values) {
-  return [...new Set(values.filter(Boolean))];
+  return Number.isFinite(date.getTime())
+    ? date.toISOString().slice(0, 10)
+    : null;
 }
 
 function maxOf(entries, selector) {
-  return entries.reduce((max, entry) => Math.max(max, n(selector(entry))), 0);
+  return entries.reduce(
+    (max, entry) => Math.max(max, n(selector(entry))),
+    0
+  );
 }
 
 function countTrue(entries, selector) {
@@ -46,7 +37,9 @@ function countTrue(entries, selector) {
 
 function buildDailySummary(date, entries) {
   const sorted = [...entries].sort(
-    (a, b) => new Date(a.generatedAt || 0) - new Date(b.generatedAt || 0)
+    (a, b) =>
+      new Date(a.generatedAt || 0).getTime() -
+      new Date(b.generatedAt || 0).getTime()
   );
 
   return {
@@ -78,7 +71,9 @@ function buildDailySummary(date, entries) {
     states: {
       decisions: uniq(sorted.map((entry) => entry?.states?.decision)),
       nonQuietSweeps: sorted.filter(
-        (entry) => entry?.states?.decision && entry.states.decision !== "QUIET"
+        (entry) =>
+          entry?.states?.decision &&
+          entry.states.decision !== "QUIET"
       ).length,
     },
 
@@ -95,7 +90,10 @@ function buildDailySummary(date, entries) {
         sorted,
         (entry) => entry?.gates?.distributionEvidence
       ),
-      maxDomainCount: maxOf(sorted, (entry) => entry?.gates?.domainCount),
+      maxDomainCount: maxOf(
+        sorted,
+        (entry) => entry?.gates?.domainCount
+      ),
       maxHighConfidenceEvidence: maxOf(
         sorted,
         (entry) => entry?.gates?.highConfidenceEvidence
@@ -137,7 +135,10 @@ function buildDailySummary(date, entries) {
     },
 
     onchain: {
-      movementSweeps: countTrue(sorted, (entry) => entry?.onchain?.movement),
+      movementSweeps: countTrue(
+        sorted,
+        (entry) => entry?.onchain?.movement
+      ),
       totalNewExternalTransfers: sorted.reduce(
         (sum, entry) => sum + n(entry?.onchain?.newExternalTransfers),
         0
@@ -146,7 +147,8 @@ function buildDailySummary(date, entries) {
         (sum, entry) => sum + n(entry?.onchain?.newExternalRecipients),
         0
       ),
-      lastRecipientLedger: sorted.at(-1)?.onchain?.recipientLedger || null,
+      lastRecipientLedger:
+        sorted.at(-1)?.onchain?.recipientLedger || null,
     },
   };
 }
@@ -154,27 +156,33 @@ function buildDailySummary(date, entries) {
 async function main() {
   await fs.ensureDir(PUBLIC_DATA);
 
-  const archive = await readJson(ARCHIVE_FILE, { entries: [] });
-  const previous = await readJson(OUTPUT_FILE, { days: [] });
+  const [archive, previous] = await Promise.all([
+    readJsonRequired(ARCHIVE_FILE),
+    readJsonOptional(OUTPUT_FILE, { days: [] }),
+  ]);
 
   const grouped = new Map();
 
   for (const entry of arr(archive?.entries)) {
     const date = dayKey(entry?.generatedAt);
     if (!date) continue;
-    if (!grouped.has(date)) grouped.set(date, []);
+
+    if (!grouped.has(date)) {
+      grouped.set(date, []);
+    }
+
     grouped.get(date).push(entry);
   }
 
-  const rebuiltDays = [...grouped.entries()].map(([date, rows]) =>
-    buildDailySummary(date, rows)
+  const rebuiltDays = [...grouped.entries()].map(
+    ([date, rows]) => buildDailySummary(date, rows)
   );
 
-  const merged = new Map();
-
-  for (const day of arr(previous?.days)) {
-    if (day?.date) merged.set(day.date, day);
-  }
+  const merged = new Map(
+    arr(previous?.days)
+      .filter((day) => day?.date)
+      .map((day) => [day.date, day])
+  );
 
   for (const day of rebuiltDays) {
     merged.set(day.date, day);

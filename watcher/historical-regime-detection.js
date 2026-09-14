@@ -3,6 +3,14 @@
 const fs = require("fs-extra");
 const path = require("path");
 
+const {
+  arr,
+  n,
+  round,
+  average,
+  readJsonRequired,
+} = require("./lib/runtime-data");
+
 const PUBLIC_DATA = path.join(__dirname, "..", "public", "data");
 
 const ARCHIVE_FILE = path.join(
@@ -20,100 +28,80 @@ const OUTPUT_FILE = path.join(
   "historical-regime-detection.json"
 );
 
-async function readJson(file, fallback) {
-  try {
-    return await fs.readJson(file);
-  } catch {
-    return fallback;
-  }
-}
+const REGIME = Object.freeze({
+  UNKNOWN: "UNKNOWN",
+  LEARNING: "LEARNING",
+  QUIET: "QUIET",
+  BUILDING: "BUILDING",
+  ELEVATED: "ELEVATED",
+  ACTIVATION_LIKE: "ACTIVATION_LIKE",
+  COOLING: "COOLING",
+});
 
-function arr(value) {
-  return Array.isArray(value) ? value : [];
-}
+const USABLE_HISTORY_STAGES = new Set([
+  "PRELIMINARY",
+  "USABLE",
+  "STRONG",
+]);
 
-function n(value) {
-  const parsed = Number(value || 0);
-  return Number.isFinite(parsed) ? parsed : 0;
-}
-
-function round(value, digits = 2) {
-  const factor = 10 ** digits;
-  return Math.round(n(value) * factor) / factor;
-}
-
-function average(values) {
-  if (!values.length) return 0;
-
-  return (
-    values.reduce(
-      (sum, value) => sum + n(value),
-      0
-    ) / values.length
-  );
-}
+const WINDOW = 6;
 
 function activityScore(entry) {
   if (!entry) return 0;
 
+  const scores = entry.scores || {};
+  const gates = entry.gates || {};
+  const onchain = entry.onchain || {};
+  const surfaces = entry.surfaces || {};
+
   return (
-    n(entry?.scores?.radar) +
-    n(entry?.scores?.semantic) +
-    n(entry?.scores?.correlation) +
-    n(entry?.scores?.evidenceConfidence) +
-    n(entry?.scores?.activationTimeline) +
-    n(entry?.scores?.decisionStrength) +
-    n(entry?.gates?.domainCount) * 5 +
-    n(entry?.gates?.highConfidenceEvidence) * 5 +
-    n(entry?.onchain?.newExternalTransfers) * 2 +
-    n(entry?.onchain?.newExternalRecipients) * 3 +
-    arr(entry?.surfaces?.dormantToLive).length * 10 +
-    arr(entry?.surfaces?.freshDiscoveries).length * 5
+    n(scores.radar) +
+    n(scores.semantic) +
+    n(scores.correlation) +
+    n(scores.evidenceConfidence) +
+    n(scores.activationTimeline) +
+    n(scores.decisionStrength) +
+    n(gates.domainCount) * 5 +
+    n(gates.highConfidenceEvidence) * 5 +
+    n(onchain.newExternalTransfers) * 2 +
+    n(onchain.newExternalRecipients) * 3 +
+    arr(surfaces.dormantToLive).length * 10 +
+    arr(surfaces.freshDiscoveries).length * 5
   );
+}
+
+function buildBaseline(priorEntries) {
+  const recentEntries = priorEntries.slice(-WINDOW);
+  const previousEntries = priorEntries.slice(-WINDOW * 2, -WINDOW);
+
+  return {
+    recentEntries,
+    previousEntries,
+    recentAverage: average(recentEntries.map(activityScore)),
+    previousAverage: average(previousEntries.map(activityScore)),
+  };
 }
 
 function classifyCandidate({
   current,
-  recentEntries,
-  previousEntries,
+  recentAverage,
+  previousAverage,
   trend,
 }) {
   if (!current) {
     return {
-      regime: "UNKNOWN",
+      regime: REGIME.UNKNOWN,
       confidence: 0,
       reasons: ["No exact sweep is available."],
     };
   }
 
-  const reasons = [];
-
   const currentActivity = activityScore(current);
-
-  const recentActivity = average(
-    recentEntries.map(activityScore)
-  );
-
-  const previousActivity = average(
-    previousEntries.map(activityScore)
-  );
-
-  const activationTransition =
-    current?.gates?.activationTransition === true;
-
-  const runtimeEvidence =
-    current?.gates?.runtimeEvidence === true;
-
-  const distributionEvidence =
-    current?.gates?.distributionEvidence === true;
-
-  const domainCount =
-    n(current?.gates?.domainCount);
-
-  const highConfidenceEvidence =
-    n(current?.gates?.highConfidenceEvidence);
-
+  const gates = current.gates || {};
   const drivers = arr(trend?.drivers);
+
+  const domainCount = n(gates.domainCount);
+  const highConfidenceEvidence = n(gates.highConfidenceEvidence);
 
   const highDrivers = drivers.filter(
     (driver) => n(driver?.percentile) >= 85
@@ -124,31 +112,23 @@ function classifyCandidate({
   );
 
   const anomalyScore =
-    trend?.anomalyScore === null ||
-    trend?.anomalyScore === undefined
+    trend?.anomalyScore == null
       ? null
       : n(trend.anomalyScore);
 
-  // Highest-confidence regime first.
   if (
-    activationTransition &&
-    (runtimeEvidence || distributionEvidence) &&
+    gates.activationTransition === true &&
+    (gates.runtimeEvidence === true ||
+      gates.distributionEvidence === true) &&
     domainCount >= 2
   ) {
-    reasons.push(
-      "Activation transition is present with corroborating runtime/distribution evidence."
-    );
-
-    if (domainCount >= 2) {
-      reasons.push(
-        `Evidence spans ${domainCount} domains.`
-      );
-    }
-
     return {
-      regime: "ACTIVATION_LIKE",
+      regime: REGIME.ACTIVATION_LIKE,
       confidence: 90,
-      reasons,
+      reasons: [
+        "Activation transition is present with corroborating runtime or distribution evidence.",
+        `Evidence spans ${domainCount} domains.`,
+      ],
     };
   }
 
@@ -157,18 +137,13 @@ function classifyCandidate({
     anomalyScore >= 80 &&
     highDrivers.length >= 2
   ) {
-    reasons.push(
-      `Historical anomaly score is ${round(anomalyScore, 1)}.`
-    );
-
-    reasons.push(
-      `${highDrivers.length} high-percentile historical drivers are active.`
-    );
-
     return {
-      regime: "ELEVATED",
+      regime: REGIME.ELEVATED,
       confidence: 80,
-      reasons,
+      reasons: [
+        `Historical anomaly score is ${round(anomalyScore, 1)}.`,
+        `${highDrivers.length} high-percentile historical drivers are active.`,
+      ],
     };
   }
 
@@ -176,40 +151,38 @@ function classifyCandidate({
     risingDrivers.length >= 2 ||
     (
       currentActivity > 0 &&
-      recentActivity > previousActivity * 1.25 &&
-      previousActivity > 0
+      previousAverage > 0 &&
+      recentAverage > previousAverage * 1.25
     )
   ) {
-    reasons.push(
-      "Recent activity is rising relative to the preceding baseline."
-    );
+    const reasons = [
+      "Recent activity is rising relative to the preceding baseline.",
+    ];
 
-    if (risingDrivers.length) {
+    if (risingDrivers.length > 0) {
       reasons.push(
         `${risingDrivers.length} historical drivers are rising.`
       );
     }
 
     return {
-      regime: "BUILDING",
+      regime: REGIME.BUILDING,
       confidence: 70,
       reasons,
     };
   }
 
   if (
-    previousActivity > 0 &&
-    recentActivity < previousActivity * 0.75 &&
-    currentActivity <= recentActivity
+    previousAverage > 0 &&
+    recentAverage < previousAverage * 0.75 &&
+    currentActivity <= recentAverage
   ) {
-    reasons.push(
-      "Recent activity has materially declined from the preceding baseline."
-    );
-
     return {
-      regime: "COOLING",
+      regime: REGIME.COOLING,
       confidence: 65,
-      reasons,
+      reasons: [
+        "Recent activity has materially declined from the preceding baseline.",
+      ],
     };
   }
 
@@ -219,74 +192,68 @@ function classifyCandidate({
     highConfidenceEvidence === 0 &&
     drivers.length === 0
   ) {
-    reasons.push(
-      "Current exact sweep has no meaningful activation, evidence, or historical-driver activity."
-    );
-
     return {
-      regime: "QUIET",
+      regime: REGIME.QUIET,
       confidence: 85,
-      reasons,
+      reasons: [
+        "Current exact sweep has no meaningful activation, evidence, or historical-driver activity.",
+      ],
     };
   }
 
-  reasons.push(
-    "Observed activity does not satisfy a stronger regime definition."
-  );
-
   return {
-    regime: "QUIET",
+    regime: REGIME.QUIET,
     confidence: 60,
-    reasons,
+    reasons: [
+      "Observed activity does not satisfy a stronger regime definition.",
+    ],
   };
+}
+
+function sortEntries(entries) {
+  return arr(entries)
+    .filter((entry) => entry?.generatedAt)
+    .sort(
+      (a, b) =>
+        new Date(a.generatedAt).getTime() -
+        new Date(b.generatedAt).getTime()
+    );
 }
 
 async function main() {
   await fs.ensureDir(PUBLIC_DATA);
 
   const [archive, trend] = await Promise.all([
-    readJson(ARCHIVE_FILE, { entries: [] }),
-    readJson(TREND_FILE, {}),
+    readJsonRequired(ARCHIVE_FILE),
+    readJsonRequired(TREND_FILE),
   ]);
 
-  const entries = arr(archive?.entries)
-    .filter((entry) => entry?.generatedAt)
-    .sort(
-      (a, b) =>
-        new Date(a.generatedAt) -
-        new Date(b.generatedAt)
-    );
-
+  const entries = sortEntries(archive?.entries);
   const current = entries.at(-1) || null;
+  const priorEntries = current ? entries.slice(0, -1) : [];
 
-  const priorEntries = current
-    ? entries.slice(0, -1)
-    : [];
+  const {
+    recentEntries,
+    previousEntries,
+    recentAverage,
+    previousAverage,
+  } = buildBaseline(priorEntries);
 
-  const recentEntries =
-    priorEntries.slice(-6);
-
-  const previousEntries =
-    priorEntries.slice(-12, -6);
-
-  const historyStage =
-    trend?.history?.stage || "LEARNING";
+  const historyStage = trend?.history?.stage || "LEARNING";
 
   const candidate = classifyCandidate({
     current,
-    recentEntries,
-    previousEntries,
+    recentAverage,
+    previousAverage,
     trend,
   });
 
   const isHistoryUsable =
-    historyStage === "PRELIMINARY" ||
-    historyStage === "USABLE" ||
-    historyStage === "STRONG";
+    USABLE_HISTORY_STAGES.has(historyStage);
 
   const regime = isHistoryUsable
     ? candidate.regime
-    : "LEARNING";
+    : REGIME.LEARNING;
 
   const confidence = isHistoryUsable
     ? candidate.confidence
@@ -305,51 +272,32 @@ async function main() {
     history: {
       stage: historyStage,
       exactSweepCount:
-        n(trend?.history?.exactSweepCount) ||
-        entries.length,
-      usableForRegimeClassification:
-        isHistoryUsable,
+        n(trend?.history?.exactSweepCount) || entries.length,
+      usableForRegimeClassification: isHistoryUsable,
     },
 
     current: {
-      snapshotId:
-        current?.snapshotId || null,
-      generatedAt:
-        current?.generatedAt || null,
-      decisionState:
-        current?.states?.decision || null,
-      activityScore:
-        activityScore(current),
+      snapshotId: current?.snapshotId || null,
+      generatedAt: current?.generatedAt || null,
+      decisionState: current?.states?.decision || null,
+      activityScore: activityScore(current),
     },
 
     baseline: {
-      recentSixSweepAverageActivity:
-        round(
-          average(
-            recentEntries.map(activityScore)
-          )
-        ),
-      previousSixSweepAverageActivity:
-        round(
-          average(
-            previousEntries.map(activityScore)
-          )
-        ),
+      recentWindowSweeps: recentEntries.length,
+      previousWindowSweeps: previousEntries.length,
+      recentSixSweepAverageActivity: round(recentAverage),
+      previousSixSweepAverageActivity: round(previousAverage),
     },
 
     trendContext: {
-      status:
-        trend?.status || null,
-      anomalyScore:
-        trend?.anomalyScore ?? null,
-      driverCount:
-        arr(trend?.drivers).length,
-      drivers:
-        arr(trend?.drivers),
+      status: trend?.status || null,
+      anomalyScore: trend?.anomalyScore ?? null,
+      driverCount: arr(trend?.drivers).length,
+      drivers: arr(trend?.drivers),
     },
 
-    reasons:
-      candidate.reasons,
+    reasons: candidate.reasons,
 
     methodology:
       "Score-neutral regime classification derived from exact sweep history and Historical Trend Intelligence. Stronger regimes require corroborating historical or multi-domain evidence.",
@@ -358,11 +306,7 @@ async function main() {
       "Regime Detection is descriptive only. It does not modify Radar scoring, establish launch probability, predict rewards, or constitute trading advice.",
   };
 
-  await fs.writeJson(
-    OUTPUT_FILE,
-    output,
-    { spaces: 2 }
-  );
+  await fs.writeJson(OUTPUT_FILE, output, { spaces: 2 });
 
   console.log(
     `Historical Regime Detection v1 | regime=${regime} candidate=${candidate.regime} stage=${historyStage} sweeps=${entries.length} confidence=${confidence ?? "n/a"}`

@@ -3,30 +3,17 @@
 const fs = require("fs-extra");
 const path = require("path");
 
+const {
+  arr,
+  n,
+  uniq,
+  readJsonRequired,
+  readJsonOptional,
+} = require("./lib/runtime-data");
+
 const PUBLIC_DATA = path.join(__dirname, "..", "public", "data");
 const DAILY_FILE = path.join(PUBLIC_DATA, "historical-daily-summary.json");
 const OUTPUT_FILE = path.join(PUBLIC_DATA, "historical-monthly-summary.json");
-
-async function readJson(file, fallback) {
-  try {
-    return await fs.readJson(file);
-  } catch {
-    return fallback;
-  }
-}
-
-function arr(value) {
-  return Array.isArray(value) ? value : [];
-}
-
-function n(value) {
-  const parsed = Number(value || 0);
-  return Number.isFinite(parsed) ? parsed : 0;
-}
-
-function uniq(values) {
-  return [...new Set(values.filter(Boolean))];
-}
 
 function monthKey(date) {
   return typeof date === "string" && date.length >= 7
@@ -35,11 +22,16 @@ function monthKey(date) {
 }
 
 function maxOf(days, selector) {
-  return days.reduce((max, day) => Math.max(max, n(selector(day))), 0);
+  return days.reduce(
+    (max, day) => Math.max(max, n(selector(day))),
+    0
+  );
 }
 
 function buildMonthlySummary(month, days) {
-  const sorted = [...days].sort((a, b) => a.date.localeCompare(b.date));
+  const sorted = [...days].sort(
+    (a, b) => a.date.localeCompare(b.date)
+  );
 
   return {
     month,
@@ -125,7 +117,8 @@ function buildMonthlySummary(month, days) {
         (sum, day) => sum + n(day?.onchain?.totalNewExternalRecipients),
         0
       ),
-      lastRecipientLedger: sorted.at(-1)?.onchain?.lastRecipientLedger || null,
+      lastRecipientLedger:
+        sorted.at(-1)?.onchain?.lastRecipientLedger || null,
     },
   };
 }
@@ -133,34 +126,40 @@ function buildMonthlySummary(month, days) {
 async function main() {
   await fs.ensureDir(PUBLIC_DATA);
 
-  const daily = await readJson(DAILY_FILE, { days: [] });
-  const previous = await readJson(OUTPUT_FILE, { months: [] });
+  const [daily, previous] = await Promise.all([
+    readJsonRequired(DAILY_FILE),
+    readJsonOptional(OUTPUT_FILE, { months: [] }),
+  ]);
 
   const grouped = new Map();
 
   for (const day of arr(daily?.days)) {
     const month = monthKey(day?.date);
     if (!month) continue;
-    if (!grouped.has(month)) grouped.set(month, []);
+
+    if (!grouped.has(month)) {
+      grouped.set(month, []);
+    }
+
     grouped.get(month).push(day);
   }
 
-  const rebuiltMonths = [...grouped.entries()].map(([month, days]) =>
-    buildMonthlySummary(month, days)
+  const rebuiltMonths = [...grouped.entries()].map(
+    ([month, days]) => buildMonthlySummary(month, days)
   );
 
-  const merged = new Map();
-
-  for (const month of arr(previous?.months)) {
-    if (month?.month) merged.set(month.month, month);
-  }
+  const merged = new Map(
+    arr(previous?.months)
+      .filter((month) => month?.month)
+      .map((month) => [month.month, month])
+  );
 
   for (const month of rebuiltMonths) {
     merged.set(month.month, month);
   }
 
-  const months = [...merged.values()].sort((a, b) =>
-    a.month.localeCompare(b.month)
+  const months = [...merged.values()].sort(
+    (a, b) => a.month.localeCompare(b.month)
   );
 
   const output = {
