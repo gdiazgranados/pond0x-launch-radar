@@ -220,3 +220,37 @@ test("blocks altered debit or insufficient simulated output", () => {
     )
   )
 })
+test("blocks exposure not covered by campaign funding", () => {
+  const riskBeyondFunding = evaluate({
+    campaign: campaign({
+      fundedUsdCents: 1_000,
+      capitalAtRiskUsdCents: 1_250,
+      transactionAmountUsdCents: 1_000,
+    }),
+  })
+
+  assert.equal(riskBeyondFunding.status, "BLOCKED")
+  assert.ok(
+    riskBeyondFunding.blockingReasons.includes(
+      "PONDOX_GUARD_CAMPAIGN_RISK_EXCEEDS_FUNDING"
+    )
+  )
+
+  const prospectiveRiskBeyondFunding = evaluate({
+    campaign: campaign({
+      fundedUsdCents: 2_000,
+      capitalAtRiskUsdCents: 1_250,
+      transactionAmountUsdCents: 1_000,
+    }),
+  })
+
+  assert.equal(
+    prospectiveRiskBeyondFunding.status,
+    "BLOCKED"
+  )
+  assert.ok(
+    prospectiveRiskBeyondFunding.blockingReasons.includes(
+      "PONDOX_GUARD_TRANSACTION_EXCEEDS_AVAILABLE_FUNDING"
+    )
+  )
+})

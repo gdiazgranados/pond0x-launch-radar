@@ -205,3 +205,37 @@ test("fails closed on unsafe endpoints and malformed RPC responses", async () =>
     ["PONDOX_RPC_RESPONSE_INVALID"]
   )
 })
+test("fails closed when simulation err field is missing", async () => {
+  const result = await simulatePond0xWireTransaction({
+    rpcUrl: "https://api.mainnet-beta.solana.com",
+    transactionBase64: encodedTransaction(),
+    fetcher: async () => jsonResponse([
+      {
+        jsonrpc: "2.0",
+        id: 1,
+        result: {
+          context: { slot: 1 },
+          value: {
+            logs: ["Program log: malformed response"],
+            unitsConsumed: 100,
+          },
+        },
+      },
+      {
+        jsonrpc: "2.0",
+        id: 2,
+        result: {
+          context: { slot: 1 },
+          value: 5000,
+        },
+      },
+    ]),
+  })
+
+  assert.equal(result.status, "BLOCKED")
+  assert.equal(result.simulationSucceeded, false)
+  assert.deepEqual(
+    result.blockingReasons,
+    ["PONDOX_RPC_RESPONSE_INVALID"]
+  )
+})

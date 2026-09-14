@@ -135,6 +135,46 @@ export function evaluatePond0xProtectedTransaction(input: {
     reasons.push("PONDOX_GUARD_TRANSACTION_USD_OUT_OF_RANGE")
   }
 
+  const campaignAmountsValid =
+    Number.isSafeInteger(campaign.fundedUsdCents) &&
+    campaign.fundedUsdCents > 0 &&
+    Number.isSafeInteger(campaign.capitalAtRiskUsdCents) &&
+    campaign.capitalAtRiskUsdCents >= 0 &&
+    Number.isSafeInteger(campaign.transactionAmountUsdCents) &&
+    campaign.transactionAmountUsdCents > 0
+
+  if (
+    campaignAmountsValid &&
+    campaign.capitalAtRiskUsdCents >
+      campaign.fundedUsdCents
+  ) {
+    reasons.push(
+      "PONDOX_GUARD_CAMPAIGN_RISK_EXCEEDS_FUNDING"
+    )
+  }
+
+  if (
+    campaignAmountsValid &&
+    campaign.capitalAtRiskUsdCents +
+      campaign.transactionAmountUsdCents >
+      campaign.fundedUsdCents
+  ) {
+    reasons.push(
+      "PONDOX_GUARD_TRANSACTION_EXCEEDS_AVAILABLE_FUNDING"
+    )
+  }
+
+  if (
+    campaignAmountsValid &&
+    campaign.capitalAtRiskUsdCents +
+      campaign.transactionAmountUsdCents >
+      MAX_CAMPAIGN_USD_CENTS
+  ) {
+    reasons.push(
+      "PONDOX_GUARD_AGGREGATE_RISK_EXCEEDS_CAP"
+    )
+  }
+
   if (
     !campaign.dedicatedWallet.trim() ||
     transaction.feePayer !== campaign.dedicatedWallet ||

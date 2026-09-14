@@ -288,8 +288,12 @@ export async function simulatePond0xWireTransaction(input: {
   const simulationValue = record(simulationResult?.value)
   const feeResult = record(feeEnvelope.result)
   const feeValue = feeResult?.value
-  if (
+    if (
     !simulationValue ||
+    !Object.prototype.hasOwnProperty.call(
+      simulationValue,
+      "err"
+    ) ||
     !Number.isSafeInteger(feeValue) ||
     Number(feeValue) < 0
   ) {

@@ -24,6 +24,7 @@ const SYSTEM_PROGRAM = address(
 
 function encodedTransaction(options: {
   withInstruction?: boolean
+  programAddress?: string
 } = {}) {
   const withInstruction = options.withInstruction ?? true
   const base = pipe(
@@ -45,7 +46,9 @@ function encodedTransaction(options: {
   const message = withInstruction
     ? appendTransactionMessageInstruction(
         {
-          programAddress: SYSTEM_PROGRAM,
+          programAddress: address(
+            options.programAddress ?? SYSTEM_PROGRAM
+          ),
           data: new Uint8Array([1, 2, 3]),
         },
         base
@@ -103,6 +106,21 @@ test("blocks a decoded transaction without instructions", () => {
   assert.ok(
     result.blockingReasons.includes(
       "PONDOX_WIRE_INSTRUCTIONS_EMPTY"
+    )
+  )
+})
+test("blocks programs outside the Pond0x allowlist", () => {
+  const result = inspectSolanaWireTransaction(
+    encodedTransaction({
+      programAddress:
+        "Stake11111111111111111111111111111111111111",
+    })
+  )
+
+  assert.equal(result.status, "BLOCKED")
+  assert.ok(
+    result.blockingReasons.includes(
+      "PONDOX_WIRE_PROGRAM_NOT_ALLOWED"
     )
   )
 })

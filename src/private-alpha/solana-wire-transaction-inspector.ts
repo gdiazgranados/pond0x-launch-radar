@@ -4,6 +4,18 @@ import {
   getTransactionDecoder,
 } from "@solana/kit"
 
+export const PONDOX_ALLOWED_PROGRAM_ADDRESSES = [
+  "ComputeBudget111111111111111111111111111111",
+  "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
+  "11111111111111111111111111111111",
+  "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+  "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4",
+] as const
+
+const PONDOX_ALLOWED_PROGRAM_SET = new Set<string>(
+  PONDOX_ALLOWED_PROGRAM_ADDRESSES
+)
+
 export type SolanaWireInstructionInspection = {
   instructionIndex: number
   programAddressIndex: number
@@ -127,6 +139,17 @@ export function inspectSolanaWireTransaction(
     }
     if (instructions.length === 0) {
       reasons.push("PONDOX_WIRE_INSTRUCTIONS_EMPTY")
+    }
+    if (
+      instructions.some(
+        instruction =>
+          instruction.programAddress !== null &&
+          !PONDOX_ALLOWED_PROGRAM_SET.has(
+            instruction.programAddress
+          )
+      )
+    ) {
+      reasons.push("PONDOX_WIRE_PROGRAM_NOT_ALLOWED")
     }
 
     return {
