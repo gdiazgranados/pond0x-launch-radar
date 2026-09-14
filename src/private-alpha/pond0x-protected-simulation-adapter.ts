@@ -80,10 +80,13 @@ export function evaluatePond0xProtectedSimulation(input: {
     input.simulation.observedAt
   )
   const capturedAt = Date.parse(input.intent.capturedAt)
+  const now = Date.parse(input.now)
   if (
     !Number.isFinite(simulationObservedAt) ||
     !Number.isFinite(capturedAt) ||
-    simulationObservedAt < capturedAt
+    !Number.isFinite(now) ||
+    simulationObservedAt < capturedAt ||
+    simulationObservedAt > now
   ) {
     adapterReasons.push(
       "PONDOX_SIMULATION_TIMESTAMP_INVALID"

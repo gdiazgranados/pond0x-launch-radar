@@ -152,6 +152,12 @@ export function inspectSolanaWireTransaction(
       reasons.push("PONDOX_WIRE_PROGRAM_NOT_ALLOWED")
     }
 
+   if (unresolved.size > 0) {
+     reasons.push(
+       "PONDOX_WIRE_PROGRAM_ADDRESS_UNRESOLVED"
+     )
+   }
+
     return {
       schemaVersion: 1,
       status: reasons.length === 0 ? "DECODED" : "BLOCKED",

@@ -29,19 +29,21 @@ function encodedTransaction(options: {
   const withInstruction = options.withInstruction ?? true
   const base = pipe(
     createTransactionMessage({ version: 0 }),
-    message => setTransactionMessageFeePayer(
-      FEE_PAYER,
-      message
-    ),
-    message => setTransactionMessageLifetimeUsingBlockhash(
-      {
-        blockhash: blockhash(
-          "11111111111111111111111111111111"
-        ),
-        lastValidBlockHeight: BigInt(100),
-      },
-      message
-    )
+    message =>
+      setTransactionMessageFeePayer(
+        FEE_PAYER,
+        message
+      ),
+    message =>
+      setTransactionMessageLifetimeUsingBlockhash(
+        {
+          blockhash: blockhash(
+            "11111111111111111111111111111111"
+          ),
+          lastValidBlockHeight: BigInt(100),
+        },
+        message
+      )
   )
   const message = withInstruction
     ? appendTransactionMessageInstruction(
@@ -81,7 +83,9 @@ test("decodes a bounded unsigned Solana v0 transaction", () => {
 })
 
 test("fails closed on invalid or malformed base64", () => {
-  const invalid = inspectSolanaWireTransaction("not base64!")
+  const invalid =
+    inspectSolanaWireTransaction("not base64!")
+
   assert.equal(invalid.status, "BLOCKED")
   assert.deepEqual(
     invalid.blockingReasons,
@@ -89,6 +93,7 @@ test("fails closed on invalid or malformed base64", () => {
   )
 
   const malformed = inspectSolanaWireTransaction("AAAA")
+
   assert.equal(malformed.status, "BLOCKED")
   assert.deepEqual(
     malformed.blockingReasons,
@@ -109,6 +114,7 @@ test("blocks a decoded transaction without instructions", () => {
     )
   )
 })
+
 test("blocks programs outside the Pond0x allowlist", () => {
   const result = inspectSolanaWireTransaction(
     encodedTransaction({
@@ -118,6 +124,10 @@ test("blocks programs outside the Pond0x allowlist", () => {
   )
 
   assert.equal(result.status, "BLOCKED")
+  assert.deepEqual(
+    result.unresolvedProgramAddressIndices,
+    []
+  )
   assert.ok(
     result.blockingReasons.includes(
       "PONDOX_WIRE_PROGRAM_NOT_ALLOWED"

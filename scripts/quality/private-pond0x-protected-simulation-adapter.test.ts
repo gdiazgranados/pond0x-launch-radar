@@ -206,3 +206,21 @@ test("propagates wire and simulation failures without signing", () => {
   assert.equal(result.signingEnabled, false)
   assert.equal(result.transactionSubmitted, false)
 })
+test("blocks simulation evidence dated after now", () => {
+  const result = evaluatePond0xProtectedSimulation({
+    now: "2026-09-11T00:00:10.000Z",
+    campaign: campaign(),
+    transactionBase64: encodedTransaction(),
+    intent: intent(),
+    simulation: simulation({
+      observedAt: "2026-09-11T00:00:11.000Z",
+    }),
+  })
+
+  assert.equal(result.status, "BLOCKED")
+  assert.ok(
+    result.blockingReasons.includes(
+      "PONDOX_SIMULATION_TIMESTAMP_INVALID"
+    )
+  )
+})
