@@ -96,6 +96,18 @@ export function inspectSolanaWireTransaction(
     const transaction =
       getTransactionDecoder().decode(wireBytes)
 
+    if (
+      Object.values(transaction.signatures).some(
+        signature => signature !== null
+      )
+    ) {
+      return {
+        ...blocked("PONDOX_WIRE_SIGNATURE_PRESENT"),
+        wireByteLength: wireBytes.length,
+        wireSha256,
+      }
+    }
+
     const message =
       getCompiledTransactionMessageDecoder().decode(
         transaction.messageBytes

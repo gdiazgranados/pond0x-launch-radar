@@ -2,6 +2,7 @@ import {
   getBase64Decoder,
   getBase64Encoder,
   getTransactionDecoder,
+  isAddress,
 } from "@solana/kit"
 import {
   inspectSolanaWireTransaction,
@@ -136,6 +137,7 @@ function parsePostAccounts(
     !Number.isSafeInteger(lamports) ||
     Number(lamports) < 0 ||
     typeof owner !== "string" ||
+    !isAddress(owner) ||
     typeof executable !== "boolean" ||
     !Array.isArray(data) ||
     data.length !== 2 ||

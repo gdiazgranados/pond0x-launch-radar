@@ -138,3 +138,28 @@ test("blocks programs outside the Pond0x allowlist", () => {
     )
   )
 })
+test("blocks a wire containing a signature", () => {
+  const wireBytes = Buffer.from(
+    encodedTransaction(),
+    "base64"
+  )
+
+  wireBytes[1] = 1
+
+  const result = inspectSolanaWireTransaction(
+    wireBytes.toString("base64")
+  )
+
+  assert.equal(result.status, "BLOCKED")
+  assert.ok(
+    result.blockingReasons.includes(
+      "PONDOX_WIRE_SIGNATURE_PRESENT"
+    )
+  )
+  assert.match(
+    result.wireSha256 ?? "",
+    /^[0-9a-f]{64}$/
+  )
+  assert.equal(result.signingEnabled, false)
+  assert.equal(result.transactionSubmitted, false)
+})

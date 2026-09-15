@@ -291,3 +291,51 @@ test(
     ])
   }
 )
+test(
+  "fails closed on an invalid post-account owner",
+  async () => {
+    const result = await simulatePond0xWireTransaction({
+      rpcUrl: "https://api.mainnet-beta.solana.com",
+      transactionBase64: encodedTransaction(),
+      watchedAccounts: [FEE_PAYER],
+      fetcher: async () =>
+        jsonResponse([
+          {
+            jsonrpc: "2.0",
+            id: 1,
+            result: {
+              context: { slot: 1 },
+              value: {
+                err: null,
+                logs: [],
+                unitsConsumed: 100,
+                accounts: [
+                  {
+                    lamports: 100000000,
+                    owner: "not-a-solana-address",
+                    executable: false,
+                    data: ["", "base64"],
+                  },
+                ],
+              },
+            },
+          },
+          {
+            jsonrpc: "2.0",
+            id: 2,
+            result: {
+              context: { slot: 1 },
+              value: 5000,
+            },
+          },
+        ]),
+    })
+
+    assert.equal(result.status, "BLOCKED")
+    assert.equal(result.simulationSucceeded, false)
+    assert.equal(result.approvalGranted, false)
+    assert.deepEqual(result.blockingReasons, [
+      "PONDOX_RPC_ACCOUNT_EVIDENCE_INVALID",
+    ])
+  }
+)

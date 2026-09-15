@@ -326,3 +326,17 @@ test("fails closed when the underlying quote is absent", () => {
   assert.equal(result.transactionRequested, false)
   assert.equal(result.walletConnected, false)
 })
+test("blocks blank quote route labels", () => {
+  const result = observation({
+    quote: quote({
+      routeLabels: ["   "],
+    }),
+  })
+
+  assert.equal(result.status, "BLOCKED")
+  assert.ok(
+    result.blockingReasons.includes(
+      "PONDOX_QUOTE_ROUTE_UNAVAILABLE"
+    )
+  )
+})

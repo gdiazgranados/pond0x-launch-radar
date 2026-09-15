@@ -379,7 +379,10 @@ export function buildPond0xPortalObservation(input: {
   ) {
     blockingReasons.push("PONDOX_QUOTE_MODE_MISMATCH")
   }
-  if (quote.routeLabels.length === 0) {
+  if (
+    quote.routeLabels.length === 0 ||
+    quote.routeLabels.some(label => label.trim().length === 0)
+  ) {
     blockingReasons.push("PONDOX_QUOTE_ROUTE_UNAVAILABLE")
   }
   if (!positiveInteger(quote.outAmount)) {
