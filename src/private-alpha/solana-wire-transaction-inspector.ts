@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto"
 import {
   getBase64Encoder,
   getCompiledTransactionMessageDecoder,
@@ -29,6 +30,7 @@ export type SolanaWireTransactionInspection = {
   status: "DECODED" | "BLOCKED"
   transactionVersion: "legacy" | number | null
   wireByteLength: number
+  wireSha256: string | null
   feePayer: string | null
   requiredSigners: ReadonlyArray<string>
   staticAccountCount: number
@@ -49,6 +51,7 @@ function blocked(
     status: "BLOCKED",
     transactionVersion: null,
     wireByteLength: 0,
+    wireSha256: null,
     feePayer: null,
     requiredSigners: [],
     staticAccountCount: 0,
@@ -78,32 +81,53 @@ export function inspectSolanaWireTransaction(
     const wireBytes = getBase64Encoder().encode(
       transactionBase64
     )
-    if (wireBytes.length === 0 || wireBytes.length > 4_096) {
+
+    if (
+      wireBytes.length === 0 ||
+      wireBytes.length > 4_096
+    ) {
       return blocked("PONDOX_WIRE_SIZE_INVALID")
     }
 
-    const transaction = getTransactionDecoder().decode(wireBytes)
+    const wireSha256 = createHash("sha256")
+      .update(Uint8Array.from(wireBytes))
+      .digest("hex")
+
+    const transaction =
+      getTransactionDecoder().decode(wireBytes)
+
     const message =
       getCompiledTransactionMessageDecoder().decode(
         transaction.messageBytes
       )
-    if (message.version !== "legacy" && message.version !== 0) {
+
+    if (
+      message.version !== "legacy" &&
+      message.version !== 0
+    ) {
       return {
         ...blocked("PONDOX_WIRE_VERSION_UNSUPPORTED"),
         transactionVersion: message.version,
         wireByteLength: wireBytes.length,
+        wireSha256,
       }
     }
 
     const staticAccounts = message.staticAccounts.map(String)
     const signerCount = message.header.numSignerAccounts
-    const requiredSigners = staticAccounts.slice(0, signerCount)
+    const requiredSigners = staticAccounts.slice(
+      0,
+      signerCount
+    )
+
     const addressTableLookupCount =
       "addressTableLookups" in message &&
       Array.isArray(message.addressTableLookups)
         ? message.addressTableLookups.length
         : 0
+
     const unresolved = new Set<number>()
+
     const instructions = message.instructions.map(
       (instruction, instructionIndex) => {
         const programAddress =
@@ -113,8 +137,11 @@ export function inspectSolanaWireTransaction(
                 instruction.programAddressIndex
               ]
             : null
+
         if (programAddress === null) {
-          unresolved.add(instruction.programAddressIndex)
+          unresolved.add(
+            instruction.programAddressIndex
+          )
         }
 
         return {
@@ -129,17 +156,30 @@ export function inspectSolanaWireTransaction(
         }
       }
     )
+
     const reasons: string[] = []
 
-    if (signerCount < 1 || requiredSigners.length !== signerCount) {
-      reasons.push("PONDOX_WIRE_SIGNER_LAYOUT_INVALID")
+    if (
+      signerCount < 1 ||
+      requiredSigners.length !== signerCount
+    ) {
+      reasons.push(
+        "PONDOX_WIRE_SIGNER_LAYOUT_INVALID"
+      )
     }
+
     if (staticAccounts.length === 0) {
-      reasons.push("PONDOX_WIRE_STATIC_ACCOUNTS_EMPTY")
+      reasons.push(
+        "PONDOX_WIRE_STATIC_ACCOUNTS_EMPTY"
+      )
     }
+
     if (instructions.length === 0) {
-      reasons.push("PONDOX_WIRE_INSTRUCTIONS_EMPTY")
+      reasons.push(
+        "PONDOX_WIRE_INSTRUCTIONS_EMPTY"
+      )
     }
+
     if (
       instructions.some(
         instruction =>
@@ -149,26 +189,32 @@ export function inspectSolanaWireTransaction(
           )
       )
     ) {
-      reasons.push("PONDOX_WIRE_PROGRAM_NOT_ALLOWED")
+      reasons.push(
+        "PONDOX_WIRE_PROGRAM_NOT_ALLOWED"
+      )
     }
 
-   if (unresolved.size > 0) {
-     reasons.push(
-       "PONDOX_WIRE_PROGRAM_ADDRESS_UNRESOLVED"
-     )
-   }
+    if (unresolved.size > 0) {
+      reasons.push(
+        "PONDOX_WIRE_PROGRAM_ADDRESS_UNRESOLVED"
+      )
+    }
 
     return {
       schemaVersion: 1,
-      status: reasons.length === 0 ? "DECODED" : "BLOCKED",
+      status:
+        reasons.length === 0 ? "DECODED" : "BLOCKED",
       transactionVersion: message.version,
       wireByteLength: wireBytes.length,
+      wireSha256,
       feePayer: staticAccounts[0] ?? null,
       requiredSigners,
       staticAccountCount: staticAccounts.length,
       addressTableLookupCount,
       instructions,
-      unresolvedProgramAddressIndices: [...unresolved],
+      unresolvedProgramAddressIndices: [
+        ...unresolved,
+      ],
       blockingReasons: reasons,
       signingEnabled: false,
       transactionSubmitted: false,

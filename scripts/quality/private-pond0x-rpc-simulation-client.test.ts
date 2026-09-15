@@ -104,6 +104,11 @@ test("simulates unsigned wire and requests its network fee", async () => {
   assert.equal(result.unitsConsumed, 12345)
   assert.equal(result.postAccounts[0].address, FEE_PAYER)
   assert.deepEqual(result.blockingReasons, [])
+  assert.match(
+    result.wireInspection.wireSha256 ?? "",
+    /^[0-9a-f]{64}$/
+  )
+  assert.equal(result.approvalGranted, false)
 
   const requests = requestBody as Array<{
     method: string

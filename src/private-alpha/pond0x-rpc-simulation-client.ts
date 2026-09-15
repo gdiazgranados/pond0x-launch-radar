@@ -40,6 +40,7 @@ export type Pond0xRpcSimulationObservation = {
   postAccounts: ReadonlyArray<Pond0xSimulatedAccount>
   wireInspection: SolanaWireTransactionInspection
   blockingReasons: ReadonlyArray<string>
+  approvalGranted: false
   signingEnabled: false
   transactionSubmitted: false
   source: "SOLANA_RPC_SIMULATE_TRANSACTION"
@@ -64,6 +65,7 @@ function blocked(
     postAccounts: [],
     wireInspection,
     blockingReasons: [...new Set(reasons)],
+    approvalGranted: false,
     signingEnabled: false,
     transactionSubmitted: false,
     source: "SOLANA_RPC_SIMULATE_TRANSACTION",
@@ -345,6 +347,7 @@ export async function simulatePond0xWireTransaction(input: {
     postAccounts,
     wireInspection,
     blockingReasons: reasons,
+    approvalGranted: false,
     signingEnabled: false,
     transactionSubmitted: false,
     source: "SOLANA_RPC_SIMULATE_TRANSACTION",

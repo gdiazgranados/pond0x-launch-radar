@@ -69,6 +69,10 @@ test("decodes a bounded unsigned Solana v0 transaction", () => {
 
   assert.equal(result.status, "DECODED")
   assert.equal(result.transactionVersion, 0)
+  assert.match(
+    result.wireSha256 ?? "",
+    /^[0-9a-f]{64}$/
+  )
   assert.equal(result.feePayer, FEE_PAYER)
   assert.deepEqual(result.requiredSigners, [FEE_PAYER])
   assert.equal(result.instructions.length, 1)
