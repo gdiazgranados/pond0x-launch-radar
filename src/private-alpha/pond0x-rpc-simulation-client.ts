@@ -17,6 +17,7 @@ type FetchLike = (
 ) => Promise<Response>
 
 type RpcEnvelope = {
+  jsonrpc?: unknown
   id?: unknown
   result?: unknown
   error?: unknown
@@ -75,13 +76,17 @@ function blocked(
 
 function validateRpcUrl(value: string) {
   const url = new URL(value)
+
   if (
     url.protocol !== "https:" ||
     url.username ||
     url.password
   ) {
-    throw new Error("Solana RPC URL must be credential-free HTTPS")
+    throw new Error(
+      "Solana RPC URL must be credential-free HTTPS"
+    )
   }
+
   return url
 }
 
@@ -91,25 +96,47 @@ function validateWatchedAccounts(
   if (addresses.length > MAX_WATCHED_ACCOUNTS) {
     throw new Error("too many watched Solana accounts")
   }
+
   for (const value of addresses) {
-    if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(value)) {
+    if (!isAddress(value)) {
       throw new Error("watched Solana account is invalid")
     }
   }
+
   if (new Set(addresses).size !== addresses.length) {
-    throw new Error("watched Solana accounts must be unique")
+    throw new Error(
+      "watched Solana accounts must be unique"
+    )
   }
 }
 
-function record(value: unknown): Record<string, unknown> | null {
+function record(
+  value: unknown
+): Record<string, unknown> | null {
   return value !== null && typeof value === "object"
     ? value as Record<string, unknown>
     : null
 }
 
+function validRpcContext(value: unknown) {
+  const context = record(value)
+
+  return (
+    context !== null &&
+    Number.isSafeInteger(context.slot) &&
+    Number(context.slot) >= 0
+  )
+}
+
 function safeError(value: unknown) {
-  if (value === null || value === undefined) return null
-  if (typeof value === "string") return value.slice(0, 500)
+  if (value === null || value === undefined) {
+    return null
+  }
+
+  if (typeof value === "string") {
+    return value.slice(0, 500)
+  }
+
   try {
     return JSON.stringify(value).slice(0, 500)
   } catch {
@@ -121,56 +148,72 @@ function parsePostAccounts(
   value: unknown,
   addresses: ReadonlyArray<string>
 ): Pond0xSimulatedAccount[] | null {
-  if (!Array.isArray(value) || value.length !== addresses.length) {
-    return null
-  }
-
-  const accounts: Pond0xSimulatedAccount[] = []
-  for (let index = 0; index < value.length; index += 1) {
-    const account = record(value[index])
-    if (!account) return null
-    const lamports = account.lamports
-    const owner = account.owner
-    const executable = account.executable
-    const data = account.data
   if (
-    !Number.isSafeInteger(lamports) ||
-    Number(lamports) < 0 ||
-    typeof owner !== "string" ||
-    !isAddress(owner) ||
-    typeof executable !== "boolean" ||
-    !Array.isArray(data) ||
-    data.length !== 2 ||
-    typeof data[0] !== "string" ||
-    data[1] !== "base64" ||
-    !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(
-      data[0]
-    )
+    !Array.isArray(value) ||
+    value.length !== addresses.length
   ) {
     return null
   }
 
-  const dataBase64 = data[0]
+  const accounts: Pond0xSimulatedAccount[] = []
+
+  for (
+    let index = 0;
+    index < value.length;
+    index += 1
+  ) {
+    const account = record(value[index])
+
+    if (!account) {
+      return null
+    }
+
+    const lamports = account.lamports
+    const owner = account.owner
+    const executable = account.executable
+    const data = account.data
+
+    if (
+      !Number.isSafeInteger(lamports) ||
+      Number(lamports) < 0 ||
+      typeof owner !== "string" ||
+      !isAddress(owner) ||
+      typeof executable !== "boolean" ||
+      !Array.isArray(data) ||
+      data.length !== 2 ||
+      typeof data[0] !== "string" ||
+      data[1] !== "base64" ||
+      !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(
+        data[0]
+      )
+    ) {
+      return null
+    }
+
     accounts.push({
       address: addresses[index],
       lamports: String(lamports),
       owner,
       executable,
-      dataBase64,
+      dataBase64: data[0],
     })
   }
+
   return accounts
 }
 
-export async function simulatePond0xWireTransaction(input: {
-  rpcUrl: string
-  transactionBase64: string
-  watchedAccounts?: ReadonlyArray<string>
-  fetcher?: FetchLike
-}): Promise<Pond0xRpcSimulationObservation> {
+export async function simulatePond0xWireTransaction(
+  input: {
+    rpcUrl: string
+    transactionBase64: string
+    watchedAccounts?: ReadonlyArray<string>
+    fetcher?: FetchLike
+  }
+): Promise<Pond0xRpcSimulationObservation> {
   const wireInspection = inspectSolanaWireTransaction(
     input.transactionBase64
   )
+
   if (wireInspection.status !== "DECODED") {
     return blocked(
       wireInspection,
@@ -179,7 +222,10 @@ export async function simulatePond0xWireTransaction(input: {
   }
 
   let rpcUrl: URL
-  const watchedAccounts = [...(input.watchedAccounts ?? [])]
+  const watchedAccounts = [
+    ...(input.watchedAccounts ?? []),
+  ]
+
   try {
     rpcUrl = validateRpcUrl(input.rpcUrl)
     validateWatchedAccounts(watchedAccounts)
@@ -190,11 +236,14 @@ export async function simulatePond0xWireTransaction(input: {
   }
 
   let messageBase64: string
+
   try {
     const wireBytes = getBase64Encoder().encode(
       input.transactionBase64
     )
-    const transaction = getTransactionDecoder().decode(wireBytes)
+    const transaction =
+      getTransactionDecoder().decode(wireBytes)
+
     messageBase64 = getBase64Decoder().decode(
       transaction.messageBytes
     )
@@ -211,6 +260,7 @@ export async function simulatePond0xWireTransaction(input: {
     replaceRecentBlockhash: true,
     innerInstructions: true,
   }
+
   if (watchedAccounts.length > 0) {
     simulationConfig.accounts = {
       encoding: "base64",
@@ -223,7 +273,10 @@ export async function simulatePond0xWireTransaction(input: {
       jsonrpc: "2.0",
       id: 1,
       method: "simulateTransaction",
-      params: [input.transactionBase64, simulationConfig],
+      params: [
+        input.transactionBase64,
+        simulationConfig,
+      ],
     },
     {
       jsonrpc: "2.0",
@@ -237,28 +290,41 @@ export async function simulatePond0xWireTransaction(input: {
   ]
 
   let payload: unknown
+
   try {
-    const response = await (input.fetcher ?? fetch)(rpcUrl, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(body),
-      signal: AbortSignal.timeout(10_000),
-      cache: "no-store",
-    })
+    const response = await (input.fetcher ?? fetch)(
+      rpcUrl,
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(10_000),
+        cache: "no-store",
+        redirect: "error",
+      }
+    )
+
     if (!response.ok) {
       return blocked(wireInspection, [
         "PONDOX_RPC_HTTP_FAILED",
       ])
     }
+
     const contentType =
       response.headers.get("content-type") ?? ""
+
     if (
-      !contentType.toLowerCase().includes("application/json")
+      !contentType
+        .toLowerCase()
+        .includes("application/json")
     ) {
       return blocked(wireInspection, [
         "PONDOX_RPC_CONTENT_TYPE_INVALID",
       ])
     }
+
     payload = await response.json()
   } catch {
     return blocked(wireInspection, [
@@ -266,39 +332,67 @@ export async function simulatePond0xWireTransaction(input: {
     ])
   }
 
-  if (!Array.isArray(payload) || payload.length !== 2) {
-    return blocked(wireInspection, [
-      "PONDOX_RPC_RESPONSE_INVALID",
-    ])
-  }
-  const envelopes = payload
-    .map(record)
-    .filter((value): value is Record<string, unknown> =>
-      value !== null
-    )
-  const simulationEnvelope = envelopes.find(
-    value => value.id === 1
-  ) as RpcEnvelope | undefined
-  const feeEnvelope = envelopes.find(
-    value => value.id === 2
-  ) as RpcEnvelope | undefined
   if (
-    !simulationEnvelope ||
-    !feeEnvelope ||
-    simulationEnvelope.error ||
-    feeEnvelope.error
+    !Array.isArray(payload) ||
+    payload.length !== 2
   ) {
     return blocked(wireInspection, [
       "PONDOX_RPC_RESPONSE_INVALID",
     ])
   }
 
-  const simulationResult = record(simulationEnvelope.result)
-  const simulationValue = record(simulationResult?.value)
+  const envelopes = payload
+    .map(record)
+    .filter(
+      (
+        value
+      ): value is Record<string, unknown> =>
+        value !== null
+    )
+
+  const simulationEnvelope = envelopes.find(
+    value => value.id === 1
+  ) as RpcEnvelope | undefined
+
+  const feeEnvelope = envelopes.find(
+    value => value.id === 2
+  ) as RpcEnvelope | undefined
+
+  if (
+    !simulationEnvelope ||
+    !feeEnvelope ||
+    simulationEnvelope.jsonrpc !== "2.0" ||
+    feeEnvelope.jsonrpc !== "2.0" ||
+    (
+      simulationEnvelope.error !== undefined &&
+      simulationEnvelope.error !== null
+    ) ||
+    (
+      feeEnvelope.error !== undefined &&
+      feeEnvelope.error !== null
+    )
+  ) {
+    return blocked(wireInspection, [
+      "PONDOX_RPC_RESPONSE_INVALID",
+    ])
+  }
+
+  const simulationResult = record(
+    simulationEnvelope.result
+  )
+  const simulationValue = record(
+    simulationResult?.value
+  )
+  const simulationContext = simulationResult?.context
+
   const feeResult = record(feeEnvelope.result)
+  const feeContext = feeResult?.context
   const feeValue = feeResult?.value
-    if (
+
+  if (
     !simulationValue ||
+    !validRpcContext(simulationContext) ||
+    !validRpcContext(feeContext) ||
     !Object.prototype.hasOwnProperty.call(
       simulationValue,
       "err"
@@ -312,43 +406,84 @@ export async function simulatePond0xWireTransaction(input: {
   }
 
   const rawLogs = simulationValue.logs
+
+  if (
+    rawLogs !== null &&
+    rawLogs !== undefined &&
+    (
+      !Array.isArray(rawLogs) ||
+      rawLogs.some(
+        value => typeof value !== "string"
+      )
+    )
+  ) {
+    return blocked(wireInspection, [
+      "PONDOX_RPC_RESPONSE_INVALID",
+    ])
+  }
+
   const logs = Array.isArray(rawLogs)
     ? rawLogs
-        .filter((value): value is string =>
-          typeof value === "string"
-        )
         .slice(0, MAX_LOG_COUNT)
-        .map(value => value.slice(0, MAX_LOG_LENGTH))
+        .map(value =>
+          value.slice(0, MAX_LOG_LENGTH)
+        )
     : []
+
+  const rawUnitsConsumed =
+    simulationValue.unitsConsumed
+
+  if (
+    rawUnitsConsumed !== null &&
+    rawUnitsConsumed !== undefined &&
+    (
+      !Number.isSafeInteger(rawUnitsConsumed) ||
+      Number(rawUnitsConsumed) < 0
+    )
+  ) {
+    return blocked(wireInspection, [
+      "PONDOX_RPC_RESPONSE_INVALID",
+    ])
+  }
+
   const unitsConsumed =
-    Number.isSafeInteger(simulationValue.unitsConsumed) &&
-    Number(simulationValue.unitsConsumed) >= 0
-      ? Number(simulationValue.unitsConsumed)
-      : null
-  const postAccounts = watchedAccounts.length === 0
-    ? []
-    : parsePostAccounts(
-        simulationValue.accounts,
-        watchedAccounts
-      )
+    rawUnitsConsumed === null ||
+    rawUnitsConsumed === undefined
+      ? null
+      : Number(rawUnitsConsumed)
+
+  const postAccounts =
+    watchedAccounts.length === 0
+      ? []
+      : parsePostAccounts(
+          simulationValue.accounts,
+          watchedAccounts
+        )
+
   if (postAccounts === null) {
     return blocked(wireInspection, [
       "PONDOX_RPC_ACCOUNT_EVIDENCE_INVALID",
     ])
   }
 
-  const simulationError = safeError(simulationValue.err)
-  const simulationSucceeded = simulationError === null
+  const simulationError = safeError(
+    simulationValue.err
+  )
+  const simulationSucceeded =
+    simulationError === null
+
   const reasons = simulationSucceeded
     ? []
     : ["PONDOX_RPC_SIMULATION_FAILED"]
 
   return {
     schemaVersion: 1,
-    status: simulationSucceeded ? "SIMULATED" : "BLOCKED",
+    status:
+      simulationSucceeded ? "SIMULATED" : "BLOCKED",
     simulationSucceeded,
     simulationError,
-    estimatedNetworkFeeLamports: String(feeValue),
+    estimatedNetworkFeeLamports:
+      String(feeValue),
     unitsConsumed,
     logs,
     postAccounts,
