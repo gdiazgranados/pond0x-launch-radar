@@ -381,11 +381,9 @@ export function buildPond0xPortalObservation(input: {
   }
   if (
     quote.routeLabels.length === 0 ||
-    quote.routeLabels.some(
-      (label) => label !== "Raydium CLMM"
-    )
+    quote.routeLabels.some(label => label.trim().length === 0)
   ) {
-    blockingReasons.push("PONDOX_QUOTE_ROUTE_NOT_ALLOWED")
+    blockingReasons.push("PONDOX_QUOTE_ROUTE_UNAVAILABLE")
   }
   if (!positiveInteger(quote.outAmount)) {
     blockingReasons.push("PONDOX_QUOTE_OUTPUT_INVALID")
