@@ -132,18 +132,23 @@ function parsePostAccounts(
     const owner = account.owner
     const executable = account.executable
     const data = account.data
-    if (
-      !Number.isSafeInteger(lamports) ||
-      Number(lamports) < 0 ||
-      typeof owner !== "string" ||
-      typeof executable !== "boolean"
-    ) {
-      return null
-    }
-    const dataBase64 =
-      Array.isArray(data) && typeof data[0] === "string"
-        ? data[0]
-        : null
+  if (
+    !Number.isSafeInteger(lamports) ||
+    Number(lamports) < 0 ||
+    typeof owner !== "string" ||
+    typeof executable !== "boolean" ||
+    !Array.isArray(data) ||
+    data.length !== 2 ||
+    typeof data[0] !== "string" ||
+    data[1] !== "base64" ||
+    !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(
+      data[0]
+    )
+  ) {
+    return null
+  }
+
+  const dataBase64 = data[0]
     accounts.push({
       address: addresses[index],
       lamports: String(lamports),

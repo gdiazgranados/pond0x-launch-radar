@@ -244,3 +244,50 @@ test("fails closed when simulation err field is missing", async () => {
     ["PONDOX_RPC_RESPONSE_INVALID"]
   )
 })
+test(
+  "fails closed on malformed encoded post-account data",
+  async () => {
+    const result = await simulatePond0xWireTransaction({
+      rpcUrl: "https://api.mainnet-beta.solana.com",
+      transactionBase64: encodedTransaction(),
+      watchedAccounts: [FEE_PAYER],
+      fetcher: async () =>
+        jsonResponse([
+          {
+            jsonrpc: "2.0",
+            id: 1,
+            result: {
+              context: { slot: 1 },
+              value: {
+                err: null,
+                logs: [],
+                unitsConsumed: 100,
+                accounts: [
+                  {
+                    lamports: 100000000,
+                    owner: SYSTEM_PROGRAM,
+                    executable: false,
+                    data: ["not base64!", "base64"],
+                  },
+                ],
+              },
+            },
+          },
+          {
+            jsonrpc: "2.0",
+            id: 2,
+            result: {
+              context: { slot: 1 },
+              value: 5000,
+            },
+          },
+        ]),
+    })
+
+    assert.equal(result.status, "BLOCKED")
+    assert.equal(result.approvalGranted, false)
+    assert.deepEqual(result.blockingReasons, [
+      "PONDOX_RPC_ACCOUNT_EVIDENCE_INVALID",
+    ])
+  }
+)
