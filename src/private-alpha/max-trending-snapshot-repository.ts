@@ -25,11 +25,22 @@ export type MaxTrendingSnapshotRecord = {
   detection: MaxTrendingDetection
 }
 
+export type MaxTrendingObservationStats = {
+  totalCount: number
+  baselineCount: number
+  materialCount: number
+  unchangedCount: number
+  emptyCount: number
+  lastUnchangedAt: string | null
+  lastEmptyAt: string | null
+}
+
 export type MaxTrendingLedger = {
   schemaVersion: 1
   revision: number
   updatedAt: string | null
   assetStates: ReadonlyArray<MaxTrendingAssetState>
+  observationStats: MaxTrendingObservationStats
   snapshots: ReadonlyArray<MaxTrendingSnapshotRecord>
 }
 
@@ -49,6 +60,69 @@ function timestamp(value: unknown): value is string {
   return typeof value === "string" && Number.isFinite(Date.parse(value))
 }
 
+function emptyObservationStats(): MaxTrendingObservationStats {
+  return {
+    totalCount: 0,
+    baselineCount: 0,
+    materialCount: 0,
+    unchangedCount: 0,
+    emptyCount: 0,
+    lastUnchangedAt: null,
+    lastEmptyAt: null,
+  }
+}
+
+function statsFromSnapshots(
+  snapshots: ReadonlyArray<MaxTrendingSnapshotRecord>
+) {
+  let stats = emptyObservationStats()
+  for (const item of snapshots) {
+    stats = updateObservationStats(stats, item.detection)
+  }
+  return stats
+}
+
+function updateObservationStats(
+  current: MaxTrendingObservationStats,
+  detection: MaxTrendingDetection
+): MaxTrendingObservationStats {
+  const baseline = detection.previousObservedAt === null
+  return {
+    totalCount: current.totalCount + 1,
+    baselineCount: current.baselineCount + (baseline ? 1 : 0),
+    materialCount:
+      current.materialCount +
+      (!baseline && detection.materialChange ? 1 : 0),
+    unchangedCount:
+      current.unchangedCount +
+      (!baseline && detection.status === "UNCHANGED" ? 1 : 0),
+    emptyCount:
+      current.emptyCount +
+      (!baseline && detection.status === "EMPTY" ? 1 : 0),
+    lastUnchangedAt: !baseline && detection.status === "UNCHANGED"
+      ? detection.observedAt
+      : current.lastUnchangedAt,
+    lastEmptyAt: !baseline && detection.status === "EMPTY"
+      ? detection.observedAt
+      : current.lastEmptyAt,
+  }
+}
+
+function compactSnapshots(
+  snapshots: ReadonlyArray<MaxTrendingSnapshotRecord>,
+  next: MaxTrendingSnapshotRecord
+) {
+  const last = snapshots.at(-1)
+  const routine = (item: MaxTrendingSnapshotRecord) =>
+    item.detection.previousObservedAt !== null &&
+    !item.detection.materialChange
+
+  const retained = last && routine(last) && routine(next)
+    ? snapshots.slice(0, -1)
+    : snapshots
+  return [...retained, next].slice(-MAX_SNAPSHOTS)
+}
+
 function assertLedger(value: unknown): asserts value is MaxTrendingLedger {
   if (
     !record(value) ||
@@ -57,13 +131,36 @@ function assertLedger(value: unknown): asserts value is MaxTrendingLedger {
     Number(value.revision) < 0 ||
     (value.updatedAt !== null && !timestamp(value.updatedAt)) ||
     !Array.isArray(value.assetStates) ||
+    !record(value.observationStats) ||
     !Array.isArray(value.snapshots) ||
     value.snapshots.length > MAX_SNAPSHOTS
   ) {
     throw new Error("invalid MAX trending ledger")
   }
 
-  const identities = new Set<string>()
+  const stats = value.observationStats
+  const counts = [
+    stats.totalCount,
+    stats.baselineCount,
+    stats.materialCount,
+    stats.unchangedCount,
+    stats.emptyCount,
+  ]
+  if (
+    counts.some(count => !Number.isInteger(count) || Number(count) < 0) ||
+    Number(stats.totalCount) !==
+      Number(stats.baselineCount) +
+      Number(stats.materialCount) +
+      Number(stats.unchangedCount) +
+      Number(stats.emptyCount) ||
+    (stats.lastUnchangedAt !== null &&
+      !timestamp(stats.lastUnchangedAt)) ||
+    (stats.lastEmptyAt !== null && !timestamp(stats.lastEmptyAt))
+  ) {
+    throw new Error("invalid MAX trending observation stats")
+  }
+
+    const identities = new Set<string>()
   for (const state of value.assetStates) {
     if (
       !record(state) ||
@@ -122,6 +219,7 @@ export function emptyMaxTrendingLedger(): MaxTrendingLedger {
     revision: 0,
     updatedAt: null,
     assetStates: [],
+    observationStats: emptyObservationStats(),
     snapshots: [],
   }
 }
@@ -132,6 +230,18 @@ export function parseMaxTrendingLedger(serialized: string) {
     value = JSON.parse(serialized)
   } catch {
     throw new Error("invalid MAX trending ledger JSON")
+  }
+  if (
+    record(value) &&
+    Array.isArray(value.snapshots) &&
+    value.observationStats === undefined
+  ) {
+    value = {
+      ...value,
+      observationStats: statsFromSnapshots(
+        value.snapshots as ReadonlyArray<MaxTrendingSnapshotRecord>
+      ),
+    }
   }
   assertLedger(value)
   return structuredClone(value)
@@ -232,20 +342,22 @@ export async function persistMaxTrendingSnapshot(
       ledger.assetStates.map(state => state.identityKey)
     ),
   })
+  const record: MaxTrendingSnapshotRecord = {
+    observedAt: snapshot.observedAt,
+    snapshotHash,
+    snapshot: structuredClone(snapshot),
+    detection,
+  }
   const next: MaxTrendingLedger = {
     schemaVersion: 1,
     revision: ledger.revision + 1,
     updatedAt: snapshot.observedAt,
     assetStates: updateAssetStates(ledger, snapshot),
-    snapshots: [
-      ...ledger.snapshots,
-      {
-        observedAt: snapshot.observedAt,
-        snapshotHash,
-        snapshot: structuredClone(snapshot),
-        detection,
-      },
-    ].slice(-MAX_SNAPSHOTS),
+    observationStats: updateObservationStats(
+      ledger.observationStats,
+      detection
+    ),
+    snapshots: compactSnapshots(ledger.snapshots, record),
   }
   assertLedger(next)
 
