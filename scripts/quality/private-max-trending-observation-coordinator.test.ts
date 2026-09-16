@@ -61,14 +61,14 @@ class MemoryStore implements MaxTrendingStore {
   }
 }
 
-test("coordinates EMPTY evidence without creating an event", async () => {
+test("records the first observation as an event-free baseline", async () => {
   const store = new MemoryStore()
   const result = await coordinateMaxTrendingObservation({
     store,
     observe: async () => snapshot("2026-09-16T18:32:44.666Z", []),
   })
 
-  assert.equal(result.status, "EMPTY")
+  assert.equal(result.status, "BASELINE")
   assert.equal(result.persisted, true)
   assert.equal(result.ledgerRevision, 1)
   assert.equal(result.event, null)
@@ -116,7 +116,7 @@ test("keeps an unchanged observation healthy and event-free", async () => {
   assert.equal(result.ledgerRevision, 2)
 })
 
-test("makes an identical retry idempotent with a stable event", async () => {
+test("makes an identical baseline retry idempotent and event-free", async () => {
   const store = new MemoryStore()
   const current = snapshot("2026-09-16T18:32:44.666Z", [asset()])
   const first = await coordinateMaxTrendingObservation({
@@ -128,10 +128,12 @@ test("makes an identical retry idempotent with a stable event", async () => {
     observe: async () => structuredClone(current),
   })
 
-  assert.equal(first.status, "MATERIAL_CHANGE")
+  assert.equal(first.status, "BASELINE")
+  assert.equal(first.event, null)
+  assert.equal(retry.status, "BASELINE")
   assert.equal(retry.persisted, false)
   assert.equal(retry.ledgerRevision, 1)
-  assert.equal(retry.event?.eventId, first.event?.eventId)
+  assert.equal(retry.event, null)
   assert.equal(store.writes, 1)
 })
 
