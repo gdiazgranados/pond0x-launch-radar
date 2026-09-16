@@ -1,7 +1,7 @@
 {
-  "checkedAt": "2026-09-16T15:33:31.953Z",
-  "sourceSnapshotId": "2026-09-16_153309",
-  "snapshotDir": "2026-09-16_153309",
+  "checkedAt": "2026-09-16T16:33:20.212Z",
+  "sourceSnapshotId": "2026-09-16_163300",
+  "snapshotDir": "2026-09-16_163300",
   "newUnknownChange": false,
   "keyFunctionCandidate": null,
   "newLabels": [],
@@ -33,9 +33,9 @@
   ],
   "liveApiRoutes": [
     "/api/version",
+    "/api/auth/session",
     "/api/max/search",
-    "/api/rewards/feed",
-    "/api/auth/session"
+    "/api/rewards/feed"
   ],
   "newLiveApiRoutes": [],
   "declaredApiRoutes": [
@@ -76,8 +76,8 @@
     "/api/mp/fund-build",
     "/api/stats/memes_new",
     "/api/version",
-    "/api/rewards/feed",
-    "/api/auth/session"
+    "/api/auth/session",
+    "/api/rewards/feed"
   ],
   "observedApiSchemas": {
     "/api/version": {
@@ -88,8 +88,16 @@
       "size": 27,
       "status": 200
     },
+    "/api/auth/session": {
+      "schemaFingerprint": "8fea01e1c363a1f4270e487d656ce760aea198c8d8919aa00d35488220949998",
+      "schemaPaths": [
+        "ROOT:EMPTY_OBJECT"
+      ],
+      "size": 2,
+      "status": 200
+    },
     "/api/max/search": {
-      "schemaFingerprint": "b033be8910c912395de110294e92411bb1f4c18fded5eeea530d9eb83a88859c",
+      "schemaFingerprint": "2b46c18db8e6c0c98dcda44b94c572429f88f32caac0aeff94b3fc7015029d5d",
       "schemaPaths": [
         "availability",
         "availability.markets",
@@ -119,22 +127,12 @@
         "tokens[].volume24h",
         "trending",
         "trending[]",
-        "trending[].address",
-        "trending[].change24h",
-        "trending[].icon",
-        "trending[].liquidity",
-        "trending[].marketCap",
-        "trending[].name",
-        "trending[].network",
-        "trending[].price",
-        "trending[].symbol",
-        "trending[].verified",
-        "trending[].volume24h",
+        "trending[]:EMPTY_ARRAY",
         "wallets",
         "wallets[]",
         "wallets[]:EMPTY_ARRAY"
       ],
-      "size": 3357,
+      "size": 1536,
       "status": 200
     },
     "/api/rewards/feed": {
@@ -146,14 +144,6 @@
       ],
       "size": 14,
       "status": 200
-    },
-    "/api/auth/session": {
-      "schemaFingerprint": "8fea01e1c363a1f4270e487d656ce760aea198c8d8919aa00d35488220949998",
-      "schemaPaths": [
-        "ROOT:EMPTY_OBJECT"
-      ],
-      "size": 2,
-      "status": 200
     }
   },
   "apiResponseDrift": {
@@ -162,12 +152,15 @@
     "changedRoutes": [
       {
         "route": "/api/max/search",
-        "previousFingerprint": "2b46c18db8e6c0c98dcda44b94c572429f88f32caac0aeff94b3fc7015029d5d",
-        "currentFingerprint": "b033be8910c912395de110294e92411bb1f4c18fded5eeea530d9eb83a88859c",
-        "previousSize": 1532,
-        "currentSize": 3357,
-        "sizeDelta": 1825,
+        "previousFingerprint": "b033be8910c912395de110294e92411bb1f4c18fded5eeea530d9eb83a88859c",
+        "currentFingerprint": "2b46c18db8e6c0c98dcda44b94c572429f88f32caac0aeff94b3fc7015029d5d",
+        "previousSize": 3357,
+        "currentSize": 1536,
+        "sizeDelta": -1821,
         "addedPaths": [
+          "trending[]:EMPTY_ARRAY"
+        ],
+        "removedPaths": [
           "trending[].address",
           "trending[].change24h",
           "trending[].icon",
@@ -179,9 +172,6 @@
           "trending[].symbol",
           "trending[].verified",
           "trending[].volume24h"
-        ],
-        "removedPaths": [
-          "trending[]:EMPTY_ARRAY"
         ]
       }
     ]
@@ -213,7 +203,7 @@
     "rewards"
   ],
   "diagnostics": {
-    "previousSnapshotId": "2026-09-16_143307",
+    "previousSnapshotId": "2026-09-16_153309",
     "freshCounts": {
       "labels": 0,
       "routes": 0,
