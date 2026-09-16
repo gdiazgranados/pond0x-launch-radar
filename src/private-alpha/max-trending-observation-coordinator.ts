@@ -11,6 +11,7 @@ import {
 } from "./max-trending-opportunity-classifier"
 import {
   persistMaxTrendingSnapshot,
+  type MaxTrendingObservationStats,
   type MaxTrendingStore,
 } from "./max-trending-snapshot-repository"
 
@@ -34,6 +35,7 @@ export type MaxTrendingObservationResult = {
   status: "BASELINE" | "MATERIAL_CHANGE" | "EMPTY" | "UNCHANGED"
   persisted: boolean
   ledgerRevision: number
+  observationStats: MaxTrendingObservationStats
   snapshotHash: string
   opportunity: MaxTrendingOpportunityClassification
   event: MaxTrendingOpportunityEvent | null
@@ -93,6 +95,9 @@ export async function coordinateMaxTrendingObservation(input: {
           : "UNCHANGED",
     persisted: persisted.changed,
     ledgerRevision: persisted.ledger.revision,
+    observationStats: structuredClone(
+      persisted.ledger.observationStats
+    ),
     snapshotHash: detection.snapshotHash,
     opportunity,
     event,
