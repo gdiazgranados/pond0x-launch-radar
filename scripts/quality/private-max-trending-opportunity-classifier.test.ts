@@ -79,6 +79,19 @@ function state(
   }
 }
 
+test("suppresses attention candidates during baseline", () => {
+  const value = asset(MINT_A, 1, "BASE")
+  const result = classifyMaxTrendingOpportunity({
+    detection: detection([change("NEW", value, null, 1)]),
+    assetStates: [state(value, 1)],
+    baseline: true,
+  })
+
+  assert.equal(result.status, "NO_CHANGE")
+  assert.deepEqual(result.candidates, [])
+  assert.equal(result.fastFollowUp.recommended, false)
+})
+
 test("classifies NEW as immediate attention without a financial claim", () => {
   const value = asset(MINT_A, 4, "NEW")
   const result = classifyMaxTrendingOpportunity({
