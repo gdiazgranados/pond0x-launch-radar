@@ -67,11 +67,12 @@ export async function coordinateMaxTrendingObservation(input: {
   const snapshot = await (input.observe ?? observeMaxTrending)()
   const persisted = await persistMaxTrendingSnapshot(input.store, snapshot)
   const detection = persisted.detection
+  const isBaseline = detection.previousObservedAt === null
   const opportunity = classifyMaxTrendingOpportunity({
     detection,
     assetStates: persisted.ledger.assetStates,
+    baseline: isBaseline,
   })
-  const isBaseline = detection.previousObservedAt === null
   const event = !isBaseline && detection.materialChange
     ? buildEvent({
         observedAt: detection.observedAt,
