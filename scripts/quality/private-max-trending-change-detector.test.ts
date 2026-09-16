@@ -149,6 +149,77 @@ test("unchanged composition is non-material", () => {
   assert.deepEqual(result.changes, [])
 })
 
+test("bridges a transient EMPTY without removals or reappearances", async () => {
+  const store = new MemoryStore()
+  const visible = [
+    asset(MINT_A, 1, "A"),
+    asset(MINT_B, 2, "B"),
+  ]
+  await persistMaxTrendingSnapshot(
+    store,
+    snapshot("2026-09-16T18:00:00.000Z", visible)
+  )
+  const empty = await persistMaxTrendingSnapshot(
+    store,
+    snapshot("2026-09-16T18:01:00.000Z", [])
+  )
+
+  assert.equal(empty.detection.status, "EMPTY")
+  assert.equal(empty.detection.materialChange, false)
+  assert.deepEqual(empty.detection.changes, [])
+  assert.equal(
+    empty.ledger.assetStates.every(state => state.active),
+    true
+  )
+  assert.deepEqual(
+    empty.ledger.assetStates.map(state => state.observationCount),
+    [1, 1]
+  )
+
+  const resumed = await persistMaxTrendingSnapshot(
+    store,
+    snapshot("2026-09-16T18:02:00.000Z", visible)
+  )
+  assert.equal(resumed.detection.status, "UNCHANGED")
+  assert.equal(resumed.detection.materialChange, false)
+  assert.deepEqual(resumed.detection.changes, [])
+  assert.deepEqual(
+    resumed.ledger.assetStates.map(state => state.observationCount),
+    [2, 2]
+  )
+})
+
+test("detects only the real difference after a transient EMPTY", async () => {
+  const store = new MemoryStore()
+  await persistMaxTrendingSnapshot(
+    store,
+    snapshot("2026-09-16T18:00:00.000Z", [
+      asset(MINT_A, 1, "A"),
+      asset(MINT_B, 2, "B"),
+    ])
+  )
+  await persistMaxTrendingSnapshot(
+    store,
+    snapshot("2026-09-16T18:01:00.000Z", [])
+  )
+  const changed = await persistMaxTrendingSnapshot(
+    store,
+    snapshot("2026-09-16T18:02:00.000Z", [
+      asset(MINT_B, 1, "B"),
+    ])
+  )
+
+  assert.equal(changed.detection.status, "CHANGED")
+  assert.deepEqual(
+    changed.detection.changes.map(change => change.type),
+    ["MOVED", "REMOVED"]
+  )
+  assert.deepEqual(
+    changed.detection.changes.map(change => change.identityKey),
+    [`solana:${MINT_B}`, `solana:${MINT_A}`]
+  )
+})
+
 test("identical retry is idempotent but conflicting timestamp fails", async () => {
   const store = new MemoryStore()
   const value = snapshot("2026-09-16T18:00:00.000Z", [])
