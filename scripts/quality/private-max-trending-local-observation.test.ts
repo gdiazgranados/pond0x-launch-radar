@@ -48,7 +48,8 @@ test("persists consecutive observations in the private atomic store", async (t) 
     observe: async () => emptySnapshot("2026-09-16T18:33:44.666Z"),
   })
 
-  assert.equal(first.status, "EMPTY")
+  assert.equal(first.status, "BASELINE")
+  assert.equal(first.event, null)
   assert.equal(second.status, "EMPTY")
   assert.equal(second.ledgerRevision, 2)
 
