@@ -27,7 +27,7 @@ export type MaxTrendingOpportunityEvent = {
 export type MaxTrendingObservationResult = {
   schemaVersion: 1
   observedAt: string
-  status: "MATERIAL_CHANGE" | "EMPTY" | "UNCHANGED"
+  status: "BASELINE" | "MATERIAL_CHANGE" | "EMPTY" | "UNCHANGED"
   persisted: boolean
   ledgerRevision: number
   snapshotHash: string
@@ -62,7 +62,8 @@ export async function coordinateMaxTrendingObservation(input: {
   const snapshot = await (input.observe ?? observeMaxTrending)()
   const persisted = await persistMaxTrendingSnapshot(input.store, snapshot)
   const detection = persisted.detection
-  const event = detection.materialChange
+  const isBaseline = detection.previousObservedAt === null
+  const event = !isBaseline && detection.materialChange
     ? buildEvent({
         observedAt: detection.observedAt,
         snapshotHash: detection.snapshotHash,
@@ -73,8 +74,10 @@ export async function coordinateMaxTrendingObservation(input: {
   return {
     schemaVersion: 1,
     observedAt: detection.observedAt,
-    status: event
-      ? "MATERIAL_CHANGE"
+    status: isBaseline
+      ? "BASELINE"
+      : event
+        ? "MATERIAL_CHANGE"
       : detection.status === "EMPTY"
         ? "EMPTY"
         : "UNCHANGED",
