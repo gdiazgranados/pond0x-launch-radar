@@ -149,7 +149,18 @@ function updateAssetStates(
   snapshot: MaxTrendingSnapshot
 ) {
   if (snapshot.trending.length === 0) {
-    return structuredClone(ledger.assetStates)
+    const lastNonEmpty = ledger.snapshots.findLast(
+      item => item.snapshot.trending.length > 0
+    )
+    if (!lastNonEmpty) return structuredClone(ledger.assetStates)
+
+    const activeIdentities = new Set(
+      lastNonEmpty.snapshot.trending.map(asset => asset.identityKey)
+    )
+    return ledger.assetStates.map(state => ({
+      ...state,
+      active: activeIdentities.has(state.identityKey),
+    }))
   }
 
   const current = new Map(
