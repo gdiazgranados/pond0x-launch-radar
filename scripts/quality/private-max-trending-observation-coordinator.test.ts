@@ -81,23 +81,54 @@ test("creates only a watch-only event for a material change", async () => {
   const store = new MemoryStore()
   await coordinateMaxTrendingObservation({
     store,
-    observe: async () => snapshot("2026-09-16T18:32:44.666Z", []),
+    observe: async () => snapshot(
+      "2026-09-16T18:32:44.666Z",
+      [asset(1)]
+    ),
   })
   const result = await coordinateMaxTrendingObservation({
     store,
     observe: async () => snapshot(
       "2026-09-16T18:33:44.666Z",
-      [asset()]
+      [asset(2)]
     ),
   })
 
   assert.equal(result.status, "MATERIAL_CHANGE")
   assert.equal(result.ledgerRevision, 2)
   assert.equal(result.event?.type, "MAX_TRENDING_MATERIAL_CHANGE")
-  assert.equal(result.event?.changes[0]?.type, "NEW")
+  assert.equal(result.event?.changes[0]?.type, "MOVED")
   assert.match(result.event?.eventId ?? "", /^max-trending:/)
   assert.equal(result.event?.approvalGranted, false)
   assert.equal(result.event?.transactionRequested, false)
+})
+
+test("keeps transient EMPTY and recovery event-free", async () => {
+  const store = new MemoryStore()
+  await coordinateMaxTrendingObservation({
+    store,
+    observe: async () => snapshot(
+      "2026-09-16T18:32:44.666Z",
+      [asset()]
+    ),
+  })
+  const empty = await coordinateMaxTrendingObservation({
+    store,
+    observe: async () => snapshot("2026-09-16T18:33:44.666Z", []),
+  })
+  const resumed = await coordinateMaxTrendingObservation({
+    store,
+    observe: async () => snapshot(
+      "2026-09-16T18:34:44.666Z",
+      [asset()]
+    ),
+  })
+
+  assert.equal(empty.status, "EMPTY")
+  assert.equal(empty.event, null)
+  assert.equal(resumed.status, "UNCHANGED")
+  assert.equal(resumed.event, null)
+  assert.equal(resumed.ledgerRevision, 3)
 })
 
 test("keeps an unchanged observation healthy and event-free", async () => {
