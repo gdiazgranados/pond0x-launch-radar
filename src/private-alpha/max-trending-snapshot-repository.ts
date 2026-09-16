@@ -148,6 +148,10 @@ function updateAssetStates(
   ledger: MaxTrendingLedger,
   snapshot: MaxTrendingSnapshot
 ) {
+  if (snapshot.trending.length === 0) {
+    return structuredClone(ledger.assetStates)
+  }
+
   const current = new Map(
     snapshot.trending.map(asset => [asset.identityKey, asset])
   )
@@ -205,8 +209,13 @@ export async function persistMaxTrendingSnapshot(
     throw new Error("MAX trending snapshot is stale or out of order")
   }
 
+  const lastNonEmpty = ledger.snapshots.findLast(
+    item => item.snapshot.trending.length > 0
+  )
   const detection = detectMaxTrendingChanges({
-    previous: last?.snapshot ?? null,
+    previous: snapshot.trending.length === 0
+      ? last?.snapshot ?? null
+      : lastNonEmpty?.snapshot ?? null,
     current: snapshot,
     seenIdentityKeys: new Set(
       ledger.assetStates.map(state => state.identityKey)
