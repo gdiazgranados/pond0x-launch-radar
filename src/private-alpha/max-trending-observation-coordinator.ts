@@ -6,6 +6,10 @@ import type {
   MaxTrendingChange,
 } from "./max-trending-change-detector"
 import {
+  classifyMaxTrendingOpportunity,
+  type MaxTrendingOpportunityClassification,
+} from "./max-trending-opportunity-classifier"
+import {
   persistMaxTrendingSnapshot,
   type MaxTrendingStore,
 } from "./max-trending-snapshot-repository"
@@ -31,6 +35,7 @@ export type MaxTrendingObservationResult = {
   persisted: boolean
   ledgerRevision: number
   snapshotHash: string
+  opportunity: MaxTrendingOpportunityClassification
   event: MaxTrendingOpportunityEvent | null
   watchOnly: true
   approvalGranted: false
@@ -62,6 +67,10 @@ export async function coordinateMaxTrendingObservation(input: {
   const snapshot = await (input.observe ?? observeMaxTrending)()
   const persisted = await persistMaxTrendingSnapshot(input.store, snapshot)
   const detection = persisted.detection
+  const opportunity = classifyMaxTrendingOpportunity({
+    detection,
+    assetStates: persisted.ledger.assetStates,
+  })
   const isBaseline = detection.previousObservedAt === null
   const event = !isBaseline && detection.materialChange
     ? buildEvent({
@@ -84,6 +93,7 @@ export async function coordinateMaxTrendingObservation(input: {
     persisted: persisted.changed,
     ledgerRevision: persisted.ledger.revision,
     snapshotHash: detection.snapshotHash,
+    opportunity,
     event,
     watchOnly: true,
     approvalGranted: false,
