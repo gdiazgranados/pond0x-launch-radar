@@ -46,13 +46,16 @@ export type MaxTrendingOpportunityClassification = {
 export function classifyMaxTrendingOpportunity(input: {
   detection: MaxTrendingDetection
   assetStates: ReadonlyArray<MaxTrendingAssetState>
+  baseline?: boolean
 }): MaxTrendingOpportunityClassification {
   const states = new Map(
     input.assetStates.map(state => [state.identityKey, state])
   )
-  const candidateChanges = input.detection.changes.filter(
-    change => change.type === "NEW" || change.type === "REAPPEARED"
-  )
+  const candidateChanges = input.baseline
+    ? []
+    : input.detection.changes.filter(
+        change => change.type === "NEW" || change.type === "REAPPEARED"
+      )
   const candidates = candidateChanges.map(
     (change): MaxTrendingAttentionCandidate => {
       const state = states.get(change.identityKey)
