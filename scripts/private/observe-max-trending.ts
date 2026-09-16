@@ -24,6 +24,7 @@ async function main() {
     status: result.status,
     persisted: result.persisted,
     ledgerRevision: result.ledgerRevision,
+    observationStats: result.observationStats,
     snapshotHash: result.snapshotHash,
     opportunity: result.opportunity,
     event: result.event,
