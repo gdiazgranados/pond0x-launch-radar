@@ -1,6 +1,6 @@
 {
-  "id": "2026-09-16_103247__2026-09-16T10:33:16.497Z",
-  "snapshotId": "2026-09-16_103247",
+  "id": "2026-09-16_113252__2026-09-16T11:33:17.725Z",
+  "snapshotId": "2026-09-16_113252",
   "totalFiles": 64,
   "added": 0,
   "changed": 0,
@@ -36,7 +36,7 @@
   "summary": "No changes detected across 64 analyzed files.",
   "note": "No strong signals at this time.",
   "changedFiles": [],
-  "generatedAt": "2026-09-16T10:33:16.497Z",
+  "generatedAt": "2026-09-16T11:33:17.725Z",
   "trend": 0,
   "trendDirection": "FLAT",
   "breakdown": {
@@ -180,7 +180,7 @@
     "hasVisibleCTAChange": false
   },
   "evidenceCorrelation": {
-    "apiResponseDrift": true,
+    "apiResponseDrift": false,
     "newApiRoute": false,
     "newLiveApiRoute": false,
     "backendSignal": false,
@@ -193,10 +193,10 @@
     "rewardActivity": false,
     "externalClaimTransfer": false,
     "newRecipient": false,
-    "evidenceCount": 1,
-    "domainCount": 1,
+    "evidenceCount": 0,
+    "domainCount": 0,
     "domains": {
-      "api": true,
+      "api": false,
       "backend": false,
       "semantic": false,
       "webSurface": false,
@@ -204,10 +204,10 @@
       "distributor": false,
       "recipients": false
     },
-    "score": 12,
-    "level": "LOW",
+    "score": 0,
+    "level": "NONE",
     "componentScores": {
-      "api": 12,
+      "api": 0,
       "backend": 0,
       "semantic": 0,
       "webSurface": 0,
@@ -221,25 +221,16 @@
     "semanticClassification": null,
     "newExternalTransfers": 0,
     "newExternalRecipients": 0,
-    "classification": "ISOLATED"
+    "classification": "NONE"
   },
   "temporalCorrelation": {
     "windowMinutes": 60,
-    "domainCount": 1,
-    "sequence": [
-      "api"
-    ],
-    "events": [
-      {
-        "domain": "api",
-        "seenAt": "2026-09-16T09:33:33.538Z",
-        "source": "history",
-        "detail": null
-      }
-    ],
-    "firstSeenAt": "2026-09-16T09:33:33.538Z",
-    "lastSeenAt": "2026-09-16T09:33:33.538Z",
-    "spanMinutes": 0,
+    "domainCount": 0,
+    "sequence": [],
+    "events": [],
+    "firstSeenAt": null,
+    "lastSeenAt": null,
+    "spanMinutes": null,
     "observedSequencePattern": null,
     "classification": "NONE",
     "interpretation": "No strong cross-domain temporal sequence is established yet."
@@ -370,7 +361,7 @@
     },
     "drift": {
       "comparable": true,
-      "baselineSnapshotId": "2026-09-16_093306",
+      "baselineSnapshotId": "2026-09-16_103247",
       "status": "STABLE",
       "newSurfaceCount": 0,
       "missingSurfaceCount": 0,
@@ -395,9 +386,9 @@
     "firstPartyApiCount": 4
   },
   "discovery": {
-    "checkedAt": "2026-09-16T10:33:07.147Z",
-    "sourceSnapshotId": "2026-09-16_103247",
-    "snapshotDir": "2026-09-16_103247",
+    "checkedAt": "2026-09-16T11:33:12.710Z",
+    "sourceSnapshotId": "2026-09-16_113252",
+    "snapshotDir": "2026-09-16_113252",
     "newUnknownChange": false,
     "keyFunctionCandidate": null,
     "newLabels": [],
@@ -407,34 +398,9 @@
     "newKeywords": [],
     "criticalKeywords": [],
     "apiResponseDrift": {
-      "detected": true,
-      "changedRouteCount": 1,
-      "changedRoutes": [
-        {
-          "route": "/api/max/search",
-          "previousFingerprint": "2b46c18db8e6c0c98dcda44b94c572429f88f32caac0aeff94b3fc7015029d5d",
-          "currentFingerprint": "b033be8910c912395de110294e92411bb1f4c18fded5eeea530d9eb83a88859c",
-          "previousSize": 1537,
-          "currentSize": 3169,
-          "sizeDelta": 1632,
-          "addedPaths": [
-            "trending[].address",
-            "trending[].change24h",
-            "trending[].icon",
-            "trending[].liquidity",
-            "trending[].marketCap",
-            "trending[].name",
-            "trending[].network",
-            "trending[].price",
-            "trending[].symbol",
-            "trending[].verified",
-            "trending[].volume24h"
-          ],
-          "removedPaths": [
-            "trending[]:EMPTY_ARRAY"
-          ]
-        }
-      ]
+      "detected": false,
+      "changedRouteCount": 0,
+      "changedRoutes": []
     }
   },
   "whyItMatters": "",
