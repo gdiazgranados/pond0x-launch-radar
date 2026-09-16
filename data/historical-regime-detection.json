@@ -1,35 +1,49 @@
 {
   "version": 1,
-  "generatedAt": "2026-09-16T14:33:35.991Z",
-  "regime": "QUIET",
-  "confidence": 85,
-  "candidateRegime": "QUIET",
-  "candidateConfidence": 85,
+  "generatedAt": "2026-09-16T15:33:48.339Z",
+  "regime": "ELEVATED",
+  "confidence": 80,
+  "candidateRegime": "ELEVATED",
+  "candidateConfidence": 80,
   "history": {
     "stage": "USABLE",
-    "exactSweepCount": 80,
+    "exactSweepCount": 81,
     "usableForRegimeClassification": true
   },
   "current": {
-    "snapshotId": "2026-09-16_143307",
-    "generatedAt": "2026-09-16T14:33:35.641Z",
-    "decisionState": "QUIET",
-    "activityScore": 0
+    "snapshotId": "2026-09-16_153309",
+    "generatedAt": "2026-09-16T15:33:47.983Z",
+    "decisionState": "WATCH",
+    "activityScore": 19
   },
   "baseline": {
     "recentWindowSweeps": 6,
     "previousWindowSweeps": 6,
     "recentSixSweepAverageActivity": 9.5,
-    "previousSixSweepAverageActivity": 6.33
+    "previousSixSweepAverageActivity": 3.17
   },
   "trendContext": {
-    "status": "NORMAL",
-    "anomalyScore": 0,
-    "driverCount": 0,
-    "drivers": []
+    "status": "ELEVATED",
+    "anomalyScore": 85,
+    "driverCount": 2,
+    "drivers": [
+      {
+        "metric": "correlation",
+        "value": 12,
+        "percentile": 85,
+        "trend": "RISING"
+      },
+      {
+        "metric": "decisionStrength",
+        "value": 7,
+        "percentile": 85,
+        "trend": "RISING"
+      }
+    ]
   },
   "reasons": [
-    "Current exact sweep has no meaningful activation, evidence, or historical-driver activity."
+    "Historical anomaly score is 85.",
+    "2 high-percentile historical drivers are active."
   ],
   "methodology": "Score-neutral regime classification derived from exact sweep history and Historical Trend Intelligence. Stronger regimes require corroborating historical or multi-domain evidence.",
   "caution": "Regime Detection is descriptive only. It does not modify Radar scoring, establish launch probability, predict rewards, or constitute trading advice."

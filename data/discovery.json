@@ -1,7 +1,7 @@
 {
-  "checkedAt": "2026-09-16T14:33:26.893Z",
-  "sourceSnapshotId": "2026-09-16_143307",
-  "snapshotDir": "2026-09-16_143307",
+  "checkedAt": "2026-09-16T15:33:31.953Z",
+  "sourceSnapshotId": "2026-09-16_153309",
+  "snapshotDir": "2026-09-16_153309",
   "newUnknownChange": false,
   "keyFunctionCandidate": null,
   "newLabels": [],
@@ -33,9 +33,9 @@
   ],
   "liveApiRoutes": [
     "/api/version",
-    "/api/auth/session",
     "/api/max/search",
-    "/api/rewards/feed"
+    "/api/rewards/feed",
+    "/api/auth/session"
   ],
   "newLiveApiRoutes": [],
   "declaredApiRoutes": [
@@ -76,8 +76,8 @@
     "/api/mp/fund-build",
     "/api/stats/memes_new",
     "/api/version",
-    "/api/auth/session",
-    "/api/rewards/feed"
+    "/api/rewards/feed",
+    "/api/auth/session"
   ],
   "observedApiSchemas": {
     "/api/version": {
@@ -88,16 +88,8 @@
       "size": 27,
       "status": 200
     },
-    "/api/auth/session": {
-      "schemaFingerprint": "8fea01e1c363a1f4270e487d656ce760aea198c8d8919aa00d35488220949998",
-      "schemaPaths": [
-        "ROOT:EMPTY_OBJECT"
-      ],
-      "size": 2,
-      "status": 200
-    },
     "/api/max/search": {
-      "schemaFingerprint": "2b46c18db8e6c0c98dcda44b94c572429f88f32caac0aeff94b3fc7015029d5d",
+      "schemaFingerprint": "b033be8910c912395de110294e92411bb1f4c18fded5eeea530d9eb83a88859c",
       "schemaPaths": [
         "availability",
         "availability.markets",
@@ -127,12 +119,22 @@
         "tokens[].volume24h",
         "trending",
         "trending[]",
-        "trending[]:EMPTY_ARRAY",
+        "trending[].address",
+        "trending[].change24h",
+        "trending[].icon",
+        "trending[].liquidity",
+        "trending[].marketCap",
+        "trending[].name",
+        "trending[].network",
+        "trending[].price",
+        "trending[].symbol",
+        "trending[].verified",
+        "trending[].volume24h",
         "wallets",
         "wallets[]",
         "wallets[]:EMPTY_ARRAY"
       ],
-      "size": 1532,
+      "size": 3357,
       "status": 200
     },
     "/api/rewards/feed": {
@@ -144,12 +146,45 @@
       ],
       "size": 14,
       "status": 200
+    },
+    "/api/auth/session": {
+      "schemaFingerprint": "8fea01e1c363a1f4270e487d656ce760aea198c8d8919aa00d35488220949998",
+      "schemaPaths": [
+        "ROOT:EMPTY_OBJECT"
+      ],
+      "size": 2,
+      "status": 200
     }
   },
   "apiResponseDrift": {
-    "detected": false,
-    "changedRouteCount": 0,
-    "changedRoutes": []
+    "detected": true,
+    "changedRouteCount": 1,
+    "changedRoutes": [
+      {
+        "route": "/api/max/search",
+        "previousFingerprint": "2b46c18db8e6c0c98dcda44b94c572429f88f32caac0aeff94b3fc7015029d5d",
+        "currentFingerprint": "b033be8910c912395de110294e92411bb1f4c18fded5eeea530d9eb83a88859c",
+        "previousSize": 1532,
+        "currentSize": 3357,
+        "sizeDelta": 1825,
+        "addedPaths": [
+          "trending[].address",
+          "trending[].change24h",
+          "trending[].icon",
+          "trending[].liquidity",
+          "trending[].marketCap",
+          "trending[].name",
+          "trending[].network",
+          "trending[].price",
+          "trending[].symbol",
+          "trending[].verified",
+          "trending[].volume24h"
+        ],
+        "removedPaths": [
+          "trending[]:EMPTY_ARRAY"
+        ]
+      }
+    ]
   },
   "observedKeywords": [
     "water",
@@ -178,7 +213,7 @@
     "rewards"
   ],
   "diagnostics": {
-    "previousSnapshotId": "2026-09-16_133256",
+    "previousSnapshotId": "2026-09-16_143307",
     "freshCounts": {
       "labels": 0,
       "routes": 0,
