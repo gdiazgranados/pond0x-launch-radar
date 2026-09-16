@@ -45,7 +45,7 @@ function record(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value)
 }
 
-function timestamp(value: unknown) {
+function timestamp(value: unknown): value is string {
   return typeof value === "string" && Number.isFinite(Date.parse(value))
 }
 
@@ -72,7 +72,7 @@ function assertLedger(value: unknown): asserts value is MaxTrendingLedger {
       identities.has(state.identityKey) ||
       !timestamp(state.firstSeenAt) ||
       !timestamp(state.lastSeenAt) ||
-      Date.parse(state.firstSeenAt) > Date.parse(state.lastSeenAt as string) ||
+      Date.parse(state.firstSeenAt) > Date.parse(state.lastSeenAt) ||
       !Number.isInteger(state.observationCount) ||
       Number(state.observationCount) < 1 ||
       !Number.isInteger(state.lastPosition) ||
@@ -100,7 +100,7 @@ function assertLedger(value: unknown): asserts value is MaxTrendingLedger {
     ) {
       throw new Error("invalid MAX trending snapshot record")
     }
-    const observedAt = Date.parse(item.observedAt as string)
+    const observedAt = Date.parse(item.observedAt)
     if (observedAt <= lastObservedAt) {
       throw new Error("MAX trending ledger snapshots are out of order")
     }
