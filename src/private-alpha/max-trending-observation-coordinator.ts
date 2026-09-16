@@ -78,9 +78,9 @@ export async function coordinateMaxTrendingObservation(input: {
       ? "BASELINE"
       : event
         ? "MATERIAL_CHANGE"
-      : detection.status === "EMPTY"
-        ? "EMPTY"
-        : "UNCHANGED",
+        : detection.status === "EMPTY"
+          ? "EMPTY"
+          : "UNCHANGED",
     persisted: persisted.changed,
     ledgerRevision: persisted.ledger.revision,
     snapshotHash: detection.snapshotHash,
