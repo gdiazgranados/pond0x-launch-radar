@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-09-16T01:33:28.627Z",
+  "generatedAt": "2026-09-16T02:33:29.008Z",
   "status": "LIVE_OBSERVATION",
   "state": "ISSUANCE_OBSERVED",
   "scoreNeutral": true,
@@ -8,26 +8,26 @@
   "tokens": {
     "paper": {
       "mint": "PAPERu8xjrqfjBLj8XG6FCiokuk7pG1GzUbRTYwX1nU",
-      "supply": 14255.820866
+      "supply": 13755.820866
     },
     "ccpu": {
       "mint": "CCPU6wgqmMiWigL3Tffpg7NgPfKuBRePTmrhxqqizWSa",
-      "supply": 14527.30305,
-      "reserveBalance": 14267.666851
+      "supply": 14022.30305,
+      "reserveBalance": 13767.666851
     }
   },
   "accounting": {
     "reservePaperDelta": 11.845985,
-    "supplyGap": 271.482184,
-    "vaultUsdc": 14584.525491,
-    "backingRatio": 1.0231,
+    "supplyGap": 266.482184,
+    "vaultUsdc": 14084.575491,
+    "backingRatio": 1.0239,
     "backingStatus": "PARTIAL_OBSERVATION",
     "note": "Vault USDC is observable, but a balance alone does not prove a legal or programmatic 1:1 redemption claim."
   },
   "routes": {
     "portalPaper": "HISTORICAL_QUOTE",
     "usdcToPaper": "QUOTE_AVAILABLE",
-    "paperToUsdc": "NOT_TESTED",
+    "paperToUsdc": "QUOTE_AVAILABLE",
     "usdcToCcpu": "QUOTE_AVAILABLE",
     "ccpuToUsdc": "QUOTE_AVAILABLE",
     "quotes": {
@@ -35,14 +35,21 @@
         "inputMint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
         "outputMint": "PAPERu8xjrqfjBLj8XG6FCiokuk7pG1GzUbRTYwX1nU",
         "inAmount": "1000000",
-        "outAmount": "1019866",
-        "priceImpactPct": "1",
+        "outAmount": "1000720",
+        "priceImpactPct": "0.0188107388585469464463415209",
         "routeLabels": [
           "Raydium CLMM"
         ]
       },
       "paperToUsdc": {
-        "error": "HTTP_400"
+        "inputMint": "PAPERu8xjrqfjBLj8XG6FCiokuk7pG1GzUbRTYwX1nU",
+        "outputMint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+        "inAmount": "1000000",
+        "outAmount": "999000",
+        "priceImpactPct": "0",
+        "routeLabels": [
+          "Meteora DLMM"
+        ]
       },
       "usdcToCcpu": {
         "inputMint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
@@ -68,7 +75,14 @@
   },
   "activity": {
     "issuanceObserved": true,
-    "issuanceEvents": [],
+    "issuanceEvents": [
+      {
+        "signature": "3s6LMZbwhcWPrGbspNv5384TPYedQsS646hr33SaAe5v26QwzBwYfeMkqoy6LdGT8LJc2Cq4yrsQ5S9SAbnucPAF",
+        "timestamp": "2026-09-16T02:32:14.000Z",
+        "paperAmount": 500,
+        "ccpuAmount": 500
+      }
+    ],
     "redemptionObserved": false
   },
   "capabilities": [
@@ -95,7 +109,7 @@
     {
       "id": "market",
       "label": "Material secondary liquidity",
-      "state": "UNPROVEN"
+      "state": "OBSERVED"
     },
     {
       "id": "farm",
