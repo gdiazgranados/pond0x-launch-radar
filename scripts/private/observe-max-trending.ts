@@ -25,6 +25,7 @@ async function main() {
     persisted: result.persisted,
     ledgerRevision: result.ledgerRevision,
     snapshotHash: result.snapshotHash,
+    opportunity: result.opportunity,
     event: result.event,
     watchOnly: result.watchOnly,
     approvalGranted: result.approvalGranted,
