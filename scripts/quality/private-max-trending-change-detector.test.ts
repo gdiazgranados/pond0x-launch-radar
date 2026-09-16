@@ -261,6 +261,64 @@ test("rejects stale observations and concurrent writes", async () => {
   )
 })
 
+test("compacts high-volume unchanged observations into one tail", async () => {
+  const store = new MemoryStore()
+  const visible = [asset(MINT_A, 1, "A")]
+  await persistMaxTrendingSnapshot(
+    store,
+    snapshot("2026-09-16T18:00:00.000Z", visible)
+  )
+
+  for (let index = 1; index <= 100; index += 1) {
+    await persistMaxTrendingSnapshot(
+      store,
+      snapshot(
+        new Date(Date.parse("2026-09-16T18:00:00.000Z") + index * 1_000)
+          .toISOString(),
+        visible
+      )
+    )
+  }
+
+  const ledger = await loadMaxTrendingLedger(store)
+  assert.equal(ledger.revision, 101)
+  assert.equal(ledger.snapshots.length, 2)
+  assert.equal(ledger.observationStats.totalCount, 101)
+  assert.equal(ledger.observationStats.baselineCount, 1)
+  assert.equal(ledger.observationStats.unchangedCount, 100)
+  assert.equal(ledger.observationStats.materialCount, 0)
+  assert.equal(ledger.observationStats.emptyCount, 0)
+})
+
+test("migrates an existing ledger into compact observation stats", async () => {
+  const store = new MemoryStore()
+  await persistMaxTrendingSnapshot(
+    store,
+    snapshot("2026-09-16T18:00:00.000Z", [asset(MINT_A, 1, "A")])
+  )
+  await persistMaxTrendingSnapshot(
+    store,
+    snapshot("2026-09-16T18:01:00.000Z", [])
+  )
+
+  const legacy = JSON.parse(store.serialized!)
+  delete legacy.observationStats
+  store.serialized = JSON.stringify(legacy)
+
+  const migrated = await loadMaxTrendingLedger(store)
+  assert.equal(migrated.observationStats.totalCount, 2)
+  assert.equal(migrated.observationStats.baselineCount, 1)
+  assert.equal(migrated.observationStats.emptyCount, 1)
+
+  const persisted = await persistMaxTrendingSnapshot(
+    store,
+    snapshot("2026-09-16T18:02:00.000Z", [])
+  )
+  assert.equal(persisted.ledger.observationStats.totalCount, 3)
+  assert.equal(persisted.ledger.observationStats.emptyCount, 2)
+  assert.equal(persisted.ledger.snapshots.length, 2)
+})
+
 test("fails closed on corrupt ledgers", async () => {
   const store = new MemoryStore()
   store.serialized = JSON.stringify({
