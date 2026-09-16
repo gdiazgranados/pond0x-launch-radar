@@ -1,10 +1,10 @@
 {
   "version": 1,
-  "generatedAt": "2026-09-16T12:33:35.405Z",
+  "generatedAt": "2026-09-16T13:33:20.947Z",
   "history": {
     "stage": "USABLE",
-    "exactSweepCount": 78,
-    "baselineSweepCount": 77,
+    "exactSweepCount": 79,
+    "baselineSweepCount": 78,
     "thresholds": {
       "preliminary": 24,
       "usable": 72,
@@ -12,12 +12,12 @@
     }
   },
   "current": {
-    "snapshotId": "2026-09-16_123306",
-    "generatedAt": "2026-09-16T12:33:35.113Z",
-    "decisionState": "QUIET"
+    "snapshotId": "2026-09-16_133256",
+    "generatedAt": "2026-09-16T13:33:20.712Z",
+    "decisionState": "WATCH"
   },
-  "status": "NORMAL",
-  "anomalyScore": 0,
+  "status": "ELEVATED",
+  "anomalyScore": 85.3,
   "metrics": {
     "radar": {
       "current": 0,
@@ -36,11 +36,11 @@
       "shortTrend": "FLAT"
     },
     "correlation": {
-      "current": 0,
-      "historicalAverage": 3.58,
+      "current": 12,
+      "historicalAverage": 3.54,
       "historicalMax": 12,
-      "percentile": 35.1,
-      "percentileClass": "NORMAL",
+      "percentile": 85.3,
+      "percentileClass": "HIGH",
       "shortTrend": "FLAT"
     },
     "evidenceConfidence": {
@@ -60,11 +60,11 @@
       "shortTrend": "FLAT"
     },
     "decisionStrength": {
-      "current": 0,
-      "historicalAverage": 2.09,
+      "current": 7,
+      "historicalAverage": 2.06,
       "historicalMax": 7,
-      "percentile": 35.1,
-      "percentileClass": "NORMAL",
+      "percentile": 85.3,
+      "percentileClass": "HIGH",
       "shortTrend": "FLAT"
     },
     "domainCount": {
@@ -116,7 +116,20 @@
       "shortTrend": "FLAT"
     }
   },
-  "drivers": [],
+  "drivers": [
+    {
+      "metric": "correlation",
+      "value": 12,
+      "percentile": 85.3,
+      "trend": "FLAT"
+    },
+    {
+      "metric": "decisionStrength",
+      "value": 7,
+      "percentile": 85.3,
+      "trend": "FLAT"
+    }
+  ],
   "methodology": "Score-neutral historical comparison of the latest exact sweep against prior exact sweeps. Percentiles and short trends are descriptive only and do not modify Radar scoring.",
   "caution": "Historical Trend Intelligence must not be interpreted as launch probability, reward probability, causal evidence, or trading advice. Low sample counts remain explicitly classified as learning or preliminary."
 }
