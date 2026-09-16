@@ -59,6 +59,21 @@ export function detectMaxTrendingChanges(input: {
   seenIdentityKeys?: ReadonlySet<string>
 }): MaxTrendingDetection {
   assertSnapshotOrder(input.previous, input.current)
+  if (input.current.trending.length === 0) {
+    return {
+      schemaVersion: 1,
+      observedAt: input.current.observedAt,
+      previousObservedAt: input.previous?.observedAt ?? null,
+      status: "EMPTY",
+      materialChange: false,
+      snapshotHash: hashMaxTrendingSnapshot(input.current),
+      changes: [],
+      watchOnly: true,
+      approvalGranted: false,
+      transactionRequested: false,
+    }
+  }
+
   const previousByIdentity = new Map(
     (input.previous?.trending ?? []).map(asset => [
       asset.identityKey,
