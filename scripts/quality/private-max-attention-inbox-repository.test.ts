@@ -4,6 +4,7 @@ import test from "node:test"
 import {
   parseMaxAttentionInboxLedger,
   persistMaxAttentionCandidates,
+  updateMaxAttentionCandidateState,
   type MaxAttentionInboxStore,
 } from "../../src/private-alpha/max-attention-inbox-repository"
 import type {
@@ -204,4 +205,82 @@ test("does not write neutral classifications and fails closed", async () => {
     () => parseMaxAttentionInboxLedger('{"revision":1}'),
     /invalid MAX attention inbox ledger/
   )
+})
+
+
+test("records explicit human review state changes", async () => {
+  const store = new MemoryStore()
+  await persistMaxAttentionCandidates({
+    store,
+    opportunity: opportunity([candidate()]),
+  })
+
+  const monitoring = await updateMaxAttentionCandidateState({
+    store,
+    identityKey: "solana:mint-a",
+    state: "MONITORING",
+    updatedAt: "2026-09-17T02:00:00.000Z",
+  })
+  assert.equal(monitoring.ledger.revision, 2)
+  assert.equal(monitoring.ledger.candidates[0]?.state, "MONITORING")
+  assert.equal(
+    monitoring.ledger.candidates[0]?.dismissalReason,
+    null
+  )
+
+  const dismissed = await updateMaxAttentionCandidateState({
+    store,
+    identityKey: "solana:mint-a",
+    state: "DISMISSED",
+    dismissalReason: "Insufficient first-party persistence",
+    updatedAt: "2026-09-17T02:05:00.000Z",
+  })
+  assert.equal(dismissed.ledger.revision, 3)
+  assert.equal(dismissed.ledger.candidates[0]?.state, "DISMISSED")
+  assert.equal(
+    dismissed.ledger.candidates[0]?.dismissalReason,
+    "Insufficient first-party persistence"
+  )
+})
+
+test("keeps review decisions idempotent and rejects invalid transitions", async () => {
+  const store = new MemoryStore()
+  await persistMaxAttentionCandidates({
+    store,
+    opportunity: opportunity([candidate()]),
+  })
+  await assert.rejects(
+    updateMaxAttentionCandidateState({
+      store,
+      identityKey: "solana:mint-a",
+      state: "DISMISSED",
+      updatedAt: "2026-09-17T02:00:00.000Z",
+    }),
+    /dismissal reason is inconsistent/
+  )
+  await assert.rejects(
+    updateMaxAttentionCandidateState({
+      store,
+      identityKey: "solana:missing",
+      state: "MONITORING",
+      updatedAt: "2026-09-17T02:00:00.000Z",
+    }),
+    /was not found/
+  )
+
+  const first = await updateMaxAttentionCandidateState({
+    store,
+    identityKey: "solana:mint-a",
+    state: "MONITORING",
+    updatedAt: "2026-09-17T02:00:00.000Z",
+  })
+  const retry = await updateMaxAttentionCandidateState({
+    store,
+    identityKey: "solana:mint-a",
+    state: "MONITORING",
+    updatedAt: "2026-09-17T02:00:00.000Z",
+  })
+  assert.equal(first.changed, true)
+  assert.equal(retry.changed, false)
+  assert.equal(retry.ledger.revision, 2)
 })
