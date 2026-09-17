@@ -77,6 +77,28 @@ function printCycle(cycle: MaxTrendingMonitorCycle) {
     attentionInbox: result.attentionInbox,
     onchainValidation: result.onchainValidation,
     jupiterValidation: result.jupiterValidation,
+    decisionTickets: result.decisionTickets.map(ticket => ({
+      ticketId: ticket.ticketId,
+      status: ticket.status,
+      trigger: ticket.trigger,
+      symbol: ticket.identity.symbol,
+      identityKey: ticket.identity.identityKey,
+      position: ticket.attention.latestPosition,
+      humanReviewState: ticket.humanReview.state,
+      onchainStatus: ticket.onchain.status,
+      routeStatus: ticket.route.status,
+      diagnosticInputLamports:
+        ticket.route.diagnosticInputLamports,
+      outputAmountBaseUnits:
+        ticket.route.outputAmountBaseUnits,
+      routeId: ticket.route.routeId,
+      venueIds: ticket.route.venueIds,
+      riskFlags: ticket.riskFlags,
+      successProbability: ticket.successProbability,
+      investmentRecommendation:
+        ticket.investmentRecommendation,
+      requiresHumanDecision: ticket.humanReview.required,
+    })),
     mode: cycle.mode,
     nextDelaySeconds: cycle.nextDelayMs === null
       ? null
