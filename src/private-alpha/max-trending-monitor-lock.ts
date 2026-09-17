@@ -40,19 +40,18 @@ function defaultProcessAlive(pid: number) {
 async function readLock(path: string): Promise<LockPayload | null> {
   try {
     const value = JSON.parse(await readFile(path, "utf8")) as unknown
+    if (value === null || typeof value !== "object") return null
+    const record = value as Record<string, unknown>
     if (
-      value !== null &&
-      typeof value === "object" &&
-      "pid" in value &&
-      Number.isInteger(value.pid) &&
-      Number(value.pid) > 0 &&
-      "acquiredAt" in value &&
-      typeof value.acquiredAt === "string" &&
-      Number.isFinite(Date.parse(value.acquiredAt))
+      typeof record.pid === "number" &&
+      Number.isInteger(record.pid) &&
+      record.pid > 0 &&
+      typeof record.acquiredAt === "string" &&
+      Number.isFinite(Date.parse(record.acquiredAt))
     ) {
       return {
-        pid: Number(value.pid),
-        acquiredAt: value.acquiredAt,
+        pid: record.pid,
+        acquiredAt: record.acquiredAt,
       }
     }
   } catch {
@@ -118,13 +117,14 @@ export async function acquireMaxTrendingMonitorLock(input: {
   }
 
   if (!handle) throw new Error("could not acquire MAX trending monitor lock")
+  const acquiredHandle = handle
   let released = false
   return {
     path: input.path,
     async release() {
       if (released) return
       released = true
-      await handle.close()
+      await acquiredHandle.close()
       await unlink(input.path).catch(error => {
         if (errorCode(error) !== "ENOENT") throw error
       })
