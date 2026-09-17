@@ -1,10 +1,10 @@
 {
   "version": 1,
-  "generatedAt": "2026-09-17T12:33:37.718Z",
+  "generatedAt": "2026-09-17T13:33:25.498Z",
   "history": {
     "stage": "USABLE",
-    "exactSweepCount": 102,
-    "baselineSweepCount": 101,
+    "exactSweepCount": 103,
+    "baselineSweepCount": 102,
     "thresholds": {
       "preliminary": 24,
       "usable": 72,
@@ -12,35 +12,35 @@
     }
   },
   "current": {
-    "snapshotId": "2026-09-17_123308",
-    "generatedAt": "2026-09-17T12:33:37.416Z",
+    "snapshotId": "2026-09-17_133257",
+    "generatedAt": "2026-09-17T13:33:25.261Z",
     "decisionState": "WATCH"
   },
   "status": "ELEVATED",
-  "anomalyScore": 85.1,
+  "anomalyScore": 84.8,
   "metrics": {
     "radar": {
-      "current": 0,
+      "current": 10,
       "historicalAverage": 0,
       "historicalMax": 0,
-      "percentile": 50,
-      "percentileClass": "NORMAL",
+      "percentile": 100,
+      "percentileClass": "EXTREME",
       "shortTrend": "FLAT"
     },
     "semantic": {
-      "current": 0,
+      "current": 2,
       "historicalAverage": 0,
       "historicalMax": 0,
-      "percentile": 50,
-      "percentileClass": "NORMAL",
+      "percentile": 100,
+      "percentileClass": "EXTREME",
       "shortTrend": "FLAT"
     },
     "correlation": {
-      "current": 12,
-      "historicalAverage": 3.56,
+      "current": 8,
+      "historicalAverage": 3.65,
       "historicalMax": 12,
-      "percentile": 85.1,
-      "percentileClass": "HIGH",
+      "percentile": 69.6,
+      "percentileClass": "ELEVATED",
       "shortTrend": "RISING"
     },
     "evidenceConfidence": {
@@ -60,11 +60,11 @@
       "shortTrend": "FLAT"
     },
     "decisionStrength": {
-      "current": 7,
-      "historicalAverage": 2.08,
+      "current": 5,
+      "historicalAverage": 2.13,
       "historicalMax": 7,
-      "percentile": 85.1,
-      "percentileClass": "HIGH",
+      "percentile": 69.6,
+      "percentileClass": "ELEVATED",
       "shortTrend": "RISING"
     },
     "domainCount": {
@@ -118,16 +118,16 @@
   },
   "drivers": [
     {
-      "metric": "correlation",
-      "value": 12,
-      "percentile": 85.1,
-      "trend": "RISING"
+      "metric": "radar",
+      "value": 10,
+      "percentile": 100,
+      "trend": "FLAT"
     },
     {
-      "metric": "decisionStrength",
-      "value": 7,
-      "percentile": 85.1,
-      "trend": "RISING"
+      "metric": "semantic",
+      "value": 2,
+      "percentile": 100,
+      "trend": "FLAT"
     }
   ],
   "methodology": "Score-neutral historical comparison of the latest exact sweep against prior exact sweeps. Percentiles and short trends are descriptive only and do not modify Radar scoring.",
