@@ -23,7 +23,7 @@ function mintData(input: {
     bytes.writeUInt32LE(1, 0)
     bytes.fill(1, 4, 36)
   }
-  bytes.writeBigUInt64LE(input.supply ?? 123_456n, 36)
+  bytes.writeBigUInt64LE(input.supply ?? BigInt(123_456), 36)
   bytes[44] = input.decimals ?? 6
   bytes[45] = input.initialized === false ? 0 : 1
   return bytes.toString("base64")
