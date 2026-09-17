@@ -120,6 +120,7 @@ function printCycle(cycle: MaxTrendingMonitorCycle) {
     attentionInbox: result.attentionInbox,
     onchainValidation: result.onchainValidation,
     jupiterValidation: result.jupiterValidation,
+    communityResponse: result.communityResponse,
     decisionTickets: result.decisionTickets.map(ticket => ({
       ticketId: ticket.ticketId,
       status: ticket.status,
@@ -174,6 +175,10 @@ async function main() {
     dataDirectory,
     "max-attention-jupiter.json"
   )
+  const communityResponseLedgerPath = resolve(
+    dataDirectory,
+    "max-community-response.json"
+  )
   const windowsToastEnabled = booleanFlag(
     process.env.MAX_ATTENTION_WINDOWS_TOAST,
     "MAX_ATTENTION_WINDOWS_TOAST"
@@ -199,12 +204,16 @@ async function main() {
     const jupiterStore = new PrivateFileLedgerStore(
       jupiterLedgerPath
     )
+    const communityResponseStore = new PrivateFileLedgerStore(
+      communityResponseLedgerPath
+    )
     const summary = await runAdaptiveMaxTrendingMonitor({
       observe: () => coordinateMaxTrendingOpportunityCycle({
         observationStore,
         attentionInboxStore,
         onchainStore,
         jupiterStore,
+        communityResponseStore,
         rpcUrl:
           process.env.SOLANA_RPC_URL ??
           DEFAULT_SOLANA_RPC_URL,
