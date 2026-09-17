@@ -185,6 +185,8 @@ test("keeps a baseline out of both opportunity ledgers", async () => {
   assert.equal(result.status, "BASELINE")
   assert.equal(result.attentionInbox.totalCandidates, 0)
   assert.equal(result.onchainValidation.validatedCount, 0)
+  assert.equal(result.jupiterValidation.validatedCount, 0)
+  assert.equal(state.jupiterStore.writes, 0)
   assert.equal(calls, 0)
 })
 
@@ -223,6 +225,12 @@ test("persists and validates a new candidate in one cycle", async () => {
   assert.equal(
     result.onchainValidation.results[0]?.status,
     "VERIFIED_ONCHAIN"
+  )
+  assert.equal(result.jupiterValidation.persisted, true)
+  assert.equal(result.jupiterValidation.validatedCount, 1)
+  assert.equal(
+    result.jupiterValidation.results[0]?.status,
+    "ROUTE_AVAILABLE"
   )
 })
 
@@ -276,6 +284,8 @@ test("an unchanged cycle reuses definitive on-chain evidence", async () => {
   assert.equal(unchanged.status, "UNCHANGED")
   assert.equal(unchanged.onchainValidation.cachedCount, 1)
   assert.equal(unchanged.onchainValidation.validatedCount, 0)
+  assert.equal(unchanged.jupiterValidation.cachedCount, 1)
+  assert.equal(unchanged.jupiterValidation.validatedCount, 0)
 })
 
 test("fails visibly after preserving a recoverable inbox candidate", async () => {
