@@ -13,6 +13,9 @@ import type {
 export type MaxAttentionTopEntry = {
   rank: number
   identityKey: string
+  network: string
+  contractAddress: string
+  explorerUrl: string | null
   symbol: string | null
   name: string | null
   attention: {
@@ -52,6 +55,13 @@ function compareCandidates(
       Date.parse(left.lastAttentionAt) ||
     left.identityKey.localeCompare(right.identityKey)
   )
+}
+
+function explorerUrl(candidate: MaxAttentionInboxCandidate) {
+  if (candidate.network !== "solana") return null
+  return `https://solscan.io/token/${encodeURIComponent(
+    candidate.contractAddress
+  )}`
 }
 
 function generatedAt(now: (() => Date) | undefined) {
@@ -116,6 +126,9 @@ export function buildMaxAttentionTopReport(input: {
       return {
         rank: index + 1,
         identityKey: candidate.identityKey,
+        network: candidate.network,
+        contractAddress: candidate.contractAddress,
+        explorerUrl: explorerUrl(candidate),
         symbol: candidate.symbol,
         name: candidate.name,
         attention: {
