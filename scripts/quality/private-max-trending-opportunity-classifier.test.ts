@@ -107,7 +107,7 @@ test("classifies NEW as immediate attention without a financial claim", () => {
   assert.equal(result.candidates[0]?.successProbability, null)
   assert.equal(result.candidates[0]?.investmentRecommendation, null)
   assert.equal(result.fastFollowUp.recommended, true)
-  assert.equal(result.fastFollowUp.afterSeconds, 30)
+  assert.equal(result.fastFollowUp.afterSeconds, 10)
 })
 
 test("classifies REAPPEARED with its persisted history", () => {
