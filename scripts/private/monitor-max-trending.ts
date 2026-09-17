@@ -76,6 +76,7 @@ function printCycle(cycle: MaxTrendingMonitorCycle) {
     },
     attentionInbox: result.attentionInbox,
     onchainValidation: result.onchainValidation,
+    jupiterValidation: result.jupiterValidation,
     mode: cycle.mode,
     nextDelaySeconds: cycle.nextDelayMs === null
       ? null
@@ -104,6 +105,10 @@ async function main() {
     dataDirectory,
     "max-attention-onchain.json"
   )
+  const jupiterLedgerPath = resolve(
+    dataDirectory,
+    "max-attention-jupiter.json"
+  )
   const lock = await acquireMaxTrendingMonitorLock({
     path: resolve(dataDirectory, "max-trending-monitor.lock"),
   })
@@ -122,14 +127,21 @@ async function main() {
     const onchainStore = new PrivateFileLedgerStore(
       onchainLedgerPath
     )
+    const jupiterStore = new PrivateFileLedgerStore(
+      jupiterLedgerPath
+    )
     const summary = await runAdaptiveMaxTrendingMonitor({
       observe: () => coordinateMaxTrendingOpportunityCycle({
         observationStore,
         attentionInboxStore,
         onchainStore,
+        jupiterStore,
         rpcUrl:
           process.env.SOLANA_RPC_URL ??
           DEFAULT_SOLANA_RPC_URL,
+        diagnosticInputLamports:
+          process.env.MAX_JUPITER_DIAGNOSTIC_INPUT_LAMPORTS,
+        jupiterApiKey: process.env.JUPITER_API_KEY,
       }),
       wait: async (milliseconds, signal) => {
         await delay(milliseconds, undefined, { signal })
