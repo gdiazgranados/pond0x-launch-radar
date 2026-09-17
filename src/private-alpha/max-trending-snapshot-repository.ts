@@ -137,13 +137,10 @@ function shouldPersistDetection(input: {
     return true
   }
 
-  const lastWasMaterial = input.last.detection.materialChange
-  if (
-    lastWasMaterial ||
-    input.last.detection.status !== input.detection.status
-  ) {
-    return true
-  }
+  const lastWasEmpty =
+    input.last.snapshot.trending.length === 0
+  const currentIsEmpty = input.detection.status === "EMPTY"
+  if (lastWasEmpty !== currentIsEmpty) return true
 
   return (
     Date.parse(input.detection.observedAt) -
