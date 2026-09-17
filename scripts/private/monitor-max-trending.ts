@@ -7,11 +7,12 @@ import {
   type MaxTrendingMonitorCycle,
 } from "../../src/private-alpha/max-trending-adaptive-monitor"
 import {
+  coordinateMaxTrendingAttentionObservation,
+  type MaxTrendingAttentionObservationResult,
+} from "../../src/private-alpha/max-trending-attention-coordinator"
+import {
   acquireMaxTrendingMonitorLock,
 } from "../../src/private-alpha/max-trending-monitor-lock"
-import {
-  coordinateMaxTrendingObservation,
-} from "../../src/private-alpha/max-trending-observation-coordinator"
 
 function optionalPositiveInteger(value: string | undefined) {
   if (value === undefined || value.trim() === "") return undefined
@@ -42,27 +43,29 @@ function printCycle(cycle: MaxTrendingMonitorCycle) {
     return
   }
 
+  const result = cycle.result as MaxTrendingAttentionObservationResult
   console.log(JSON.stringify({
     cycle: cycle.cycle,
     ok: true,
-    observedAt: cycle.result.observedAt,
-    observationStatus: cycle.result.status,
-    ledgerRevision: cycle.result.ledgerRevision,
-    opportunityStatus: cycle.result.opportunity.status,
-    candidates: cycle.result.opportunity.candidates.map(candidate => ({
+    observedAt: result.observedAt,
+    observationStatus: result.status,
+    ledgerRevision: result.ledgerRevision,
+    opportunityStatus: result.opportunity.status,
+    candidates: result.opportunity.candidates.map(candidate => ({
       trigger: candidate.trigger,
       symbol: candidate.symbol,
       identityKey: candidate.identityKey,
       position: candidate.position,
       priority: candidate.priority,
     })),
+    attentionInbox: result.attentionInbox,
     mode: cycle.mode,
     nextDelaySeconds: cycle.nextDelayMs === null
       ? null
       : cycle.nextDelayMs / 1_000,
-    watchOnly: cycle.result.watchOnly,
-    approvalGranted: cycle.result.approvalGranted,
-    transactionRequested: cycle.result.transactionRequested,
+    watchOnly: result.watchOnly,
+    approvalGranted: result.approvalGranted,
+    transactionRequested: result.transactionRequested,
   }))
 }
 
@@ -72,7 +75,14 @@ async function main() {
       process.env.SHADOW_DATA_DIR ??
       "private-data"
   )
-  const ledgerPath = resolve(dataDirectory, "max-trending-ledger.json")
+  const observationLedgerPath = resolve(
+    dataDirectory,
+    "max-trending-ledger.json"
+  )
+  const attentionInboxPath = resolve(
+    dataDirectory,
+    "max-attention-inbox.json"
+  )
   const lock = await acquireMaxTrendingMonitorLock({
     path: resolve(dataDirectory, "max-trending-monitor.lock"),
   })
@@ -82,9 +92,17 @@ async function main() {
   process.once("SIGTERM", stop)
 
   try {
-    const store = new PrivateFileLedgerStore(ledgerPath)
+    const observationStore = new PrivateFileLedgerStore(
+      observationLedgerPath
+    )
+    const attentionInboxStore = new PrivateFileLedgerStore(
+      attentionInboxPath
+    )
     const summary = await runAdaptiveMaxTrendingMonitor({
-      observe: () => coordinateMaxTrendingObservation({ store }),
+      observe: () => coordinateMaxTrendingAttentionObservation({
+        observationStore,
+        attentionInboxStore,
+      }),
       wait: async (milliseconds, signal) => {
         await delay(milliseconds, undefined, { signal })
       },
