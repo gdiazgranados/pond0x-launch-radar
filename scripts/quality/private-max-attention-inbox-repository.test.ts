@@ -77,7 +77,7 @@ function opportunity(
     context: { moved: [], removed: [] },
     fastFollowUp: {
       recommended: candidates.length > 0,
-      afterSeconds: candidates.length > 0 ? 30 : null,
+      afterSeconds: candidates.length > 0 ? 10 : null,
     },
     watchOnly: true,
     approvalGranted: false,
