@@ -31,7 +31,7 @@ function emptySnapshot(observedAt: string): MaxTrendingSnapshot {
   }
 }
 
-test("persists consecutive observations in the private atomic store", async (t) => {
+test("suppresses consecutive routine writes in the private atomic store", async (t) => {
   const directory = await mkdtemp(
     join(tmpdir(), "pond0x-max-trending-")
   )
@@ -51,14 +51,15 @@ test("persists consecutive observations in the private atomic store", async (t) 
   assert.equal(first.status, "BASELINE")
   assert.equal(first.event, null)
   assert.equal(second.status, "EMPTY")
-  assert.equal(second.ledgerRevision, 2)
+  assert.equal(second.persisted, false)
+  assert.equal(second.ledgerRevision, 1)
 
   const ledger = JSON.parse(await readFile(ledgerPath, "utf8"))
-  assert.equal(ledger.revision, 2)
-  assert.equal(ledger.snapshots.length, 2)
+  assert.equal(ledger.revision, 1)
+  assert.equal(ledger.snapshots.length, 1)
   assert.equal(
     ledger.updatedAt,
-    "2026-09-16T18:33:44.666Z"
+    "2026-09-16T18:32:44.666Z"
   )
   assert.deepEqual(await readdir(directory), [
     "max-trending-ledger.json",
