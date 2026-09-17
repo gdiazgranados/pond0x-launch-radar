@@ -11,6 +11,12 @@ import type {
   MaxAttentionOnchainStore,
 } from "../../src/private-alpha/max-attention-onchain-repository"
 import type {
+  MaxAttentionJupiterStore,
+} from "../../src/private-alpha/max-attention-jupiter-repository"
+import type {
+  MaxAttentionJupiterValidation,
+} from "../../src/private-alpha/max-attention-jupiter-validator"
+import type {
   MaxTrendingAsset,
   MaxTrendingSnapshot,
 } from "../../src/private-alpha/max-trending-client"
@@ -25,7 +31,7 @@ const MINT_A = "3JgFwoYV74f6LwWjQWnr3YDPFnmBdwQfNyubv99jqUoq"
 const MINT_B = "6GmAFSYs4gk3FDao5FzzySQpPZaWsa4rUJHacpMpUNgx"
 
 class MemoryStore implements MaxTrendingStore, MaxAttentionInboxStore,
-  MaxAttentionOnchainStore {
+  MaxAttentionOnchainStore, MaxAttentionJupiterStore {
   serialized: string | null = null
   rejectWrite = false
   writes = 0
@@ -114,11 +120,48 @@ function validation(
   }
 }
 
+function route(
+  contractAddress: string,
+  observedAt: string
+): MaxAttentionJupiterValidation {
+  return {
+    schemaVersion: 1,
+    observedAt,
+    network: "solana",
+    mintAddress: contractAddress,
+    status: "ROUTE_AVAILABLE",
+    diagnosticInputLamports: "10000000",
+    quote: {
+      routeId: "jupiter:Meteora",
+      venueIds: ["market"],
+      inputAmountBaseUnits: "10000000",
+      outputAmountBaseUnits: "123456",
+      inputAmount: 0.01,
+      outputAmount: 0.123456,
+      estimatedFeeUsd: 0,
+    },
+    blockingReasons: [],
+    caveats: ["QUOTE_IS_DIAGNOSTIC_AND_MAY_EXPIRE"],
+    watchOnly: true,
+    approvalGranted: false,
+    transactionRequested: false,
+    source: "JUPITER_READ_ONLY_QUOTE",
+  }
+}
+
 function stores() {
   return {
     observationStore: new MemoryStore(),
     attentionInboxStore: new MemoryStore(),
     onchainStore: new MemoryStore(),
+    jupiterStore: new MemoryStore(),
+    validateRoute: async (input: {
+      contractAddress: string
+      now?: () => Date
+    }) => route(
+      input.contractAddress,
+      input.now!().toISOString()
+    ),
   }
 }
 
