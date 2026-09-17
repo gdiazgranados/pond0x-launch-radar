@@ -7,12 +7,15 @@ import {
   type MaxTrendingMonitorCycle,
 } from "../../src/private-alpha/max-trending-adaptive-monitor"
 import {
-  coordinateMaxTrendingAttentionObservation,
-  type MaxTrendingAttentionObservationResult,
-} from "../../src/private-alpha/max-trending-attention-coordinator"
-import {
   acquireMaxTrendingMonitorLock,
 } from "../../src/private-alpha/max-trending-monitor-lock"
+import {
+  coordinateMaxTrendingOpportunityCycle,
+  type MaxTrendingOpportunityCycleResult,
+} from "../../src/private-alpha/max-trending-opportunity-cycle"
+import {
+  DEFAULT_SOLANA_RPC_URL,
+} from "../../src/private-alpha/solana-mint-validator"
 
 function optionalPositiveInteger(value: string | undefined) {
   if (value === undefined || value.trim() === "") return undefined
@@ -43,7 +46,7 @@ function printCycle(cycle: MaxTrendingMonitorCycle) {
     return
   }
 
-  const result = cycle.result as MaxTrendingAttentionObservationResult
+  const result = cycle.result as MaxTrendingOpportunityCycleResult
   console.log(JSON.stringify({
     cycle: cycle.cycle,
     ok: true,
@@ -59,6 +62,7 @@ function printCycle(cycle: MaxTrendingMonitorCycle) {
       priority: candidate.priority,
     })),
     attentionInbox: result.attentionInbox,
+    onchainValidation: result.onchainValidation,
     mode: cycle.mode,
     nextDelaySeconds: cycle.nextDelayMs === null
       ? null
@@ -83,6 +87,10 @@ async function main() {
     dataDirectory,
     "max-attention-inbox.json"
   )
+  const onchainLedgerPath = resolve(
+    dataDirectory,
+    "max-attention-onchain.json"
+  )
   const lock = await acquireMaxTrendingMonitorLock({
     path: resolve(dataDirectory, "max-trending-monitor.lock"),
   })
@@ -98,10 +106,17 @@ async function main() {
     const attentionInboxStore = new PrivateFileLedgerStore(
       attentionInboxPath
     )
+    const onchainStore = new PrivateFileLedgerStore(
+      onchainLedgerPath
+    )
     const summary = await runAdaptiveMaxTrendingMonitor({
-      observe: () => coordinateMaxTrendingAttentionObservation({
+      observe: () => coordinateMaxTrendingOpportunityCycle({
         observationStore,
         attentionInboxStore,
+        onchainStore,
+        rpcUrl:
+          process.env.SOLANA_RPC_URL ??
+          DEFAULT_SOLANA_RPC_URL,
       }),
       wait: async (milliseconds, signal) => {
         await delay(milliseconds, undefined, { signal })
