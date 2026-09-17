@@ -155,7 +155,7 @@ function parseMintData(dataBase64: string) {
   ) {
     throw new Error("invalid Solana mint base64")
   }
-  const bytes = getBase64Encoder().encode(dataBase64)
+  const bytes = Uint8Array.from(\n    getBase64Encoder().encode(dataBase64)\n  )
   if (bytes.length < MINT_BASE_SIZE) {
     throw new Error("Solana mint account is too short")
   }
@@ -311,9 +311,15 @@ export async function validateSolanaMintOnchain(input: {
   const owner = account.owner
   const executable = account.executable
   const data = account.data
-  const tokenProgram = owner === TOKEN_PROGRAM
+  const ownerProgram: SolanaMintValidation["ownerProgram"] =
+    owner === TOKEN_PROGRAM
+      ? TOKEN_PROGRAM
+      : owner === TOKEN_2022_PROGRAM
+        ? TOKEN_2022_PROGRAM
+        : null
+  const tokenProgram = ownerProgram === TOKEN_PROGRAM
     ? "TOKEN"
-    : owner === TOKEN_2022_PROGRAM
+    : ownerProgram === TOKEN_2022_PROGRAM
       ? "TOKEN_2022"
       : null
   if (
@@ -329,10 +335,7 @@ export async function validateSolanaMintOnchain(input: {
       mintAddress: input.contractAddress,
       status: "BLOCKED",
       rpcSlot: Number(slot),
-      ownerProgram:
-        owner === TOKEN_PROGRAM || owner === TOKEN_2022_PROGRAM
-          ? owner
-          : null,
+      ownerProgram,
       tokenProgram,
       executable: typeof executable === "boolean" ? executable : null,
       blockingReasons: ["SOLANA_MINT_ACCOUNT_INVALID"],
@@ -348,7 +351,7 @@ export async function validateSolanaMintOnchain(input: {
       mintAddress: input.contractAddress,
       status: "BLOCKED",
       rpcSlot: Number(slot),
-      ownerProgram: owner,
+      ownerProgram,
       tokenProgram,
       executable: false,
       blockingReasons: ["SOLANA_MINT_DATA_INVALID"],
@@ -360,7 +363,7 @@ export async function validateSolanaMintOnchain(input: {
       mintAddress: input.contractAddress,
       status: "BLOCKED",
       rpcSlot: Number(slot),
-      ownerProgram: owner,
+      ownerProgram,
       tokenProgram,
       executable: false,
       ...mint,
@@ -391,7 +394,7 @@ export async function validateSolanaMintOnchain(input: {
       mintAddress: input.contractAddress,
       status: "INCOMPLETE",
       rpcSlot: Number(slot),
-      ownerProgram: owner,
+      ownerProgram,
       tokenProgram,
       executable: false,
       ...mint,
@@ -408,7 +411,7 @@ export async function validateSolanaMintOnchain(input: {
     mintAddress: input.contractAddress,
     status: matched ? "VERIFIED_ONCHAIN" : "BLOCKED",
     rpcSlot: Math.max(Number(slot), Number(supplySlot)),
-    ownerProgram: owner,
+    ownerProgram,
     tokenProgram,
     executable: false,
     ...mint,
