@@ -1,6 +1,6 @@
 {
-  "id": "2026-09-17_213310__2026-09-17T21:33:39.785Z",
-  "snapshotId": "2026-09-17_213310",
+  "id": "2026-09-17_223306__2026-09-17T22:33:30.908Z",
+  "snapshotId": "2026-09-17_223306",
   "totalFiles": 64,
   "added": 0,
   "changed": 0,
@@ -36,7 +36,7 @@
   "summary": "No changes detected across 64 analyzed files.",
   "note": "No strong signals at this time.",
   "changedFiles": [],
-  "generatedAt": "2026-09-17T21:33:39.785Z",
+  "generatedAt": "2026-09-17T22:33:30.908Z",
   "trend": 0,
   "trendDirection": "FLAT",
   "breakdown": {
@@ -180,7 +180,7 @@
     "hasVisibleCTAChange": false
   },
   "evidenceCorrelation": {
-    "apiResponseDrift": true,
+    "apiResponseDrift": false,
     "newApiRoute": false,
     "newLiveApiRoute": false,
     "backendSignal": false,
@@ -193,10 +193,10 @@
     "rewardActivity": false,
     "externalClaimTransfer": false,
     "newRecipient": false,
-    "evidenceCount": 1,
-    "domainCount": 1,
+    "evidenceCount": 0,
+    "domainCount": 0,
     "domains": {
-      "api": true,
+      "api": false,
       "backend": false,
       "semantic": false,
       "webSurface": false,
@@ -204,10 +204,10 @@
       "distributor": false,
       "recipients": false
     },
-    "score": 12,
-    "level": "LOW",
+    "score": 0,
+    "level": "NONE",
     "componentScores": {
-      "api": 12,
+      "api": 0,
       "backend": 0,
       "semantic": 0,
       "webSurface": 0,
@@ -221,7 +221,7 @@
     "semanticClassification": null,
     "newExternalTransfers": 0,
     "newExternalRecipients": 0,
-    "classification": "ISOLATED"
+    "classification": "NONE"
   },
   "temporalCorrelation": {
     "windowMinutes": 60,
@@ -233,7 +233,7 @@
       {
         "domain": "api",
         "seenAt": "2026-09-17T21:33:39.785Z",
-        "source": "current",
+        "source": "history",
         "detail": null
       }
     ],
@@ -370,7 +370,7 @@
     },
     "drift": {
       "comparable": true,
-      "baselineSnapshotId": "2026-09-17_203249",
+      "baselineSnapshotId": "2026-09-17_213310",
       "status": "STABLE",
       "newSurfaceCount": 0,
       "missingSurfaceCount": 0,
@@ -395,9 +395,9 @@
     "firstPartyApiCount": 4
   },
   "discovery": {
-    "checkedAt": "2026-09-17T21:33:32.093Z",
-    "sourceSnapshotId": "2026-09-17_213310",
-    "snapshotDir": "2026-09-17_213310",
+    "checkedAt": "2026-09-17T22:33:25.682Z",
+    "sourceSnapshotId": "2026-09-17_223306",
+    "snapshotDir": "2026-09-17_223306",
     "newUnknownChange": false,
     "keyFunctionCandidate": null,
     "newLabels": [],
@@ -407,34 +407,9 @@
     "newKeywords": [],
     "criticalKeywords": [],
     "apiResponseDrift": {
-      "detected": true,
-      "changedRouteCount": 1,
-      "changedRoutes": [
-        {
-          "route": "/api/max/search",
-          "previousFingerprint": "b033be8910c912395de110294e92411bb1f4c18fded5eeea530d9eb83a88859c",
-          "currentFingerprint": "2b46c18db8e6c0c98dcda44b94c572429f88f32caac0aeff94b3fc7015029d5d",
-          "previousSize": 3292,
-          "currentSize": 1533,
-          "sizeDelta": -1759,
-          "addedPaths": [
-            "trending[]:EMPTY_ARRAY"
-          ],
-          "removedPaths": [
-            "trending[].address",
-            "trending[].change24h",
-            "trending[].icon",
-            "trending[].liquidity",
-            "trending[].marketCap",
-            "trending[].name",
-            "trending[].network",
-            "trending[].price",
-            "trending[].symbol",
-            "trending[].verified",
-            "trending[].volume24h"
-          ]
-        }
-      ]
+      "detected": false,
+      "changedRouteCount": 0,
+      "changedRoutes": []
     }
   },
   "whyItMatters": "",
