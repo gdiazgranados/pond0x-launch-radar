@@ -155,7 +155,9 @@ function parseMintData(dataBase64: string) {
   ) {
     throw new Error("invalid Solana mint base64")
   }
-  const bytes = Uint8Array.from(\n    getBase64Encoder().encode(dataBase64)\n  )
+  const bytes = Uint8Array.from(
+    getBase64Encoder().encode(dataBase64)
+  )
   if (bytes.length < MINT_BASE_SIZE) {
     throw new Error("Solana mint account is too short")
   }
