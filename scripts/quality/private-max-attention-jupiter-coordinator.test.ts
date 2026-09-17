@@ -88,7 +88,7 @@ function opportunity(
     status: "EARLY_ATTENTION",
     candidates,
     context: { moved: [], removed: [] },
-    fastFollowUp: { recommended: true, afterSeconds: 30 },
+    fastFollowUp: { recommended: true, afterSeconds: 10 },
     watchOnly: true,
     approvalGranted: false,
     transactionRequested: false,
