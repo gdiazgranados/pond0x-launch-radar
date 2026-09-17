@@ -163,12 +163,16 @@ export async function persistMaxAttentionOnchainValidations(input: {
       current => current.candidateId === entry.candidateId
     )
     if (existingByCandidate) {
-      if (!sameValidation(existingByCandidate, entry)) {
+      if (sameValidation(existingByCandidate, entry)) continue
+      if (
+        existingByCandidate.identityKey !== entry.identityKey ||
+        Date.parse(entry.validatedAt) <=
+          Date.parse(existingByCandidate.validatedAt)
+      ) {
         throw new Error(
           "MAX attention candidate id conflicts with on-chain evidence"
         )
       }
-      continue
     }
 
     entries.set(entry.identityKey, entry)
