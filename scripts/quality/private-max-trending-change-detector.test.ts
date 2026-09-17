@@ -85,7 +85,8 @@ test("records first EMPTY and keeps the next EMPTY unchanged", async () => {
   assert.equal(second.detection.status, "EMPTY")
   assert.equal(second.detection.materialChange, false)
   assert.deepEqual(second.detection.changes, [])
-  assert.equal(second.ledger.revision, 2)
+  assert.equal(second.changed, false)
+  assert.equal(second.ledger.revision, 1)
 })
 
 test("detects NEW, MOVED, REMOVED and REAPPEARED", async () => {
@@ -255,7 +256,9 @@ test("rejects stale observations and concurrent writes", async () => {
   await assert.rejects(
     () => persistMaxTrendingSnapshot(
       store,
-      snapshot("2026-09-16T18:02:00.000Z", [])
+      snapshot("2026-09-16T18:02:00.000Z", [
+        asset(MINT_A, 1, "A"),
+      ])
     ),
     /concurrent write rejected/
   )
@@ -281,11 +284,11 @@ test("compacts high-volume unchanged observations into one tail", async () => {
   }
 
   const ledger = await loadMaxTrendingLedger(store)
-  assert.equal(ledger.revision, 101)
-  assert.equal(ledger.snapshots.length, 2)
-  assert.equal(ledger.observationStats.totalCount, 101)
+  assert.equal(ledger.revision, 1)
+  assert.equal(ledger.snapshots.length, 1)
+  assert.equal(ledger.observationStats.totalCount, 1)
   assert.equal(ledger.observationStats.baselineCount, 1)
-  assert.equal(ledger.observationStats.unchangedCount, 100)
+  assert.equal(ledger.observationStats.unchangedCount, 0)
   assert.equal(ledger.observationStats.materialCount, 0)
   assert.equal(ledger.observationStats.emptyCount, 0)
 })
@@ -314,8 +317,9 @@ test("migrates an existing ledger into compact observation stats", async () => {
     store,
     snapshot("2026-09-16T18:02:00.000Z", [])
   )
-  assert.equal(persisted.ledger.observationStats.totalCount, 3)
-  assert.equal(persisted.ledger.observationStats.emptyCount, 2)
+  assert.equal(persisted.changed, false)
+  assert.equal(persisted.ledger.observationStats.totalCount, 2)
+  assert.equal(persisted.ledger.observationStats.emptyCount, 1)
   assert.equal(persisted.ledger.snapshots.length, 2)
 })
 
