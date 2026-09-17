@@ -4,6 +4,9 @@ import {
   isAddress,
 } from "@solana/kit"
 
+export const DEFAULT_SOLANA_RPC_URL =
+  "https://api.mainnet-beta.solana.com"
+
 const TOKEN_PROGRAM =
   "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
 const TOKEN_2022_PROGRAM =
