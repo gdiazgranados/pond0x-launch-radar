@@ -24,6 +24,9 @@ import type {
   MaxTrendingStore,
 } from "../../src/private-alpha/max-trending-snapshot-repository"
 import type {
+  MaxCommunityResponseStore,
+} from "../../src/private-alpha/max-community-response-repository"
+import type {
   SolanaMintValidation,
 } from "../../src/private-alpha/solana-mint-validator"
 
@@ -31,7 +34,8 @@ const MINT_A = "3JgFwoYV74f6LwWjQWnr3YDPFnmBdwQfNyubv99jqUoq"
 const MINT_B = "6GmAFSYs4gk3FDao5FzzySQpPZaWsa4rUJHacpMpUNgx"
 
 class MemoryStore implements MaxTrendingStore, MaxAttentionInboxStore,
-  MaxAttentionOnchainStore, MaxAttentionJupiterStore {
+  MaxAttentionOnchainStore, MaxAttentionJupiterStore,
+  MaxCommunityResponseStore {
   serialized: string | null = null
   rejectWrite = false
   writes = 0
@@ -155,6 +159,7 @@ function stores() {
     attentionInboxStore: new MemoryStore(),
     onchainStore: new MemoryStore(),
     jupiterStore: new MemoryStore(),
+    communityResponseStore: new MemoryStore(),
     validateRoute: async (input: {
       contractAddress: string
       now?: () => Date
@@ -188,6 +193,8 @@ test("keeps a baseline out of both opportunity ledgers", async () => {
   assert.equal(result.jupiterValidation.validatedCount, 0)
   assert.equal(result.decisionTickets.length, 0)
   assert.equal(state.jupiterStore.writes, 0)
+  assert.equal(state.communityResponseStore.writes, 0)
+  assert.equal(result.communityResponse.totalEpisodes, 0)
   assert.equal(calls, 0)
 })
 
@@ -234,6 +241,9 @@ test("persists and validates a new candidate in one cycle", async () => {
     "ROUTE_AVAILABLE"
   )
   assert.equal(result.decisionTickets.length, 1)
+  assert.equal(result.communityResponse.persisted, true)
+  assert.equal(result.communityResponse.totalEpisodes, 1)
+  assert.equal(result.communityResponse.openEpisodes, 1)
   assert.equal(result.decisionTickets[0]?.status, "ROUTE_CONFIRMED")
   assert.equal(
     result.decisionTickets[0]?.identity.contractAddress,
@@ -294,6 +304,17 @@ test("an unchanged cycle reuses definitive on-chain evidence", async () => {
   assert.equal(unchanged.jupiterValidation.cachedCount, 1)
   assert.equal(unchanged.jupiterValidation.validatedCount, 0)
   assert.equal(unchanged.decisionTickets.length, 0)
+  assert.equal(unchanged.communityResponse.persisted, true)
+  assert.equal(unchanged.communityResponse.totalEpisodes, 1)
+  const communityLedger = JSON.parse(
+    state.communityResponseStore.serialized ?? "{}"
+  )
+  assert.deepEqual(
+    communityLedger.episodes[0].checkpoints.map(
+      (checkpoint: { targetSeconds: number }) => checkpoint.targetSeconds
+    ),
+    [0, 30, 60]
+  )
 })
 
 test("fails visibly after preserving a recoverable inbox candidate", async () => {
