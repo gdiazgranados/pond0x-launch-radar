@@ -37,7 +37,7 @@ function observation(
       context: { moved: [], removed: [] },
       fastFollowUp: {
         recommended: status === "EARLY_ATTENTION",
-        afterSeconds: status === "EARLY_ATTENTION" ? 30 : null,
+        afterSeconds: status === "EARLY_ATTENTION" ? 10 : null,
       },
       watchOnly: true,
       approvalGranted: false,
@@ -50,7 +50,7 @@ function observation(
   }
 }
 
-test("uses the normal two-minute cadence without an early candidate", async () => {
+test("uses the normal thirty-second cadence without an early candidate", async () => {
   const waits: number[] = []
   const cycles: MaxTrendingMonitorCycle[] = []
 
@@ -65,7 +65,7 @@ test("uses the normal two-minute cadence without an early candidate", async () =
     },
   })
 
-  assert.deepEqual(waits, [120_000, 120_000])
+  assert.deepEqual(waits, [30_000, 30_000])
   assert.deepEqual(cycles.map(cycle => cycle.mode), [
     "NORMAL",
     "NORMAL",
@@ -77,6 +77,31 @@ test("uses the normal two-minute cadence without an early candidate", async () =
     failedCycles: 0,
     stoppedBySignal: false,
   })
+})
+
+test("uses a ten-second cadence for the default two-minute fast window", async () => {
+  let clock = 0
+  const waits: number[] = []
+  const modes: string[] = []
+
+  await runAdaptiveMaxTrendingMonitor({
+    observe: async () => observation("EARLY_ATTENTION"),
+    wait: async milliseconds => {
+      waits.push(milliseconds)
+      clock += milliseconds
+    },
+    now: () => clock,
+    maxCycles: 13,
+    onCycle: cycle => {
+      modes.push(cycle.mode)
+    },
+  })
+
+  assert.deepEqual(waits, Array(12).fill(10_000))
+  assert.deepEqual(modes, [
+    ...Array(12).fill("FAST"),
+    "NORMAL",
+  ])
 })
 
 test("caps repeated early signals to one non-renewable fast window", async () => {
