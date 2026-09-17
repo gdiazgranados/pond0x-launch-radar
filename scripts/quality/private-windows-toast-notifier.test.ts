@@ -106,7 +106,11 @@ test("uses PowerShell without putting ticket text in command arguments", async (
   const result = await notifyMaxAttentionWindows({
     tickets: [ticket(1, hostileSymbol)],
     platform: "win32",
-    env: { SAFE_BASE: "yes" },
+    env: {
+      ...process.env,
+      NODE_ENV: process.env.NODE_ENV ?? "test",
+      SAFE_BASE: "yes",
+    },
     executor: async input => {
       calls.push(input)
     },
