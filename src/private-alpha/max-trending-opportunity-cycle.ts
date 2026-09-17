@@ -33,6 +33,10 @@ import type {
 import type {
   MaxTrendingStore,
 } from "./max-trending-snapshot-repository"
+import {
+  coordinateMaxCommunityResponse,
+  type MaxCommunityResponseStore,
+} from "./max-community-response-repository"
 
 type ObserveMaxTrending = () => Promise<MaxTrendingSnapshot>
 
@@ -41,6 +45,13 @@ export type MaxTrendingOpportunityCycleResult =
     onchainValidation: MaxAttentionOnchainRun
     jupiterValidation: MaxAttentionJupiterRun
     decisionTickets: ReadonlyArray<MaxAttentionDecisionTicket>
+    communityResponse: {
+      persisted: boolean
+      ledgerRevision: number
+      totalEpisodes: number
+      openEpisodes: number
+      completedEpisodes: number
+    }
   }
 
 export async function coordinateMaxTrendingOpportunityCycle(input: {
@@ -48,6 +59,7 @@ export async function coordinateMaxTrendingOpportunityCycle(input: {
   attentionInboxStore: MaxAttentionInboxStore
   onchainStore: MaxAttentionOnchainStore
   jupiterStore: MaxAttentionJupiterStore
+  communityResponseStore: MaxCommunityResponseStore
   rpcUrl: string
   observe?: ObserveMaxTrending
   validateMint?: MaxAttentionMintValidator
@@ -61,6 +73,22 @@ export async function coordinateMaxTrendingOpportunityCycle(input: {
     attentionInboxStore: input.attentionInboxStore,
     observe: input.observe,
   })
+  const communityResponseResult = await coordinateMaxCommunityResponse({
+    store: input.communityResponseStore,
+    opportunity: observation.opportunity,
+  })
+  const communityEpisodes = communityResponseResult.ledger.episodes
+  const communityResponse = {
+    persisted: communityResponseResult.changed,
+    ledgerRevision: communityResponseResult.ledger.revision,
+    totalEpisodes: communityEpisodes.length,
+    openEpisodes: communityEpisodes.filter(
+      episode => episode.completedAt === null
+    ).length,
+    completedEpisodes: communityEpisodes.filter(
+      episode => episode.completedAt !== null
+    ).length,
+  }
   const onchainValidation =
     await coordinatePendingMaxAttentionOnchain({
       inboxStore: input.attentionInboxStore,
@@ -98,5 +126,6 @@ export async function coordinateMaxTrendingOpportunityCycle(input: {
     onchainValidation,
     jupiterValidation,
     decisionTickets,
+    communityResponse,
   }
 }
