@@ -42,6 +42,7 @@ function observedAt(offsetMs: number) {
 function snapshot(
   offsetMs: number,
   trending = true,
+  contractAddress = mint,
   symbol = "RAY"
 ) {
   return parseMaxTrendingPayload({
@@ -49,7 +50,7 @@ function snapshot(
     trending: trending
       ? [{
           network: "solana",
-          contractAddress: mint,
+          contractAddress,
           symbol,
           name: "Raydium",
         }]
@@ -115,7 +116,12 @@ test("persists material changes immediately inside heartbeat window", async () =
   await persistMaxTrendingSnapshot(store, snapshot(0))
   const changed = await persistMaxTrendingSnapshot(
     store,
-    snapshot(30_000, true, "RAY-UPDATED")
+    snapshot(
+      30_000,
+      true,
+      "98sMhvDwXj1RQi5c5Mndm3vPe9cBqPrbLaufMXFNMh5g",
+      "HYPE"
+    )
   )
 
   assert.equal(changed.changed, true)
