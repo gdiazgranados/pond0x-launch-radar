@@ -8,6 +8,8 @@ import type {
 } from "./max-trending-client"
 
 const MAX_SNAPSHOTS = 720
+export const MAX_TRENDING_ROUTINE_HEARTBEAT_MS =
+  15 * 60 * 1_000
 
 export type MaxTrendingAssetState = {
   identityKey: string
@@ -121,6 +123,33 @@ function compactSnapshots(
     ? snapshots.slice(0, -1)
     : snapshots
   return [...retained, next].slice(-MAX_SNAPSHOTS)
+}
+
+function shouldPersistDetection(input: {
+  last: MaxTrendingSnapshotRecord | undefined
+  detection: MaxTrendingDetection
+}) {
+  if (!input.last) return true
+  if (
+    input.detection.previousObservedAt === null ||
+    input.detection.materialChange
+  ) {
+    return true
+  }
+
+  const lastWasMaterial = input.last.detection.materialChange
+  if (
+    lastWasMaterial ||
+    input.last.detection.status !== input.detection.status
+  ) {
+    return true
+  }
+
+  return (
+    Date.parse(input.detection.observedAt) -
+      Date.parse(input.last.observedAt) >=
+    MAX_TRENDING_ROUTINE_HEARTBEAT_MS
+  )
 }
 
 function assertLedger(value: unknown): asserts value is MaxTrendingLedger {
@@ -342,6 +371,10 @@ export async function persistMaxTrendingSnapshot(
       ledger.assetStates.map(state => state.identityKey)
     ),
   })
+  if (!shouldPersistDetection({ last, detection })) {
+    return { changed: false, ledger, detection }
+  }
+
   const record: MaxTrendingSnapshotRecord = {
     observedAt: snapshot.observedAt,
     snapshotHash,
