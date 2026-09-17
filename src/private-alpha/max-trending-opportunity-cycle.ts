@@ -2,6 +2,12 @@ import type {
   MaxTrendingSnapshot,
 } from "./max-trending-client"
 import {
+  deriveMaxAttentionDecisionTickets,
+} from "./max-attention-decision-ticket-coordinator"
+import type {
+  MaxAttentionDecisionTicket,
+} from "./max-attention-decision-ticket"
+import {
   coordinateMaxTrendingAttentionObservation,
   type MaxTrendingAttentionObservationResult,
 } from "./max-trending-attention-coordinator"
@@ -34,6 +40,7 @@ export type MaxTrendingOpportunityCycleResult =
   MaxTrendingAttentionObservationResult & {
     onchainValidation: MaxAttentionOnchainRun
     jupiterValidation: MaxAttentionJupiterRun
+    decisionTickets: ReadonlyArray<MaxAttentionDecisionTicket>
   }
 
 export async function coordinateMaxTrendingOpportunityCycle(input: {
@@ -72,10 +79,24 @@ export async function coordinateMaxTrendingOpportunityCycle(input: {
       apiKey: input.jupiterApiKey,
       now: input.now,
     })
+  const decisionTickets = await deriveMaxAttentionDecisionTickets({
+    inboxStore: input.attentionInboxStore,
+    onchainStore: input.onchainStore,
+    jupiterStore: input.jupiterStore,
+    candidateIds: [
+      ...observation.opportunity.candidates.map(
+        candidate => candidate.candidateId
+      ),
+      ...onchainValidation.results.map(result => result.candidateId),
+      ...jupiterValidation.results.map(result => result.candidateId),
+    ],
+    now: input.now,
+  })
 
   return {
     ...observation,
     onchainValidation,
     jupiterValidation,
+    decisionTickets,
   }
 }
