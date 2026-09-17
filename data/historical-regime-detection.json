@@ -1,35 +1,49 @@
 {
   "version": 1,
-  "generatedAt": "2026-09-17T18:33:25.690Z",
-  "regime": "QUIET",
-  "confidence": 85,
-  "candidateRegime": "QUIET",
-  "candidateConfidence": 85,
+  "generatedAt": "2026-09-17T19:33:38.961Z",
+  "regime": "ELEVATED",
+  "confidence": 80,
+  "candidateRegime": "ELEVATED",
+  "candidateConfidence": 80,
   "history": {
     "stage": "USABLE",
-    "exactSweepCount": 108,
+    "exactSweepCount": 109,
     "usableForRegimeClassification": true
   },
   "current": {
-    "snapshotId": "2026-09-17_183257",
-    "generatedAt": "2026-09-17T18:33:25.410Z",
-    "decisionState": "QUIET",
-    "activityScore": 0
+    "snapshotId": "2026-09-17_193308",
+    "generatedAt": "2026-09-17T19:33:38.603Z",
+    "decisionState": "WATCH",
+    "activityScore": 19
   },
   "baseline": {
     "recentWindowSweeps": 6,
     "previousWindowSweeps": 6,
-    "recentSixSweepAverageActivity": 7.33,
-    "previousSixSweepAverageActivity": 3.17
+    "recentSixSweepAverageActivity": 4.17,
+    "previousSixSweepAverageActivity": 6.33
   },
   "trendContext": {
-    "status": "NORMAL",
-    "anomalyScore": 0,
-    "driverCount": 0,
-    "drivers": []
+    "status": "ELEVATED",
+    "anomalyScore": 85.6,
+    "driverCount": 2,
+    "drivers": [
+      {
+        "metric": "correlation",
+        "value": 12,
+        "percentile": 85.6,
+        "trend": "FALLING"
+      },
+      {
+        "metric": "decisionStrength",
+        "value": 7,
+        "percentile": 85.6,
+        "trend": "FALLING"
+      }
+    ]
   },
   "reasons": [
-    "Current exact sweep has no meaningful activation, evidence, or historical-driver activity."
+    "Historical anomaly score is 85.6.",
+    "2 high-percentile historical drivers are active."
   ],
   "methodology": "Score-neutral regime classification derived from exact sweep history and Historical Trend Intelligence. Stronger regimes require corroborating historical or multi-domain evidence.",
   "caution": "Regime Detection is descriptive only. It does not modify Radar scoring, establish launch probability, predict rewards, or constitute trading advice."
