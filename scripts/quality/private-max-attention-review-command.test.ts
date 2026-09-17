@@ -60,7 +60,7 @@ function opportunity(): MaxTrendingOpportunityClassification {
       requiresHumanDecision: true,
     }],
     context: { moved: [], removed: [] },
-    fastFollowUp: { recommended: true, afterSeconds: 30 },
+    fastFollowUp: { recommended: true, afterSeconds: 10 },
     watchOnly: true,
     approvalGranted: false,
     transactionRequested: false,
