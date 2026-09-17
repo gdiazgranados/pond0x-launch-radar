@@ -61,6 +61,19 @@ function printCycle(cycle: MaxTrendingMonitorCycle) {
       position: candidate.position,
       priority: candidate.priority,
     })),
+    context: {
+      moved: result.opportunity.context.moved.map(change => ({
+        symbol: change.asset.symbol,
+        identityKey: change.identityKey,
+        previousPosition: change.previousPosition,
+        currentPosition: change.currentPosition,
+      })),
+      removed: result.opportunity.context.removed.map(change => ({
+        symbol: change.asset.symbol,
+        identityKey: change.identityKey,
+        previousPosition: change.previousPosition,
+      })),
+    },
     attentionInbox: result.attentionInbox,
     onchainValidation: result.onchainValidation,
     mode: cycle.mode,
