@@ -57,15 +57,22 @@ const ticket: MaxAttentionDecisionTicket = {
   transactionRequested: false,
 }
 
-const result = await notifyMaxAttentionWindows({
-  tickets: [ticket],
-})
+async function main() {
+  const result = await notifyMaxAttentionWindows({
+    tickets: [ticket],
+  })
 
-console.log(JSON.stringify({
-  type: "MAX_ATTENTION_WINDOWS_TOAST_TEST",
-  ...result,
-  simulatedSignal: true,
-  watchOnly: true,
-  approvalGranted: false,
-  transactionRequested: false,
-}, null, 2))
+  console.log(JSON.stringify({
+    type: "MAX_ATTENTION_WINDOWS_TOAST_TEST",
+    ...result,
+    simulatedSignal: true,
+    watchOnly: true,
+    approvalGranted: false,
+    transactionRequested: false,
+  }, null, 2))
+}
+
+main().catch(error => {
+  console.error(error instanceof Error ? error.message : String(error))
+  process.exitCode = 1
+})
