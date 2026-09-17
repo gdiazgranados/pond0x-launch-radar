@@ -372,3 +372,74 @@ export async function persistMaxAttentionCandidates(input: {
   }
   return { changed: true, ledger: next }
 }
+
+
+export async function updateMaxAttentionCandidateState(input: {
+  store: MaxAttentionInboxStore
+  identityKey: string
+  state: MaxAttentionReviewState
+  updatedAt: string
+  dismissalReason?: string | null
+}) {
+  if (!input.identityKey) {
+    throw new Error("MAX attention identity is required")
+  }
+  if (!timestamp(input.updatedAt)) {
+    throw new Error("MAX attention state timestamp is invalid")
+  }
+  const reason = input.dismissalReason?.trim() || null
+  if (
+    input.state === "DISMISSED"
+      ? reason === null
+      : reason !== null
+  ) {
+    throw new Error("MAX attention dismissal reason is inconsistent")
+  }
+
+  const ledger = await loadMaxAttentionInboxLedger(input.store)
+  const current = ledger.candidates.find(
+    candidate => candidate.identityKey === input.identityKey
+  )
+  if (!current) {
+    throw new Error("MAX attention candidate was not found")
+  }
+  if (
+    (ledger.updatedAt !== null &&
+      Date.parse(input.updatedAt) < Date.parse(ledger.updatedAt)) ||
+    Date.parse(input.updatedAt) < Date.parse(current.stateUpdatedAt)
+  ) {
+    throw new Error("MAX attention state transition is stale")
+  }
+  if (
+    current.state === input.state &&
+    current.dismissalReason === reason
+  ) {
+    return { changed: false, ledger }
+  }
+
+  const nextCandidate: MaxAttentionInboxCandidate = {
+    ...current,
+    state: input.state,
+    stateUpdatedAt: input.updatedAt,
+    dismissalReason: reason,
+  }
+  const next: MaxAttentionInboxLedger = {
+    schemaVersion: 1,
+    revision: ledger.revision + 1,
+    updatedAt: input.updatedAt,
+    candidates: ledger.candidates.map(candidate =>
+      candidate.identityKey === input.identityKey
+        ? nextCandidate
+        : candidate
+    ),
+  }
+  assertLedger(next)
+  const written = await input.store.compareAndSet(
+    ledger.revision,
+    JSON.stringify(next)
+  )
+  if (!written) {
+    throw new Error("MAX attention inbox concurrent write rejected")
+  }
+  return { changed: true, ledger: next }
+}
