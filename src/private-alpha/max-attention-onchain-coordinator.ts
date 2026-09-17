@@ -16,7 +16,7 @@ import {
 const MAX_VALIDATIONS_PER_RUN = 5
 const RETRY_DELAY_MS = 15 * 60 * 1_000
 
-type ValidateMint = (input: {
+export type MaxAttentionMintValidator = (input: {
   rpcUrl: string
   network: string
   contractAddress: string
@@ -50,7 +50,7 @@ export async function coordinatePendingMaxAttentionOnchain(input: {
   inboxStore: MaxAttentionInboxStore
   onchainStore: MaxAttentionOnchainStore
   rpcUrl: string
-  validateMint?: ValidateMint
+  validateMint?: MaxAttentionMintValidator
   now?: () => Date
   maxCandidates?: number
 }): Promise<MaxAttentionOnchainRun> {
