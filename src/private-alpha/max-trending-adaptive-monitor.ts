@@ -52,15 +52,15 @@ export async function runAdaptiveMaxTrendingMonitor(input: {
     ? Number.MAX_SAFE_INTEGER
     : positiveInteger(input.maxCycles, "maxCycles")
   const normalIntervalMs = positiveInteger(
-    input.normalIntervalMs ?? 120_000,
+    input.normalIntervalMs ?? 30_000,
     "normalIntervalMs"
   )
   const fastIntervalMs = positiveInteger(
-    input.fastIntervalMs ?? 30_000,
+    input.fastIntervalMs ?? 10_000,
     "fastIntervalMs"
   )
   const fastWindowMs = positiveInteger(
-    input.fastWindowMs ?? 300_000,
+    input.fastWindowMs ?? 120_000,
     "fastWindowMs"
   )
   const errorBackoffMs = positiveInteger(
