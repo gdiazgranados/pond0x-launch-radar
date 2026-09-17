@@ -4,9 +4,9 @@ import { PrivateFileLedgerStore } from "../../src/private-alpha/file-ledger-stor
 import {
   coordinatePendingMaxAttentionOnchain,
 } from "../../src/private-alpha/max-attention-onchain-coordinator"
-
-const DEFAULT_SOLANA_RPC_URL =
-  "https://api.mainnet-beta.solana.com"
+import {
+  DEFAULT_SOLANA_RPC_URL,
+} from "../../src/private-alpha/solana-mint-validator"
 
 function validationLimit(value: string | undefined) {
   if (value === undefined || value.trim() === "") return 5
