@@ -148,8 +148,9 @@ test("keeps an unchanged observation healthy and event-free", async () => {
   })
 
   assert.equal(result.status, "UNCHANGED")
+  assert.equal(result.persisted, false)
   assert.equal(result.event, null)
-  assert.equal(result.ledgerRevision, 2)
+  assert.equal(result.ledgerRevision, 1)
 })
 
 test("makes an identical baseline retry idempotent and event-free", async () => {
