@@ -96,6 +96,12 @@ test("ranks repeated Pond0x attention before newer single appearances", () => {
     ["REPEAT", "SINGLE"]
   )
   assert.equal(report.entries[0]?.rank, 1)
+  assert.equal(report.entries[0]?.network, "solana")
+  assert.equal(report.entries[0]?.contractAddress, "repeat")
+  assert.equal(
+    report.entries[0]?.explorerUrl,
+    "https://solscan.io/token/repeat"
+  )
   assert.equal(report.entries[0]?.successProbability, null)
   assert.equal(report.entries[0]?.investmentRecommendation, null)
 })
@@ -158,5 +164,43 @@ test("bounds the report to ten and reports unfilled positions honestly", () => {
       limit: 11,
     }),
     /limit must be from 1 to 10/
+  )
+})
+
+
+test("keeps equal symbols separate by network and contract identity", () => {
+  const report = buildMaxAttentionTopReport({
+    inbox: inbox([
+      candidate({
+        identityKey: "solana:first-contract",
+        symbol: "SAME",
+        appearances: 2,
+        reappearances: 1,
+        observedAt: "2026-09-17T20:00:00.000Z",
+      }),
+      candidate({
+        identityKey: "solana:second-contract",
+        symbol: "SAME",
+        appearances: 1,
+        reappearances: 0,
+        observedAt: "2026-09-17T21:00:00.000Z",
+      }),
+    ]),
+    onchain: emptyMaxAttentionOnchainLedger(),
+    jupiter: emptyMaxAttentionJupiterLedger(),
+  })
+
+  assert.equal(report.entries.length, 2)
+  assert.deepEqual(
+    report.entries.map(entry => entry.symbol),
+    ["SAME", "SAME"]
+  )
+  assert.deepEqual(
+    report.entries.map(entry => entry.contractAddress),
+    ["first-contract", "second-contract"]
+  )
+  assert.notEqual(
+    report.entries[0]?.identityKey,
+    report.entries[1]?.identityKey
   )
 })
