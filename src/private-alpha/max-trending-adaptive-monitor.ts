@@ -93,14 +93,17 @@ export async function runAdaptiveMaxTrendingMonitor(input: {
       successfulCycles += 1
       consecutiveFailures = 0
       const observedNow = now()
-      if (
+      const fastWindowExpired = (
+        fastUntil !== null &&
+        observedNow >= fastUntil
+      )
+      if (fastWindowExpired) {
+        fastUntil = null
+      } else if (
         result.opportunity.status === "EARLY_ATTENTION" &&
-        (fastUntil === null || observedNow >= fastUntil)
+        fastUntil === null
       ) {
         fastUntil = observedNow + fastWindowMs
-      }
-      if (fastUntil !== null && observedNow >= fastUntil) {
-        fastUntil = null
       }
       const mode = fastUntil === null ? "NORMAL" : "FAST"
       cycle = {
