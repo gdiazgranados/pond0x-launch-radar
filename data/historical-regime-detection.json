@@ -1,20 +1,20 @@
 {
   "version": 1,
-  "generatedAt": "2026-09-18T20:33:37.327Z",
-  "regime": "QUIET",
-  "confidence": 85,
-  "candidateRegime": "QUIET",
-  "candidateConfidence": 85,
+  "generatedAt": "2026-09-18T21:33:32.968Z",
+  "regime": "ELEVATED",
+  "confidence": 80,
+  "candidateRegime": "ELEVATED",
+  "candidateConfidence": 80,
   "history": {
     "stage": "USABLE",
-    "exactSweepCount": 134,
+    "exactSweepCount": 135,
     "usableForRegimeClassification": true
   },
   "current": {
-    "snapshotId": "2026-09-18_203312",
-    "generatedAt": "2026-09-18T20:33:36.963Z",
-    "decisionState": "QUIET",
-    "activityScore": 0
+    "snapshotId": "2026-09-18_213308",
+    "generatedAt": "2026-09-18T21:33:32.580Z",
+    "decisionState": "WATCH",
+    "activityScore": 19
   },
   "baseline": {
     "recentWindowSweeps": 6,
@@ -23,13 +23,27 @@
     "previousSixSweepAverageActivity": 0
   },
   "trendContext": {
-    "status": "NORMAL",
-    "anomalyScore": 0,
-    "driverCount": 0,
-    "drivers": []
+    "status": "ELEVATED",
+    "anomalyScore": 86.9,
+    "driverCount": 2,
+    "drivers": [
+      {
+        "metric": "correlation",
+        "value": 12,
+        "percentile": 86.9,
+        "trend": "FLAT"
+      },
+      {
+        "metric": "decisionStrength",
+        "value": 7,
+        "percentile": 86.9,
+        "trend": "FLAT"
+      }
+    ]
   },
   "reasons": [
-    "Current exact sweep has no meaningful activation, evidence, or historical-driver activity."
+    "Historical anomaly score is 86.9.",
+    "2 high-percentile historical drivers are active."
   ],
   "methodology": "Score-neutral regime classification derived from exact sweep history and Historical Trend Intelligence. Stronger regimes require corroborating historical or multi-domain evidence.",
   "caution": "Regime Detection is descriptive only. It does not modify Radar scoring, establish launch probability, predict rewards, or constitute trading advice."
