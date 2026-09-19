@@ -7,6 +7,7 @@ import {
 } from "../../src/private-alpha/max-repopulation-signal"
 
 import {
+  coordinateMaxRepopulationT0,
   emptyMaxRepopulationLedger,
   parseMaxRepopulationLedger,
   recordMaxRepopulationT0,
@@ -240,4 +241,126 @@ test("rejects corrupted candidate evidence inside an otherwise valid ledger", ()
       ),
     /invalid MAX repopulation ledger/
   )
+})
+
+test("persists a new prospective T0 event with compare-and-set", async () => {
+  let serialized: string | null = null
+  const writes: Array<{
+    expectedRevision: number
+    serializedLedger: string
+  }> = []
+
+  const store = {
+    async read() {
+      return serialized
+    },
+
+    async compareAndSet(
+      expectedRevision: number,
+      serializedLedger: string
+    ) {
+      writes.push({
+        expectedRevision,
+        serializedLedger,
+      })
+
+      serialized = serializedLedger
+      return true
+    },
+  }
+
+  const result = await coordinateMaxRepopulationT0({
+    store,
+    signal: signal(),
+  })
+
+  assert.equal(result.changed, true)
+  assert.equal(result.ledger.revision, 1)
+  assert.equal(result.ledger.episodes.length, 1)
+
+  assert.equal(writes.length, 1)
+  assert.equal(writes[0].expectedRevision, 0)
+
+  const persisted = parseMaxRepopulationLedger(
+    writes[0].serializedLedger
+  )
+
+  assert.deepEqual(persisted, result.ledger)
+})
+
+test("does not write when the prospective T0 signal produces no change", async () => {
+  const existing = recordMaxRepopulationT0({
+    ledger: emptyMaxRepopulationLedger(),
+    signal: signal(),
+  })
+
+  let writes = 0
+
+  const store = {
+    async read() {
+      return JSON.stringify(existing)
+    },
+
+    async compareAndSet(
+      _expectedRevision: number,
+      _serializedLedger: string
+    ) {
+      writes += 1
+      return true
+    },
+  }
+
+  const duplicate = await coordinateMaxRepopulationT0({
+    store,
+    signal: signal(),
+  })
+
+  assert.equal(duplicate.changed, false)
+  assert.deepEqual(duplicate.ledger, existing)
+  assert.equal(writes, 0)
+
+  const nonTriggered: MaxRepopulationSignal = {
+    ...signal(),
+    triggered: false,
+    candidates: [],
+  }
+
+  const ignored = await coordinateMaxRepopulationT0({
+    store,
+    signal: nonTriggered,
+  })
+
+  assert.equal(ignored.changed, false)
+  assert.deepEqual(ignored.ledger, existing)
+  assert.equal(writes, 0)
+})
+
+test("rejects a concurrent prospective T0 write", async () => {
+  let writes = 0
+
+  const store = {
+    async read() {
+      return null
+    },
+
+    async compareAndSet(
+      expectedRevision: number,
+      _serializedLedger: string
+    ) {
+      writes += 1
+      assert.equal(expectedRevision, 0)
+      return false
+    },
+  }
+
+  await assert.rejects(
+    () =>
+      coordinateMaxRepopulationT0({
+        store,
+        signal: signal(),
+      }),
+    /MAX repopulation concurrent write rejected/
+  )
+
+  assert.equal(writes, 1)
 })

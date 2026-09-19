@@ -197,3 +197,56 @@ export function recordMaxRepopulationT0(input: {
     ],
   }
 }
+
+export type MaxRepopulationStore = {
+  read(): Promise<string | null>
+  compareAndSet(
+    expectedRevision: number,
+    serializedLedger: string
+  ): Promise<boolean>
+}
+
+async function loadMaxRepopulationLedger(
+  store: MaxRepopulationStore
+): Promise<MaxRepopulationLedger> {
+  const serialized = await store.read()
+
+  if (serialized === null) {
+    return emptyMaxRepopulationLedger()
+  }
+
+  return parseMaxRepopulationLedger(serialized)
+}
+
+export async function coordinateMaxRepopulationT0(input: {
+  store: MaxRepopulationStore
+  signal: MaxRepopulationSignal
+}) {
+  const ledger = await loadMaxRepopulationLedger(input.store)
+
+  const next = recordMaxRepopulationT0({
+    ledger,
+    signal: input.signal,
+  })
+
+  if (next === ledger) {
+    return {
+      changed: false,
+      ledger,
+    }
+  }
+
+  const written = await input.store.compareAndSet(
+    ledger.revision,
+    JSON.stringify(next)
+  )
+
+  if (!written) {
+    throw new Error("MAX repopulation concurrent write rejected")
+  }
+
+  return {
+    changed: true,
+    ledger: next,
+  }
+}
