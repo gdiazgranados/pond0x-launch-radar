@@ -16,6 +16,22 @@ function observation(
   return {
     schemaVersion: 1,
     observedAt,
+    rawSnapshot: {
+      schemaVersion: 1,
+      observedAt,
+      status: "EMPTY",
+      query: {
+        q: "",
+        verified: false,
+        network: "all",
+      },
+      tokenCount: 0,
+      trending: [],
+      watchOnly: true,
+      approvalGranted: false,
+      transactionRequested: false,
+      source: "PONDOX_MAX_SEARCH",
+    },
     status: status === "NO_CHANGE" ? "UNCHANGED" : "MATERIAL_CHANGE",
     persisted: true,
     ledgerRevision: 1,

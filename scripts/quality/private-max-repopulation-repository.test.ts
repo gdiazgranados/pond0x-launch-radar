@@ -7,6 +7,7 @@ import {
 } from "../../src/private-alpha/max-repopulation-signal"
 
 import {
+  coordinateMaxRepopulationObservation,
   coordinateMaxRepopulationT0,
   emptyMaxRepopulationLedger,
   parseMaxRepopulationLedger,
@@ -62,6 +63,7 @@ test("records immutable T0 evidence for a triggered MAX_REPOP_V1 event", () => {
     schemaVersion: 1,
     revision: 0,
     updatedAt: null,
+    previousObservation: null,
     episodes: [],
   }
 
@@ -111,6 +113,7 @@ test("does not duplicate the same prospective T0 event", () => {
     schemaVersion: 1,
     revision: 0,
     updatedAt: null,
+    previousObservation: null,
     episodes: [],
   }
 
@@ -143,6 +146,7 @@ test("does not record non-triggered or candidate-empty signals", () => {
     schemaVersion: 1,
     revision: 0,
     updatedAt: null,
+    previousObservation: null,
     episodes: [],
   }
 
@@ -180,6 +184,7 @@ test("creates and parses an empty prospective ledger", () => {
     schemaVersion: 1,
     revision: 0,
     updatedAt: null,
+    previousObservation: null,
     episodes: [],
   })
 
@@ -361,6 +366,389 @@ test("rejects a concurrent prospective T0 write", async () => {
       }),
     /MAX repopulation concurrent write rejected/
   )
+
+  assert.equal(writes, 1)
+})
+test("persists the latest raw observation independently of T0 episodes", async () => {
+  let serialized: string | null = null
+
+  const store = {
+    async read() {
+      return serialized
+    },
+
+    async compareAndSet(
+      expectedRevision: number,
+      serializedLedger: string
+    ) {
+      const revision = serialized === null
+        ? 0
+        : JSON.parse(serialized).revision
+
+      if (revision !== expectedRevision) return false
+
+      serialized = serializedLedger
+      return true
+    },
+  }
+
+  const first = await coordinateMaxRepopulationObservation({
+    store,
+    snapshot: {
+      observedAt: "2026-09-19T01:00:00.000Z",
+      trending: [],
+    },
+  })
+
+  assert.equal(first.signal, null)
+  assert.equal(first.ledger.revision, 1)
+  assert.equal(first.ledger.episodes.length, 0)
+  assert.equal(
+    first.ledger.previousObservation?.observedAt,
+    "2026-09-19T01:00:00.000Z"
+  )
+  assert.equal(
+    first.ledger.previousObservation?.trendingCount,
+    0
+  )
+})
+
+test("records a T0 episode on an exact persisted zero-to-five transition", async () => {
+  let serialized: string | null = null
+
+  const store = {
+    async read() {
+      return serialized
+    },
+
+    async compareAndSet(
+      expectedRevision: number,
+      serializedLedger: string
+    ) {
+      const revision = serialized === null
+        ? 0
+        : JSON.parse(serialized).revision
+
+      if (revision !== expectedRevision) return false
+
+      serialized = serializedLedger
+      return true
+    },
+  }
+
+  await coordinateMaxRepopulationObservation({
+    store,
+    snapshot: {
+      observedAt: "2026-09-19T01:00:00.000Z",
+      trending: [],
+    },
+  })
+
+  const second = await coordinateMaxRepopulationObservation({
+    store,
+    snapshot: {
+      observedAt: "2026-09-19T01:01:00.000Z",
+      trending: [
+        {
+          network: "solana",
+          contractAddress: "address-1",
+          symbol: "ONE",
+          name: "ONE",
+          position: 1,
+          identityKey: "solana:address-1",
+          price: 1,
+          change24h: 1,
+          liquidity: 100_000,
+          marketCap: 1_000_000,
+          volume24h: 50_000,
+        },
+        {
+          network: "solana",
+          contractAddress: "address-2",
+          symbol: "TWO",
+          name: "TWO",
+          position: 2,
+          identityKey: "solana:address-2",
+          price: 1,
+          change24h: 10,
+          liquidity: 100_000,
+          marketCap: 1_000_000,
+          volume24h: 50_000,
+        },
+        {
+          network: "solana",
+          contractAddress: "address-3",
+          symbol: "THREE",
+          name: "THREE",
+          position: 3,
+          identityKey: "solana:address-3",
+          price: 1,
+          change24h: 19.99,
+          liquidity: 100_000,
+          marketCap: 1_000_000,
+          volume24h: 50_000,
+        },
+        {
+          network: "solana",
+          contractAddress: "address-4",
+          symbol: "FOUR",
+          name: "FOUR",
+          position: 4,
+          identityKey: "solana:address-4",
+          price: 1,
+          change24h: 1,
+          liquidity: 100_000,
+          marketCap: 1_000_000,
+          volume24h: 50_000,
+        },
+        {
+          network: "solana",
+          contractAddress: "address-5",
+          symbol: "FIVE",
+          name: "FIVE",
+          position: 5,
+          identityKey: "solana:address-5",
+          price: 1,
+          change24h: 1,
+          liquidity: 100_000,
+          marketCap: 1_000_000,
+          volume24h: 50_000,
+        },
+      ],
+    },
+  })
+
+  assert.equal(second.signal?.triggered, true)
+  assert.equal(second.ledger.revision, 2)
+  assert.equal(second.ledger.episodes.length, 1)
+
+  assert.deepEqual(
+    second.ledger.episodes[0]?.candidates.map(
+      candidate => candidate.rank
+    ),
+    [2, 3]
+  )
+
+  assert.equal(
+    second.ledger.previousObservation?.trendingCount,
+    5
+  )
+})
+
+test("does not record a T0 episode on five-to-five", async () => {
+  let serialized = JSON.stringify({
+    schemaVersion: 1,
+    revision: 1,
+    updatedAt: "2026-09-19T01:00:00.000Z",
+    previousObservation: {
+      observedAt: "2026-09-19T01:00:00.000Z",
+      trendingCount: 5,
+    },
+    episodes: [],
+  })
+
+  const store = {
+    async read() {
+      return serialized
+    },
+
+    async compareAndSet(
+      expectedRevision: number,
+      serializedLedger: string
+    ) {
+      const revision = JSON.parse(serialized).revision
+
+      if (revision !== expectedRevision) return false
+
+      serialized = serializedLedger
+      return true
+    },
+  }
+
+  const result = await coordinateMaxRepopulationObservation({
+    store,
+    snapshot: {
+      observedAt: "2026-09-19T01:01:00.000Z",
+      trending: [
+        {
+          network: "solana",
+          contractAddress: "address-1",
+          symbol: "ONE",
+          name: "ONE",
+          position: 1,
+          identityKey: "solana:address-1",
+          price: 1,
+          change24h: 1,
+          liquidity: 100_000,
+          marketCap: 1_000_000,
+          volume24h: 50_000,
+        },
+        {
+          network: "solana",
+          contractAddress: "address-2",
+          symbol: "TWO",
+          name: "TWO",
+          position: 2,
+          identityKey: "solana:address-2",
+          price: 1,
+          change24h: 10,
+          liquidity: 100_000,
+          marketCap: 1_000_000,
+          volume24h: 50_000,
+        },
+        {
+          network: "solana",
+          contractAddress: "address-3",
+          symbol: "THREE",
+          name: "THREE",
+          position: 3,
+          identityKey: "solana:address-3",
+          price: 1,
+          change24h: 19.99,
+          liquidity: 100_000,
+          marketCap: 1_000_000,
+          volume24h: 50_000,
+        },
+        {
+          network: "solana",
+          contractAddress: "address-4",
+          symbol: "FOUR",
+          name: "FOUR",
+          position: 4,
+          identityKey: "solana:address-4",
+          price: 1,
+          change24h: 1,
+          liquidity: 100_000,
+          marketCap: 1_000_000,
+          volume24h: 50_000,
+        },
+        {
+          network: "solana",
+          contractAddress: "address-5",
+          symbol: "FIVE",
+          name: "FIVE",
+          position: 5,
+          identityKey: "solana:address-5",
+          price: 1,
+          change24h: 1,
+          liquidity: 100_000,
+          marketCap: 1_000_000,
+          volume24h: 50_000,
+        },
+      ],
+    },
+  })
+
+  assert.equal(result.signal?.triggered, false)
+  assert.equal(result.ledger.episodes.length, 0)
+  assert.equal(result.ledger.revision, 2)
+  assert.equal(
+    result.ledger.previousObservation?.trendingCount,
+    5
+  )
+})
+
+test("rejects a stale raw MAX repopulation observation", async () => {
+  const store = {
+    async read() {
+      return JSON.stringify({
+        schemaVersion: 1,
+        revision: 1,
+        updatedAt: "2026-09-19T01:01:00.000Z",
+        previousObservation: {
+          observedAt: "2026-09-19T01:01:00.000Z",
+          trendingCount: 0,
+        },
+        episodes: [],
+      })
+    },
+
+    async compareAndSet() {
+      throw new Error("compareAndSet must not be called")
+    },
+  }
+
+  await assert.rejects(
+    coordinateMaxRepopulationObservation({
+      store,
+      snapshot: {
+        observedAt: "2026-09-19T01:00:00.000Z",
+        trending: [],
+      },
+    }),
+    /stale MAX repopulation observation/
+  )
+})
+
+test("rejects a concurrent raw MAX repopulation write", async () => {
+  const store = {
+    async read() {
+      return null
+    },
+
+    async compareAndSet() {
+      return false
+    },
+  }
+
+  await assert.rejects(
+    coordinateMaxRepopulationObservation({
+      store,
+      snapshot: {
+        observedAt: "2026-09-19T01:00:00.000Z",
+        trending: [],
+      },
+    }),
+    /MAX repopulation concurrent write rejected/
+  )
+})
+
+test("makes an identical raw MAX repopulation retry idempotent", async () => {
+  let serialized: string | null = null
+  let writes = 0
+
+  const store = {
+    async read() {
+      return serialized
+    },
+
+    async compareAndSet(
+      expectedRevision: number,
+      serializedLedger: string
+    ) {
+      const revision = serialized === null
+        ? 0
+        : JSON.parse(serialized).revision
+
+      if (revision !== expectedRevision) return false
+
+      serialized = serializedLedger
+      writes += 1
+      return true
+    },
+  }
+
+  const snapshot = {
+    observedAt: "2026-09-19T03:00:00.000Z",
+    trending: [],
+  }
+
+  const first = await coordinateMaxRepopulationObservation({
+    store,
+    snapshot,
+  })
+
+  const retry = await coordinateMaxRepopulationObservation({
+    store,
+    snapshot,
+  })
+
+  assert.equal(first.changed, true)
+  assert.equal(first.ledger.revision, 1)
+
+  assert.equal(retry.changed, false)
+  assert.equal(retry.signal, null)
+  assert.equal(retry.ledger.revision, 1)
 
   assert.equal(writes, 1)
 })

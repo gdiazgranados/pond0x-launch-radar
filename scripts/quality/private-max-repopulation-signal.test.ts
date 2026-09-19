@@ -1,8 +1,9 @@
-﻿import test from "node:test"
+import test from "node:test"
 import assert from "node:assert/strict"
 
 import {
   detectMaxRepopulationSignal,
+  detectMaxRepopulationSignalFromCount,
 } from "../../src/private-alpha/max-repopulation-signal"
 
 const token = (
@@ -267,5 +268,29 @@ test("does not classify a candidate when change24h is unavailable", () => {
     ["THREE"]
   )
 })
+test("detects MAX_REPOP_V1 directly from the persisted previous count", () => {
+  const current = {
+    observedAt: "2026-09-19T01:00:00.000Z",
+    trending: [
+      token("ONE", "address-1", 1),
+      token("TWO", "address-2", 10),
+      token("THREE", "address-3", 19.99),
+      token("FOUR", "address-4", 1),
+      token("FIVE", "address-5", 1),
+    ],
+  }
 
+  const result = detectMaxRepopulationSignalFromCount({
+    previousTrendingCount: 0,
+    current,
+  })
 
+  assert.equal(result.triggered, true)
+  assert.equal(result.previousTrendingCount, 0)
+  assert.equal(result.currentTrendingCount, 5)
+
+  assert.deepEqual(
+    result.candidates.map(candidate => candidate.rank),
+    [2, 3]
+  )
+})

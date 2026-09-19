@@ -36,11 +36,11 @@ export type MaxRepopulationSignal = {
   transactionRequested: false
 }
 
-export function detectMaxRepopulationSignal(input: {
-  previous: MaxRepopulationSnapshot
+export function detectMaxRepopulationSignalFromCount(input: {
+  previousTrendingCount: number
   current: MaxRepopulationSnapshot
 }): MaxRepopulationSignal {
-  const previousTrendingCount = input.previous.trending.length
+  const previousTrendingCount = input.previousTrendingCount
   const currentTrendingCount = input.current.trending.length
 
   const triggered =
@@ -87,4 +87,14 @@ export function detectMaxRepopulationSignal(input: {
     approvalGranted: false,
     transactionRequested: false,
   }
+}
+
+export function detectMaxRepopulationSignal(input: {
+  previous: MaxRepopulationSnapshot
+  current: MaxRepopulationSnapshot
+}): MaxRepopulationSignal {
+  return detectMaxRepopulationSignalFromCount({
+    previousTrendingCount: input.previous.trending.length,
+    current: input.current,
+  })
 }

@@ -37,6 +37,10 @@ import {
   coordinateMaxCommunityResponse,
   type MaxCommunityResponseStore,
 } from "./max-community-response-repository"
+import {
+  coordinateMaxRepopulationObservation,
+  type MaxRepopulationStore,
+} from "./max-repopulation-repository"
 
 type ObserveMaxTrending = () => Promise<MaxTrendingSnapshot>
 
@@ -52,6 +56,13 @@ export type MaxTrendingOpportunityCycleResult =
       openEpisodes: number
       completedEpisodes: number
     }
+    repopulation: {
+      triggered: boolean
+      previousTrendingCount: number | null
+      currentTrendingCount: number
+      persisted: boolean
+      totalEpisodes: number
+    }
   }
 
 export async function coordinateMaxTrendingOpportunityCycle(input: {
@@ -60,6 +71,7 @@ export async function coordinateMaxTrendingOpportunityCycle(input: {
   onchainStore: MaxAttentionOnchainStore
   jupiterStore: MaxAttentionJupiterStore
   communityResponseStore: MaxCommunityResponseStore
+  repopulationStore: MaxRepopulationStore
   rpcUrl: string
   observe?: ObserveMaxTrending
   validateMint?: MaxAttentionMintValidator
@@ -73,6 +85,22 @@ export async function coordinateMaxTrendingOpportunityCycle(input: {
     attentionInboxStore: input.attentionInboxStore,
     observe: input.observe,
   })
+
+  const repopulationResult = await coordinateMaxRepopulationObservation({
+    store: input.repopulationStore,
+    snapshot: observation.rawSnapshot,
+  })
+
+  const repopulation = {
+    triggered: repopulationResult.signal?.triggered ?? false,
+    previousTrendingCount:
+      repopulationResult.signal?.previousTrendingCount ?? null,
+    currentTrendingCount:
+      repopulationResult.signal?.currentTrendingCount ??
+      observation.rawSnapshot.trending.length,
+    persisted: repopulationResult.changed,
+    totalEpisodes: repopulationResult.ledger.episodes.length,
+  }
   const communityResponseResult = await coordinateMaxCommunityResponse({
     store: input.communityResponseStore,
     opportunity: observation.opportunity,
@@ -127,5 +155,6 @@ export async function coordinateMaxTrendingOpportunityCycle(input: {
     jupiterValidation,
     decisionTickets,
     communityResponse,
+    repopulation,
   }
 }

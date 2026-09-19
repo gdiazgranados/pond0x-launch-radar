@@ -27,6 +27,9 @@ import type {
   MaxCommunityResponseStore,
 } from "../../src/private-alpha/max-community-response-repository"
 import type {
+  MaxRepopulationStore,
+} from "../../src/private-alpha/max-repopulation-repository"
+import type {
   SolanaMintValidation,
 } from "../../src/private-alpha/solana-mint-validator"
 
@@ -35,7 +38,7 @@ const MINT_B = "6GmAFSYs4gk3FDao5FzzySQpPZaWsa4rUJHacpMpUNgx"
 
 class MemoryStore implements MaxTrendingStore, MaxAttentionInboxStore,
   MaxAttentionOnchainStore, MaxAttentionJupiterStore,
-  MaxCommunityResponseStore {
+  MaxCommunityResponseStore, MaxRepopulationStore {
   serialized: string | null = null
   rejectWrite = false
   writes = 0
@@ -160,6 +163,7 @@ function stores() {
     onchainStore: new MemoryStore(),
     jupiterStore: new MemoryStore(),
     communityResponseStore: new MemoryStore(),
+    repopulationStore: new MemoryStore(),
     validateRoute: async (input: {
       contractAddress: string
       now?: () => Date
@@ -351,4 +355,76 @@ test("fails visibly after preserving a recoverable inbox candidate", async () =>
   assert.equal(state.attentionInboxStore.writes, 1)
   const inbox = JSON.parse(state.attentionInboxStore.serialized ?? "{}")
   assert.equal(inbox.candidates.length, 1)
+})
+test("records MAX_REPOP_V1 T0 on an exact raw EMPTY-to-five recovery", async () => {
+  const state = stores()
+
+  await coordinateMaxTrendingOpportunityCycle({
+    ...state,
+    rpcUrl: "https://rpc.example.com",
+    observe: async () => snapshot(
+      "2026-09-17T02:00:00.000Z",
+      []
+    ),
+  })
+
+  const recovered = snapshot(
+    "2026-09-17T02:01:00.000Z",
+    [
+      {
+        ...asset(MINT_A, "ONE", 1),
+        price: 1,
+        change24h: 5,
+      },
+      {
+        ...asset(MINT_B, "TWO", 2),
+        price: 2,
+        change24h: 10,
+      },
+      {
+        ...asset("mint-three", "THREE", 3),
+        price: 3,
+        change24h: 19.99,
+      },
+      {
+        ...asset("mint-four", "FOUR", 4),
+        price: 4,
+        change24h: 1,
+      },
+      {
+        ...asset("mint-five", "FIVE", 5),
+        price: 5,
+        change24h: 1,
+      },
+    ]
+  )
+
+  const result = await coordinateMaxTrendingOpportunityCycle({
+    ...state,
+    rpcUrl: "https://rpc.example.com",
+    observe: async () => recovered,
+  })
+
+  assert.equal(result.event, null)
+  assert.equal(result.repopulation.triggered, true)
+  assert.equal(result.repopulation.previousTrendingCount, 0)
+  assert.equal(result.repopulation.currentTrendingCount, 5)
+  assert.equal(result.repopulation.persisted, true)
+  assert.equal(result.repopulation.totalEpisodes, 1)
+
+  const ledger = JSON.parse(
+    state.repopulationStore.serialized ?? "{}"
+  )
+
+  assert.equal(ledger.revision, 2)
+  assert.equal(ledger.episodes.length, 1)
+  assert.deepEqual(
+    ledger.episodes[0].candidates.map(
+      (candidate: { rank: number }) => candidate.rank
+    ),
+    [2, 3]
+  )
+  assert.equal(ledger.episodes[0].watchOnly, true)
+  assert.equal(ledger.episodes[0].approvalGranted, false)
+  assert.equal(ledger.episodes[0].transactionRequested, false)
 })

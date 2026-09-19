@@ -1,6 +1,10 @@
-import type {
-  MaxRepopulationSignal,
+import {
+  detectMaxRepopulationSignalFromCount,
+  type MaxRepopulationSignal,
 } from "./max-repopulation-signal"
+import type {
+  MaxTrendingSnapshot,
+} from "./max-trending-client"
 
 export type MaxRepopulationLedgerCandidate = {
   candidateId: string
@@ -27,10 +31,16 @@ export type MaxRepopulationLedgerEpisode = {
   transactionRequested: false
 }
 
+export type MaxRepopulationPreviousObservation = {
+  observedAt: string
+  trendingCount: number
+}
+
 export type MaxRepopulationLedger = {
   schemaVersion: 1
   revision: number
   updatedAt: string | null
+  previousObservation: MaxRepopulationPreviousObservation | null
   episodes: ReadonlyArray<MaxRepopulationLedgerEpisode>
 }
 
@@ -39,6 +49,7 @@ export function emptyMaxRepopulationLedger(): MaxRepopulationLedger {
     schemaVersion: 1,
     revision: 0,
     updatedAt: null,
+    previousObservation: null,
     episodes: [],
   }
 }
@@ -117,6 +128,15 @@ function assertLedger(
     !Number.isInteger(value.revision) ||
     Number(value.revision) < 0 ||
     (value.updatedAt !== null && !timestamp(value.updatedAt)) ||
+    (
+      value.previousObservation !== null &&
+      (
+        !record(value.previousObservation) ||
+        !timestamp(value.previousObservation.observedAt) ||
+        !Number.isInteger(value.previousObservation.trendingCount) ||
+        Number(value.previousObservation.trendingCount) < 0
+      )
+    ) ||
     !Array.isArray(value.episodes)
   ) {
     throw new Error("invalid MAX repopulation ledger")
@@ -191,6 +211,7 @@ export function recordMaxRepopulationT0(input: {
     schemaVersion: 1,
     revision: input.ledger.revision + 1,
     updatedAt: input.signal.observedAt,
+    previousObservation: input.ledger.previousObservation,
     episodes: [
       ...input.ledger.episodes,
       episode,
@@ -218,6 +239,73 @@ async function loadMaxRepopulationLedger(
   return parseMaxRepopulationLedger(serialized)
 }
 
+export async function coordinateMaxRepopulationObservation(input: {
+  store: MaxRepopulationStore
+  snapshot: Pick<MaxTrendingSnapshot, "observedAt" | "trending">
+}) {
+  const ledger = await loadMaxRepopulationLedger(input.store)
+
+  if (
+    ledger.previousObservation !== null &&
+    input.snapshot.observedAt === ledger.previousObservation.observedAt
+  ) {
+    return {
+      changed: false,
+      signal: null,
+      ledger,
+    }
+  }
+
+  if (
+    ledger.updatedAt !== null &&
+    Date.parse(input.snapshot.observedAt) < Date.parse(ledger.updatedAt)
+  ) {
+    throw new Error("stale MAX repopulation observation")
+  }
+
+  let signal: MaxRepopulationSignal | null = null
+  let next = ledger
+
+  if (ledger.previousObservation !== null) {
+    signal = detectMaxRepopulationSignalFromCount({
+      previousTrendingCount:
+        ledger.previousObservation.trendingCount,
+      current: input.snapshot,
+    })
+
+    next = recordMaxRepopulationT0({
+      ledger,
+      signal,
+    })
+  }
+
+  const observed: MaxRepopulationLedger = {
+    ...next,
+    revision: next === ledger
+      ? ledger.revision + 1
+      : next.revision,
+    updatedAt: input.snapshot.observedAt,
+    previousObservation: {
+      observedAt: input.snapshot.observedAt,
+      trendingCount: input.snapshot.trending.length,
+    },
+  }
+
+  const written = await input.store.compareAndSet(
+    ledger.revision,
+    JSON.stringify(observed)
+  )
+
+  if (!written) {
+    throw new Error("MAX repopulation concurrent write rejected")
+  }
+
+  return {
+    changed: true,
+    signal,
+    ledger: observed,
+  }
+}
 export async function coordinateMaxRepopulationT0(input: {
   store: MaxRepopulationStore
   signal: MaxRepopulationSignal

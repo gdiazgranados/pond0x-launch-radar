@@ -31,6 +31,7 @@ export type MaxTrendingOpportunityEvent = {
 
 export type MaxTrendingObservationResult = {
   schemaVersion: 1
+  rawSnapshot: MaxTrendingSnapshot
   observedAt: string
   status: "BASELINE" | "MATERIAL_CHANGE" | "EMPTY" | "UNCHANGED"
   persisted: boolean
@@ -85,6 +86,7 @@ export async function coordinateMaxTrendingObservation(input: {
 
   return {
     schemaVersion: 1,
+    rawSnapshot: structuredClone(snapshot),
     observedAt: detection.observedAt,
     status: isBaseline
       ? "BASELINE"

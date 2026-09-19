@@ -163,6 +163,10 @@ async function main() {
     dataDirectory,
     "max-trending-ledger.json"
   )
+  const repopulationLedgerPath = resolve(
+    dataDirectory,
+    "max-repopulation-ledger.json"
+  )
   const attentionInboxPath = resolve(
     dataDirectory,
     "max-attention-inbox.json"
@@ -195,6 +199,9 @@ async function main() {
     const observationStore = new PrivateFileLedgerStore(
       observationLedgerPath
     )
+    const repopulationStore = new PrivateFileLedgerStore(
+      repopulationLedgerPath
+    )
     const attentionInboxStore = new PrivateFileLedgerStore(
       attentionInboxPath
     )
@@ -210,6 +217,7 @@ async function main() {
     const summary = await runAdaptiveMaxTrendingMonitor({
       observe: () => coordinateMaxTrendingOpportunityCycle({
         observationStore,
+        repopulationStore,
         attentionInboxStore,
         onchainStore,
         jupiterStore,
