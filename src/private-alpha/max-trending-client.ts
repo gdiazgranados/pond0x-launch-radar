@@ -17,6 +17,11 @@ export type MaxTrendingAsset = {
   symbol: string | null
   name: string | null
   position: number
+  price?: number | null
+  change24h?: number | null
+  liquidity?: number | null
+  marketCap?: number | null
+  volume24h?: number | null
   identityKey: string
 }
 
@@ -57,6 +62,12 @@ function firstString(
     }
   }
   return null
+}
+
+function finiteNumberOrNull(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value)
+    ? value
+    : null
 }
 
 function normalizeNetwork(value: string) {
@@ -162,6 +173,11 @@ function parseAsset(value: unknown, position: number): MaxTrendingAsset {
     symbol,
     name,
     position,
+    price: finiteNumberOrNull(item.price),
+    change24h: finiteNumberOrNull(item.change24h),
+    liquidity: finiteNumberOrNull(item.liquidity),
+    marketCap: finiteNumberOrNull(item.marketCap),
+    volume24h: finiteNumberOrNull(item.volume24h),
     identityKey: `${network}:${contractAddress}`,
   }
 }

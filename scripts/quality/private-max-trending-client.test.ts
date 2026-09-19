@@ -22,6 +22,11 @@ test("normalizes a live-shaped MAX trending payload", () => {
       mint: solanaMint,
       symbol: "TEST",
       name: "Test Token",
+      price: 1.25,
+      change24h: 19.99,
+      liquidity: 125000,
+      marketCap: 2500000,
+      volume24h: 375000,
     }],
   }, "2026-09-16T12:00:00.000Z")
 
@@ -33,6 +38,11 @@ test("normalizes a live-shaped MAX trending payload", () => {
     symbol: "TEST",
     name: "Test Token",
     position: 1,
+    price: 1.25,
+    change24h: 19.99,
+    liquidity: 125000,
+    marketCap: 2500000,
+    volume24h: 375000,
     identityKey: `solana:${solanaMint}`,
   })
   assert.equal(result.watchOnly, true)
