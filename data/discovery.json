@@ -1,7 +1,7 @@
 {
-  "checkedAt": "2026-09-20T13:33:26.485Z",
-  "sourceSnapshotId": "2026-09-20_133307",
-  "snapshotDir": "2026-09-20_133307",
+  "checkedAt": "2026-09-20T14:33:32.642Z",
+  "sourceSnapshotId": "2026-09-20_143312",
+  "snapshotDir": "2026-09-20_143312",
   "newUnknownChange": false,
   "keyFunctionCandidate": null,
   "newLabels": [],
@@ -33,9 +33,9 @@
   ],
   "liveApiRoutes": [
     "/api/version",
-    "/api/max/search",
     "/api/auth/session",
-    "/api/rewards/feed"
+    "/api/rewards/feed",
+    "/api/max/search"
   ],
   "newLiveApiRoutes": [],
   "declaredApiRoutes": [
@@ -88,6 +88,24 @@
       "size": 27,
       "status": 200
     },
+    "/api/auth/session": {
+      "schemaFingerprint": "8fea01e1c363a1f4270e487d656ce760aea198c8d8919aa00d35488220949998",
+      "schemaPaths": [
+        "ROOT:EMPTY_OBJECT"
+      ],
+      "size": 2,
+      "status": 200
+    },
+    "/api/rewards/feed": {
+      "schemaFingerprint": "6b0c26f18f3156518d69a8e6d6252f254375d9bbfbf2ed05227e475e86476402",
+      "schemaPaths": [
+        "rewards",
+        "rewards[]",
+        "rewards[]:EMPTY_ARRAY"
+      ],
+      "size": 14,
+      "status": 200
+    },
     "/api/max/search": {
       "schemaFingerprint": "b033be8910c912395de110294e92411bb1f4c18fded5eeea530d9eb83a88859c",
       "schemaPaths": [
@@ -134,25 +152,7 @@
         "wallets[]",
         "wallets[]:EMPTY_ARRAY"
       ],
-      "size": 3054,
-      "status": 200
-    },
-    "/api/auth/session": {
-      "schemaFingerprint": "8fea01e1c363a1f4270e487d656ce760aea198c8d8919aa00d35488220949998",
-      "schemaPaths": [
-        "ROOT:EMPTY_OBJECT"
-      ],
-      "size": 2,
-      "status": 200
-    },
-    "/api/rewards/feed": {
-      "schemaFingerprint": "6b0c26f18f3156518d69a8e6d6252f254375d9bbfbf2ed05227e475e86476402",
-      "schemaPaths": [
-        "rewards",
-        "rewards[]",
-        "rewards[]:EMPTY_ARRAY"
-      ],
-      "size": 14,
+      "size": 3149,
       "status": 200
     }
   },
@@ -188,7 +188,7 @@
     "rewards"
   ],
   "diagnostics": {
-    "previousSnapshotId": "2026-09-20_123306",
+    "previousSnapshotId": "2026-09-20_133307",
     "freshCounts": {
       "labels": 0,
       "routes": 0,
