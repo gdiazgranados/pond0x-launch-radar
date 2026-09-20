@@ -1,35 +1,49 @@
 {
   "version": 1,
-  "generatedAt": "2026-09-19T23:33:46.927Z",
-  "regime": "QUIET",
-  "confidence": 85,
-  "candidateRegime": "QUIET",
-  "candidateConfidence": 85,
+  "generatedAt": "2026-09-20T00:33:37.638Z",
+  "regime": "ELEVATED",
+  "confidence": 80,
+  "candidateRegime": "ELEVATED",
+  "candidateConfidence": 80,
   "history": {
     "stage": "USABLE",
-    "exactSweepCount": 161,
+    "exactSweepCount": 162,
     "usableForRegimeClassification": true
   },
   "current": {
-    "snapshotId": "2026-09-19_233316",
-    "generatedAt": "2026-09-19T23:33:46.610Z",
-    "decisionState": "QUIET",
-    "activityScore": 0
+    "snapshotId": "2026-09-20_003309",
+    "generatedAt": "2026-09-20T00:33:37.285Z",
+    "decisionState": "WATCH",
+    "activityScore": 19
   },
   "baseline": {
     "recentWindowSweeps": 6,
     "previousWindowSweeps": 6,
-    "recentSixSweepAverageActivity": 12.67,
-    "previousSixSweepAverageActivity": 0
+    "recentSixSweepAverageActivity": 9.5,
+    "previousSixSweepAverageActivity": 3.17
   },
   "trendContext": {
-    "status": "NORMAL",
-    "anomalyScore": 0,
-    "driverCount": 0,
-    "drivers": []
+    "status": "ELEVATED",
+    "anomalyScore": 87.3,
+    "driverCount": 2,
+    "drivers": [
+      {
+        "metric": "correlation",
+        "value": 12,
+        "percentile": 87.3,
+        "trend": "RISING"
+      },
+      {
+        "metric": "decisionStrength",
+        "value": 7,
+        "percentile": 87.3,
+        "trend": "RISING"
+      }
+    ]
   },
   "reasons": [
-    "Current exact sweep has no meaningful activation, evidence, or historical-driver activity."
+    "Historical anomaly score is 87.3.",
+    "2 high-percentile historical drivers are active."
   ],
   "methodology": "Score-neutral regime classification derived from exact sweep history and Historical Trend Intelligence. Stronger regimes require corroborating historical or multi-domain evidence.",
   "caution": "Regime Detection is descriptive only. It does not modify Radar scoring, establish launch probability, predict rewards, or constitute trading advice."
