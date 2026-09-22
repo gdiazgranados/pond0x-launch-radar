@@ -1,7 +1,7 @@
 {
-  "checkedAt": "2026-09-22T06:33:33.269Z",
-  "sourceSnapshotId": "2026-09-22_063313",
-  "snapshotDir": "2026-09-22_063313",
+  "checkedAt": "2026-09-22T07:34:04.748Z",
+  "sourceSnapshotId": "2026-09-22_073346",
+  "snapshotDir": "2026-09-22_073346",
   "newUnknownChange": false,
   "keyFunctionCandidate": null,
   "newLabels": [],
@@ -89,7 +89,7 @@
       "status": 200
     },
     "/api/max/search": {
-      "schemaFingerprint": "2b46c18db8e6c0c98dcda44b94c572429f88f32caac0aeff94b3fc7015029d5d",
+      "schemaFingerprint": "b033be8910c912395de110294e92411bb1f4c18fded5eeea530d9eb83a88859c",
       "schemaPaths": [
         "availability",
         "availability.markets",
@@ -119,12 +119,22 @@
         "tokens[].volume24h",
         "trending",
         "trending[]",
-        "trending[]:EMPTY_ARRAY",
+        "trending[].address",
+        "trending[].change24h",
+        "trending[].icon",
+        "trending[].liquidity",
+        "trending[].marketCap",
+        "trending[].name",
+        "trending[].network",
+        "trending[].price",
+        "trending[].symbol",
+        "trending[].verified",
+        "trending[].volume24h",
         "wallets",
         "wallets[]",
         "wallets[]:EMPTY_ARRAY"
       ],
-      "size": 1532,
+      "size": 3422,
       "status": 200
     },
     "/api/auth/session": {
@@ -147,9 +157,34 @@
     }
   },
   "apiResponseDrift": {
-    "detected": false,
-    "changedRouteCount": 0,
-    "changedRoutes": []
+    "detected": true,
+    "changedRouteCount": 1,
+    "changedRoutes": [
+      {
+        "route": "/api/max/search",
+        "previousFingerprint": "2b46c18db8e6c0c98dcda44b94c572429f88f32caac0aeff94b3fc7015029d5d",
+        "currentFingerprint": "b033be8910c912395de110294e92411bb1f4c18fded5eeea530d9eb83a88859c",
+        "previousSize": 1532,
+        "currentSize": 3422,
+        "sizeDelta": 1890,
+        "addedPaths": [
+          "trending[].address",
+          "trending[].change24h",
+          "trending[].icon",
+          "trending[].liquidity",
+          "trending[].marketCap",
+          "trending[].name",
+          "trending[].network",
+          "trending[].price",
+          "trending[].symbol",
+          "trending[].verified",
+          "trending[].volume24h"
+        ],
+        "removedPaths": [
+          "trending[]:EMPTY_ARRAY"
+        ]
+      }
+    ]
   },
   "observedKeywords": [
     "water",
@@ -178,7 +213,7 @@
     "rewards"
   ],
   "diagnostics": {
-    "previousSnapshotId": "2026-09-22_053309",
+    "previousSnapshotId": "2026-09-22_063313",
     "freshCounts": {
       "labels": 0,
       "routes": 0,
