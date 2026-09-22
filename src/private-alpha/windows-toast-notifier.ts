@@ -41,7 +41,7 @@ const TOAST_SCRIPT = [
   "$xml = New-Object Windows.Data.Xml.Dom.XmlDocument",
   "$xml.LoadXml($xmlText)",
   "$toast = New-Object Windows.UI.Notifications.ToastNotification $xml",
-  "[Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier('Pond0x Launch Radar').Show($toast)",
+  "[Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier('Pond0x.LaunchRadar').Show($toast)",
 ].join("; ")
 
 const defaultExecutor: ToastExecutor = input =>
