@@ -1,6 +1,6 @@
 {
-  "id": "2026-09-23_143317__2026-09-23T14:33:44.475Z",
-  "snapshotId": "2026-09-23_143317",
+  "id": "2026-09-23_153311__2026-09-23T15:33:37.613Z",
+  "snapshotId": "2026-09-23_153311",
   "totalFiles": 64,
   "added": 0,
   "changed": 0,
@@ -36,7 +36,7 @@
   "summary": "No changes detected across 64 analyzed files.",
   "note": "No strong signals at this time.",
   "changedFiles": [],
-  "generatedAt": "2026-09-23T14:33:44.475Z",
+  "generatedAt": "2026-09-23T15:33:37.613Z",
   "trend": 0,
   "trendDirection": "FLAT",
   "breakdown": {
@@ -233,7 +233,7 @@
       {
         "domain": "api",
         "seenAt": "2026-09-23T14:33:44.475Z",
-        "source": "current",
+        "source": "history",
         "detail": null
       }
     ],
@@ -370,16 +370,34 @@
     },
     "drift": {
       "comparable": true,
-      "baselineSnapshotId": "2026-09-23_133320",
-      "status": "STABLE",
-      "newSurfaceCount": 0,
-      "missingSurfaceCount": 0,
+      "baselineSnapshotId": "2026-09-23_143317",
+      "status": "DRIFT",
+      "newSurfaceCount": 1,
+      "missingSurfaceCount": 1,
       "newHostCount": 0,
       "missingHostCount": 0,
       "newHosts": [],
       "missingHosts": [],
-      "newSurfaces": [],
-      "missingSurfaces": []
+      "newSurfaces": [
+        {
+          "url": "https://api.web3modal.org/getWalletImage/3db0c04f-9792-4628-044e-865878119200",
+          "origin": "https://api.web3modal.org",
+          "sourceHost": "api.web3modal.org",
+          "sourceClass": "THIRD_PARTY",
+          "method": "GET",
+          "resourceType": "fetch"
+        }
+      ],
+      "missingSurfaces": [
+        {
+          "url": "https://api.web3modal.org/getWalletImage/fa510f85-785a-4d8c-c5ba-64c087c0c300",
+          "origin": "https://api.web3modal.org",
+          "sourceHost": "api.web3modal.org",
+          "sourceClass": "THIRD_PARTY",
+          "method": "GET",
+          "resourceType": "fetch"
+        }
+      ]
     }
   },
   "observability": {
@@ -395,9 +413,9 @@
     "firstPartyApiCount": 4
   },
   "discovery": {
-    "checkedAt": "2026-09-23T14:33:36.885Z",
-    "sourceSnapshotId": "2026-09-23_143317",
-    "snapshotDir": "2026-09-23_143317",
+    "checkedAt": "2026-09-23T15:33:30.526Z",
+    "sourceSnapshotId": "2026-09-23_153311",
+    "snapshotDir": "2026-09-23_153311",
     "newUnknownChange": false,
     "keyFunctionCandidate": null,
     "newLabels": [],
@@ -412,15 +430,12 @@
       "changedRoutes": [
         {
           "route": "/api/max/search",
-          "previousFingerprint": "b033be8910c912395de110294e92411bb1f4c18fded5eeea530d9eb83a88859c",
-          "currentFingerprint": "2b46c18db8e6c0c98dcda44b94c572429f88f32caac0aeff94b3fc7015029d5d",
-          "previousSize": 3314,
-          "currentSize": 1540,
-          "sizeDelta": -1774,
+          "previousFingerprint": "2b46c18db8e6c0c98dcda44b94c572429f88f32caac0aeff94b3fc7015029d5d",
+          "currentFingerprint": "b033be8910c912395de110294e92411bb1f4c18fded5eeea530d9eb83a88859c",
+          "previousSize": 1540,
+          "currentSize": 3275,
+          "sizeDelta": 1735,
           "addedPaths": [
-            "trending[]:EMPTY_ARRAY"
-          ],
-          "removedPaths": [
             "trending[].address",
             "trending[].change24h",
             "trending[].icon",
@@ -432,6 +447,9 @@
             "trending[].symbol",
             "trending[].verified",
             "trending[].volume24h"
+          ],
+          "removedPaths": [
+            "trending[]:EMPTY_ARRAY"
           ]
         }
       ]
