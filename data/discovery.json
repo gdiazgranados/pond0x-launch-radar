@@ -1,7 +1,7 @@
 {
-  "checkedAt": "2026-09-23T06:33:29.627Z",
-  "sourceSnapshotId": "2026-09-23_063309",
-  "snapshotDir": "2026-09-23_063309",
+  "checkedAt": "2026-09-23T07:33:12.033Z",
+  "sourceSnapshotId": "2026-09-23_073252",
+  "snapshotDir": "2026-09-23_073252",
   "newUnknownChange": false,
   "keyFunctionCandidate": null,
   "newLabels": [],
@@ -33,8 +33,8 @@
   ],
   "liveApiRoutes": [
     "/api/max/search",
-    "/api/version",
     "/api/auth/session",
+    "/api/version",
     "/api/rewards/feed"
   ],
   "newLiveApiRoutes": [],
@@ -75,13 +75,13 @@
     "/api/mp/build",
     "/api/mp/fund-build",
     "/api/stats/memes_new",
-    "/api/version",
     "/api/auth/session",
+    "/api/version",
     "/api/rewards/feed"
   ],
   "observedApiSchemas": {
     "/api/max/search": {
-      "schemaFingerprint": "2b46c18db8e6c0c98dcda44b94c572429f88f32caac0aeff94b3fc7015029d5d",
+      "schemaFingerprint": "b033be8910c912395de110294e92411bb1f4c18fded5eeea530d9eb83a88859c",
       "schemaPaths": [
         "availability",
         "availability.markets",
@@ -111,20 +111,22 @@
         "tokens[].volume24h",
         "trending",
         "trending[]",
-        "trending[]:EMPTY_ARRAY",
+        "trending[].address",
+        "trending[].change24h",
+        "trending[].icon",
+        "trending[].liquidity",
+        "trending[].marketCap",
+        "trending[].name",
+        "trending[].network",
+        "trending[].price",
+        "trending[].symbol",
+        "trending[].verified",
+        "trending[].volume24h",
         "wallets",
         "wallets[]",
         "wallets[]:EMPTY_ARRAY"
       ],
-      "size": 1538,
-      "status": 200
-    },
-    "/api/version": {
-      "schemaFingerprint": "afb74bdaa0d230ecc9dcfd4f70f632a369f194037173b709990f58b85ea07037",
-      "schemaPaths": [
-        "buildId"
-      ],
-      "size": 27,
+      "size": 3229,
       "status": 200
     },
     "/api/auth/session": {
@@ -133,6 +135,14 @@
         "ROOT:EMPTY_OBJECT"
       ],
       "size": 2,
+      "status": 200
+    },
+    "/api/version": {
+      "schemaFingerprint": "afb74bdaa0d230ecc9dcfd4f70f632a369f194037173b709990f58b85ea07037",
+      "schemaPaths": [
+        "buildId"
+      ],
+      "size": 27,
       "status": 200
     },
     "/api/rewards/feed": {
@@ -147,9 +157,34 @@
     }
   },
   "apiResponseDrift": {
-    "detected": false,
-    "changedRouteCount": 0,
-    "changedRoutes": []
+    "detected": true,
+    "changedRouteCount": 1,
+    "changedRoutes": [
+      {
+        "route": "/api/max/search",
+        "previousFingerprint": "2b46c18db8e6c0c98dcda44b94c572429f88f32caac0aeff94b3fc7015029d5d",
+        "currentFingerprint": "b033be8910c912395de110294e92411bb1f4c18fded5eeea530d9eb83a88859c",
+        "previousSize": 1538,
+        "currentSize": 3229,
+        "sizeDelta": 1691,
+        "addedPaths": [
+          "trending[].address",
+          "trending[].change24h",
+          "trending[].icon",
+          "trending[].liquidity",
+          "trending[].marketCap",
+          "trending[].name",
+          "trending[].network",
+          "trending[].price",
+          "trending[].symbol",
+          "trending[].verified",
+          "trending[].volume24h"
+        ],
+        "removedPaths": [
+          "trending[]:EMPTY_ARRAY"
+        ]
+      }
+    ]
   },
   "observedKeywords": [
     "water",
@@ -178,7 +213,7 @@
     "rewards"
   ],
   "diagnostics": {
-    "previousSnapshotId": "2026-09-23_053250",
+    "previousSnapshotId": "2026-09-23_063309",
     "freshCounts": {
       "labels": 0,
       "routes": 0,
