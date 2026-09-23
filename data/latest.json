@@ -1,6 +1,6 @@
 {
-  "id": "2026-09-23_133320__2026-09-23T13:33:49.656Z",
-  "snapshotId": "2026-09-23_133320",
+  "id": "2026-09-23_143317__2026-09-23T14:33:44.475Z",
+  "snapshotId": "2026-09-23_143317",
   "totalFiles": 64,
   "added": 0,
   "changed": 0,
@@ -36,7 +36,7 @@
   "summary": "No changes detected across 64 analyzed files.",
   "note": "No strong signals at this time.",
   "changedFiles": [],
-  "generatedAt": "2026-09-23T13:33:49.656Z",
+  "generatedAt": "2026-09-23T14:33:44.475Z",
   "trend": 0,
   "trendDirection": "FLAT",
   "breakdown": {
@@ -180,7 +180,7 @@
     "hasVisibleCTAChange": false
   },
   "evidenceCorrelation": {
-    "apiResponseDrift": false,
+    "apiResponseDrift": true,
     "newApiRoute": false,
     "newLiveApiRoute": false,
     "backendSignal": false,
@@ -193,10 +193,10 @@
     "rewardActivity": false,
     "externalClaimTransfer": false,
     "newRecipient": false,
-    "evidenceCount": 0,
-    "domainCount": 0,
+    "evidenceCount": 1,
+    "domainCount": 1,
     "domains": {
-      "api": false,
+      "api": true,
       "backend": false,
       "semantic": false,
       "webSurface": false,
@@ -204,10 +204,10 @@
       "distributor": false,
       "recipients": false
     },
-    "score": 0,
-    "level": "NONE",
+    "score": 12,
+    "level": "LOW",
     "componentScores": {
-      "api": 0,
+      "api": 12,
       "backend": 0,
       "semantic": 0,
       "webSurface": 0,
@@ -221,16 +221,25 @@
     "semanticClassification": null,
     "newExternalTransfers": 0,
     "newExternalRecipients": 0,
-    "classification": "NONE"
+    "classification": "ISOLATED"
   },
   "temporalCorrelation": {
     "windowMinutes": 60,
-    "domainCount": 0,
-    "sequence": [],
-    "events": [],
-    "firstSeenAt": null,
-    "lastSeenAt": null,
-    "spanMinutes": null,
+    "domainCount": 1,
+    "sequence": [
+      "api"
+    ],
+    "events": [
+      {
+        "domain": "api",
+        "seenAt": "2026-09-23T14:33:44.475Z",
+        "source": "current",
+        "detail": null
+      }
+    ],
+    "firstSeenAt": "2026-09-23T14:33:44.475Z",
+    "lastSeenAt": "2026-09-23T14:33:44.475Z",
+    "spanMinutes": 0,
     "observedSequencePattern": null,
     "classification": "NONE",
     "interpretation": "No strong cross-domain temporal sequence is established yet."
@@ -361,34 +370,16 @@
     },
     "drift": {
       "comparable": true,
-      "baselineSnapshotId": "2026-09-23_123317",
-      "status": "DRIFT",
-      "newSurfaceCount": 1,
-      "missingSurfaceCount": 1,
+      "baselineSnapshotId": "2026-09-23_133320",
+      "status": "STABLE",
+      "newSurfaceCount": 0,
+      "missingSurfaceCount": 0,
       "newHostCount": 0,
       "missingHostCount": 0,
       "newHosts": [],
       "missingHosts": [],
-      "newSurfaces": [
-        {
-          "url": "https://api.web3modal.org/getWalletImage/fa510f85-785a-4d8c-c5ba-64c087c0c300",
-          "origin": "https://api.web3modal.org",
-          "sourceHost": "api.web3modal.org",
-          "sourceClass": "THIRD_PARTY",
-          "method": "GET",
-          "resourceType": "fetch"
-        }
-      ],
-      "missingSurfaces": [
-        {
-          "url": "https://api.web3modal.org/getWalletImage/3db0c04f-9792-4628-044e-865878119200",
-          "origin": "https://api.web3modal.org",
-          "sourceHost": "api.web3modal.org",
-          "sourceClass": "THIRD_PARTY",
-          "method": "GET",
-          "resourceType": "fetch"
-        }
-      ]
+      "newSurfaces": [],
+      "missingSurfaces": []
     }
   },
   "observability": {
@@ -404,9 +395,9 @@
     "firstPartyApiCount": 4
   },
   "discovery": {
-    "checkedAt": "2026-09-23T13:33:39.823Z",
-    "sourceSnapshotId": "2026-09-23_133320",
-    "snapshotDir": "2026-09-23_133320",
+    "checkedAt": "2026-09-23T14:33:36.885Z",
+    "sourceSnapshotId": "2026-09-23_143317",
+    "snapshotDir": "2026-09-23_143317",
     "newUnknownChange": false,
     "keyFunctionCandidate": null,
     "newLabels": [],
@@ -416,9 +407,34 @@
     "newKeywords": [],
     "criticalKeywords": [],
     "apiResponseDrift": {
-      "detected": false,
-      "changedRouteCount": 0,
-      "changedRoutes": []
+      "detected": true,
+      "changedRouteCount": 1,
+      "changedRoutes": [
+        {
+          "route": "/api/max/search",
+          "previousFingerprint": "b033be8910c912395de110294e92411bb1f4c18fded5eeea530d9eb83a88859c",
+          "currentFingerprint": "2b46c18db8e6c0c98dcda44b94c572429f88f32caac0aeff94b3fc7015029d5d",
+          "previousSize": 3314,
+          "currentSize": 1540,
+          "sizeDelta": -1774,
+          "addedPaths": [
+            "trending[]:EMPTY_ARRAY"
+          ],
+          "removedPaths": [
+            "trending[].address",
+            "trending[].change24h",
+            "trending[].icon",
+            "trending[].liquidity",
+            "trending[].marketCap",
+            "trending[].name",
+            "trending[].network",
+            "trending[].price",
+            "trending[].symbol",
+            "trending[].verified",
+            "trending[].volume24h"
+          ]
+        }
+      ]
     }
   },
   "whyItMatters": "",
