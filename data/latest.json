@@ -1,6 +1,6 @@
 {
-  "id": "2026-09-23_153311__2026-09-23T15:33:37.613Z",
-  "snapshotId": "2026-09-23_153311",
+  "id": "2026-09-23_163318__2026-09-23T16:33:46.815Z",
+  "snapshotId": "2026-09-23_163318",
   "totalFiles": 64,
   "added": 0,
   "changed": 0,
@@ -36,7 +36,7 @@
   "summary": "No changes detected across 64 analyzed files.",
   "note": "No strong signals at this time.",
   "changedFiles": [],
-  "generatedAt": "2026-09-23T15:33:37.613Z",
+  "generatedAt": "2026-09-23T16:33:46.815Z",
   "trend": 0,
   "trendDirection": "FLAT",
   "breakdown": {
@@ -180,7 +180,7 @@
     "hasVisibleCTAChange": false
   },
   "evidenceCorrelation": {
-    "apiResponseDrift": true,
+    "apiResponseDrift": false,
     "newApiRoute": false,
     "newLiveApiRoute": false,
     "backendSignal": false,
@@ -193,10 +193,10 @@
     "rewardActivity": false,
     "externalClaimTransfer": false,
     "newRecipient": false,
-    "evidenceCount": 1,
-    "domainCount": 1,
+    "evidenceCount": 0,
+    "domainCount": 0,
     "domains": {
-      "api": true,
+      "api": false,
       "backend": false,
       "semantic": false,
       "webSurface": false,
@@ -204,10 +204,10 @@
       "distributor": false,
       "recipients": false
     },
-    "score": 12,
-    "level": "LOW",
+    "score": 0,
+    "level": "NONE",
     "componentScores": {
-      "api": 12,
+      "api": 0,
       "backend": 0,
       "semantic": 0,
       "webSurface": 0,
@@ -221,25 +221,16 @@
     "semanticClassification": null,
     "newExternalTransfers": 0,
     "newExternalRecipients": 0,
-    "classification": "ISOLATED"
+    "classification": "NONE"
   },
   "temporalCorrelation": {
     "windowMinutes": 60,
-    "domainCount": 1,
-    "sequence": [
-      "api"
-    ],
-    "events": [
-      {
-        "domain": "api",
-        "seenAt": "2026-09-23T14:33:44.475Z",
-        "source": "history",
-        "detail": null
-      }
-    ],
-    "firstSeenAt": "2026-09-23T14:33:44.475Z",
-    "lastSeenAt": "2026-09-23T14:33:44.475Z",
-    "spanMinutes": 0,
+    "domainCount": 0,
+    "sequence": [],
+    "events": [],
+    "firstSeenAt": null,
+    "lastSeenAt": null,
+    "spanMinutes": null,
     "observedSequencePattern": null,
     "classification": "NONE",
     "interpretation": "No strong cross-domain temporal sequence is established yet."
@@ -370,7 +361,7 @@
     },
     "drift": {
       "comparable": true,
-      "baselineSnapshotId": "2026-09-23_143317",
+      "baselineSnapshotId": "2026-09-23_153311",
       "status": "DRIFT",
       "newSurfaceCount": 1,
       "missingSurfaceCount": 1,
@@ -380,7 +371,7 @@
       "missingHosts": [],
       "newSurfaces": [
         {
-          "url": "https://api.web3modal.org/getWalletImage/3db0c04f-9792-4628-044e-865878119200",
+          "url": "https://api.web3modal.org/getWalletImage/fa510f85-785a-4d8c-c5ba-64c087c0c300",
           "origin": "https://api.web3modal.org",
           "sourceHost": "api.web3modal.org",
           "sourceClass": "THIRD_PARTY",
@@ -390,7 +381,7 @@
       ],
       "missingSurfaces": [
         {
-          "url": "https://api.web3modal.org/getWalletImage/fa510f85-785a-4d8c-c5ba-64c087c0c300",
+          "url": "https://api.web3modal.org/getWalletImage/3db0c04f-9792-4628-044e-865878119200",
           "origin": "https://api.web3modal.org",
           "sourceHost": "api.web3modal.org",
           "sourceClass": "THIRD_PARTY",
@@ -413,9 +404,9 @@
     "firstPartyApiCount": 4
   },
   "discovery": {
-    "checkedAt": "2026-09-23T15:33:30.526Z",
-    "sourceSnapshotId": "2026-09-23_153311",
-    "snapshotDir": "2026-09-23_153311",
+    "checkedAt": "2026-09-23T16:33:38.909Z",
+    "sourceSnapshotId": "2026-09-23_163318",
+    "snapshotDir": "2026-09-23_163318",
     "newUnknownChange": false,
     "keyFunctionCandidate": null,
     "newLabels": [],
@@ -425,34 +416,9 @@
     "newKeywords": [],
     "criticalKeywords": [],
     "apiResponseDrift": {
-      "detected": true,
-      "changedRouteCount": 1,
-      "changedRoutes": [
-        {
-          "route": "/api/max/search",
-          "previousFingerprint": "2b46c18db8e6c0c98dcda44b94c572429f88f32caac0aeff94b3fc7015029d5d",
-          "currentFingerprint": "b033be8910c912395de110294e92411bb1f4c18fded5eeea530d9eb83a88859c",
-          "previousSize": 1540,
-          "currentSize": 3275,
-          "sizeDelta": 1735,
-          "addedPaths": [
-            "trending[].address",
-            "trending[].change24h",
-            "trending[].icon",
-            "trending[].liquidity",
-            "trending[].marketCap",
-            "trending[].name",
-            "trending[].network",
-            "trending[].price",
-            "trending[].symbol",
-            "trending[].verified",
-            "trending[].volume24h"
-          ],
-          "removedPaths": [
-            "trending[]:EMPTY_ARRAY"
-          ]
-        }
-      ]
+      "detected": false,
+      "changedRouteCount": 0,
+      "changedRoutes": []
     }
   },
   "whyItMatters": "",
