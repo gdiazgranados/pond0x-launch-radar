@@ -60,19 +60,27 @@ const defaultExecutor: ToastExecutor = input =>
 
 function payload(ticket: MaxAttentionDecisionTicket) {
   const symbol = compact(ticket.identity.symbol, "Unknown token")
+
+  const contractAddress = compact(
+    ticket.identity.contractAddress,
+    "Unknown contract"
+  )
+
   const trigger = ticket.trigger === "NEW" ? "NEW" : "REAPPEARED"
+
   const route = ticket.route.status === "ROUTE_AVAILABLE"
     ? compact(ticket.route.routeId, "Route available")
     : ticket.route.status
+
   return {
     title: `Pond0x MAX · ${trigger} · ${symbol}`,
     line1: compact(
-      `Position #${ticket.attention.latestPosition} · ${ticket.status}`,
+      `Position #${ticket.attention.latestPosition} · ${ticket.status} · ${route}`,
       ticket.status
     ),
     line2: compact(
-      `On-chain: ${ticket.onchain.status} · Jupiter: ${route}`,
-      "Validation pending"
+      `CA: ${contractAddress}`,
+      "Contract unavailable"
     ),
   }
 }

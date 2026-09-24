@@ -130,7 +130,8 @@ test("uses PowerShell without putting ticket text in command arguments", async (
   )
   assert.ok(payload.title.includes(hostileSymbol))
   assert.ok(payload.line1.includes("ROUTE_CONFIRMED"))
-  assert.ok(payload.line2.includes("jupiter:Meteora"))
+  assert.ok(payload.line1.includes("jupiter:Meteora"))
+  assert.ok(payload.line2.includes("CA:"))
 })
 
 test("bounds a burst to three native notifications", async () => {
