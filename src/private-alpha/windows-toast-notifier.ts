@@ -34,7 +34,8 @@ const TOAST_SCRIPT = [
   "$title = [Security.SecurityElement]::Escape([string]$payload.title)",
   "$line1 = [Security.SecurityElement]::Escape([string]$payload.line1)",
   "$line2 = [Security.SecurityElement]::Escape([string]$payload.line2)",
-  "$xmlText = \"<toast><visual><binding template='ToastGeneric'><text>$title</text><text>$line1</text><text>$line2</text></binding></visual></toast>\"",
+  "$solscanUrl = [Security.SecurityElement]::Escape([string]$payload.solscanUrl)",
+  "$xmlText = \"<toast><visual><binding template='ToastGeneric'><text>$title</text><text>$line1</text><text>$line2</text></binding></visual><actions><action content='Open in Solscan' arguments='$solscanUrl' activationType='protocol'/></actions></toast>\"",
   "[Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] | Out-Null",
   "[Windows.UI.Notifications.ToastNotification, Windows.UI.Notifications, ContentType = WindowsRuntime] | Out-Null",
   "[Windows.Data.Xml.Dom.XmlDocument, Windows.Data.Xml.Dom.XmlDocument, ContentType = WindowsRuntime] | Out-Null",
@@ -82,6 +83,11 @@ function payload(ticket: MaxAttentionDecisionTicket) {
       `CA: ${contractAddress}`,
       "Contract unavailable"
     ),
+    solscanUrl:
+      ticket.identity.network === "solana" &&
+      ticket.identity.contractAddress
+        ? `https://solscan.io/token/${encodeURIComponent(ticket.identity.contractAddress)}`
+        : "",
   }
 }
 
