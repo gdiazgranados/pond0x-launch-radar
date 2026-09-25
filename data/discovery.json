@@ -1,7 +1,7 @@
 {
-  "checkedAt": "2026-09-25T12:33:06.922Z",
-  "sourceSnapshotId": "2026-09-25_123247",
-  "snapshotDir": "2026-09-25_123247",
+  "checkedAt": "2026-09-25T13:33:31.393Z",
+  "sourceSnapshotId": "2026-09-25_133312",
+  "snapshotDir": "2026-09-25_133312",
   "newUnknownChange": false,
   "keyFunctionCandidate": null,
   "newLabels": [],
@@ -32,10 +32,10 @@
     "/pondsol"
   ],
   "liveApiRoutes": [
-    "/api/auth/session",
-    "/api/max/search",
     "/api/version",
-    "/api/rewards/feed"
+    "/api/auth/session",
+    "/api/rewards/feed",
+    "/api/max/search"
   ],
   "newLiveApiRoutes": [],
   "declaredApiRoutes": [
@@ -75,17 +75,35 @@
     "/api/mp/build",
     "/api/mp/fund-build",
     "/api/stats/memes_new",
-    "/api/auth/session",
     "/api/version",
+    "/api/auth/session",
     "/api/rewards/feed"
   ],
   "observedApiSchemas": {
+    "/api/version": {
+      "schemaFingerprint": "afb74bdaa0d230ecc9dcfd4f70f632a369f194037173b709990f58b85ea07037",
+      "schemaPaths": [
+        "buildId"
+      ],
+      "size": 27,
+      "status": 200
+    },
     "/api/auth/session": {
       "schemaFingerprint": "8fea01e1c363a1f4270e487d656ce760aea198c8d8919aa00d35488220949998",
       "schemaPaths": [
         "ROOT:EMPTY_OBJECT"
       ],
       "size": 2,
+      "status": 200
+    },
+    "/api/rewards/feed": {
+      "schemaFingerprint": "6b0c26f18f3156518d69a8e6d6252f254375d9bbfbf2ed05227e475e86476402",
+      "schemaPaths": [
+        "rewards",
+        "rewards[]",
+        "rewards[]:EMPTY_ARRAY"
+      ],
+      "size": 14,
       "status": 200
     },
     "/api/max/search": {
@@ -134,25 +152,7 @@
         "wallets[]",
         "wallets[]:EMPTY_ARRAY"
       ],
-      "size": 3279,
-      "status": 200
-    },
-    "/api/version": {
-      "schemaFingerprint": "afb74bdaa0d230ecc9dcfd4f70f632a369f194037173b709990f58b85ea07037",
-      "schemaPaths": [
-        "buildId"
-      ],
-      "size": 27,
-      "status": 200
-    },
-    "/api/rewards/feed": {
-      "schemaFingerprint": "6b0c26f18f3156518d69a8e6d6252f254375d9bbfbf2ed05227e475e86476402",
-      "schemaPaths": [
-        "rewards",
-        "rewards[]",
-        "rewards[]:EMPTY_ARRAY"
-      ],
-      "size": 14,
+      "size": 3278,
       "status": 200
     }
   },
@@ -188,7 +188,7 @@
     "rewards"
   ],
   "diagnostics": {
-    "previousSnapshotId": "2026-09-25_113306",
+    "previousSnapshotId": "2026-09-25_123247",
     "freshCounts": {
       "labels": 0,
       "routes": 0,
