@@ -1,6 +1,6 @@
 {
-  "id": "2026-09-26_123315__2026-09-26T12:33:40.509Z",
-  "snapshotId": "2026-09-26_123315",
+  "id": "2026-09-26_133250__2026-09-26T13:33:15.678Z",
+  "snapshotId": "2026-09-26_133250",
   "totalFiles": 64,
   "added": 0,
   "changed": 1,
@@ -22,11 +22,11 @@
   "launchImminent": false,
   "signals": [],
   "backendSignals": [],
-  "patternScore": 15,
+  "patternScore": 0,
   "patterns": [],
   "level": "LOW",
-  "significance": "WATCH",
-  "rarityScore": 50,
+  "significance": "LOW",
+  "rarityScore": 20,
   "focusAreas": [],
   "sensitiveHits": [],
   "changeTypes": [
@@ -40,8 +40,8 @@
   "changedFiles": [
     "css2.css"
   ],
-  "generatedAt": "2026-09-26T12:33:40.509Z",
-  "trend": 10,
+  "generatedAt": "2026-09-26T13:33:15.678Z",
+  "trend": 8,
   "trendDirection": "UP",
   "breakdown": {
     "frontend": {
@@ -190,7 +190,7 @@
     "hasVisibleCTAChange": false
   },
   "evidenceCorrelation": {
-    "apiResponseDrift": false,
+    "apiResponseDrift": true,
     "newApiRoute": false,
     "newLiveApiRoute": false,
     "backendSignal": false,
@@ -203,10 +203,10 @@
     "rewardActivity": false,
     "externalClaimTransfer": false,
     "newRecipient": false,
-    "evidenceCount": 1,
-    "domainCount": 1,
+    "evidenceCount": 2,
+    "domainCount": 2,
     "domains": {
-      "api": false,
+      "api": true,
       "backend": false,
       "semantic": false,
       "webSurface": true,
@@ -214,10 +214,10 @@
       "distributor": false,
       "recipients": false
     },
-    "score": 8,
+    "score": 20,
     "level": "LOW",
     "componentScores": {
-      "api": 0,
+      "api": 12,
       "backend": 0,
       "semantic": 0,
       "webSurface": 8,
@@ -231,27 +231,34 @@
     "semanticClassification": null,
     "newExternalTransfers": 0,
     "newExternalRecipients": 0,
-    "classification": "ISOLATED"
+    "classification": "MULTI_SURFACE"
   },
   "temporalCorrelation": {
     "windowMinutes": 60,
-    "domainCount": 1,
+    "domainCount": 2,
     "sequence": [
-      "webSurface"
+      "webSurface",
+      "api"
     ],
     "events": [
       {
         "domain": "webSurface",
         "seenAt": "2026-09-26T12:33:40.509Z",
+        "source": "history",
+        "detail": null
+      },
+      {
+        "domain": "api",
+        "seenAt": "2026-09-26T13:33:15.678Z",
         "source": "current",
         "detail": null
       }
     ],
     "firstSeenAt": "2026-09-26T12:33:40.509Z",
-    "lastSeenAt": "2026-09-26T12:33:40.509Z",
-    "spanMinutes": 0,
+    "lastSeenAt": "2026-09-26T13:33:15.678Z",
+    "spanMinutes": 60,
     "observedSequencePattern": null,
-    "classification": "NONE",
+    "classification": "LOOSE",
     "interpretation": "No strong cross-domain temporal sequence is established yet."
   },
   "surfaceDiscovery": {
@@ -380,7 +387,7 @@
     },
     "drift": {
       "comparable": true,
-      "baselineSnapshotId": "2026-09-26_113314",
+      "baselineSnapshotId": "2026-09-26_123315",
       "status": "STABLE",
       "newSurfaceCount": 0,
       "missingSurfaceCount": 0,
@@ -405,9 +412,9 @@
     "firstPartyApiCount": 4
   },
   "discovery": {
-    "checkedAt": "2026-09-26T12:33:35.786Z",
-    "sourceSnapshotId": "2026-09-26_123315",
-    "snapshotDir": "2026-09-26_123315",
+    "checkedAt": "2026-09-26T13:33:09.113Z",
+    "sourceSnapshotId": "2026-09-26_133250",
+    "snapshotDir": "2026-09-26_133250",
     "newUnknownChange": false,
     "keyFunctionCandidate": null,
     "newLabels": [],
@@ -417,23 +424,48 @@
     "newKeywords": [],
     "criticalKeywords": [],
     "apiResponseDrift": {
-      "detected": false,
-      "changedRouteCount": 0,
-      "changedRoutes": []
+      "detected": true,
+      "changedRouteCount": 1,
+      "changedRoutes": [
+        {
+          "route": "/api/max/search",
+          "previousFingerprint": "b033be8910c912395de110294e92411bb1f4c18fded5eeea530d9eb83a88859c",
+          "currentFingerprint": "2b46c18db8e6c0c98dcda44b94c572429f88f32caac0aeff94b3fc7015029d5d",
+          "previousSize": 3215,
+          "currentSize": 1534,
+          "sizeDelta": -1681,
+          "addedPaths": [
+            "trending[]:EMPTY_ARRAY"
+          ],
+          "removedPaths": [
+            "trending[].address",
+            "trending[].change24h",
+            "trending[].icon",
+            "trending[].liquidity",
+            "trending[].marketCap",
+            "trending[].name",
+            "trending[].network",
+            "trending[].price",
+            "trending[].symbol",
+            "trending[].verified",
+            "trending[].volume24h"
+          ]
+        }
+      ]
     }
   },
   "whyItMatters": "",
-  "alphaScore": 27,
-  "alphaClass": "WATCH",
-  "triggerState": "WATCHING",
-  "suggestedAction": "Watch closely and wait for confirmation.",
+  "alphaScore": 24,
+  "alphaClass": "NOISE",
+  "triggerState": "IDLE",
+  "suggestedAction": "Ignore noise and continue baseline monitoring.",
   "activationState": "IDLE",
   "activationAction": "No fresh activation event confirmed.",
   "eventType": "NOISE",
-  "signalRegime": "TRANSITIONAL SIGNAL",
+  "signalRegime": "NOISE DISGUISED AS SIGNAL",
   "signalFusion": "UNCLASSIFIED SIGNAL MIX",
   "priority": "LOW",
   "eta": "unknown",
   "signature": "LOW::10::::",
-  "alertSignature": "d0736564dafc1d7c3e15b2eda05d7a8e3a448d20db204f708620172352d05407"
+  "alertSignature": "83ebb3762b64088ef4e567755c8a589a6bda815e8d1b22c58fd197f3223b4428"
 }
