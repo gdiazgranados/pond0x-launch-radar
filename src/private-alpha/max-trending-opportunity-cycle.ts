@@ -104,6 +104,7 @@ export async function coordinateMaxTrendingOpportunityCycle(input: {
   const communityResponseResult = await coordinateMaxCommunityResponse({
     store: input.communityResponseStore,
     opportunity: observation.opportunity,
+    currentTrending: observation.rawSnapshot.trending,
   })
   const communityEpisodes = communityResponseResult.ledger.episodes
   const communityResponse = {

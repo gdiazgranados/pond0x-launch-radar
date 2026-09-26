@@ -1,6 +1,7 @@
-import type {
+﻿import type {
   MaxTrendingOpportunityClassification,
 } from "./max-trending-opportunity-classifier"
+import type { MaxTrendingAsset } from "./max-trending-client"
 
 const MAX_EPISODES = 100
 const RETENTION_MS = 30 * 24 * 60 * 60 * 1_000
@@ -15,6 +16,11 @@ export type MaxCommunityResponseCheckpoint = {
   lagMs: number
   present: boolean
   position: number | null
+  price?: number | null
+  change24h?: number | null
+  liquidity?: number | null
+  marketCap?: number | null
+  volume24h?: number | null
 }
 
 export type MaxCommunityResponseEpisode = {
@@ -76,7 +82,22 @@ function assertCheckpoint(
     typeof value.present !== "boolean" ||
     (value.position !== null &&
       (!Number.isInteger(value.position) || Number(value.position) < 1)) ||
-    (value.present ? value.position === null : value.position !== null)
+    (value.present ? value.position === null : value.position !== null) ||
+    ("price" in value &&
+      value.price !== null &&
+      typeof value.price !== "number") ||
+    ("change24h" in value &&
+      value.change24h !== null &&
+      typeof value.change24h !== "number") ||
+    ("liquidity" in value &&
+      value.liquidity !== null &&
+      typeof value.liquidity !== "number") ||
+    ("marketCap" in value &&
+      value.marketCap !== null &&
+      typeof value.marketCap !== "number") ||
+    ("volume24h" in value &&
+      value.volume24h !== null &&
+      typeof value.volume24h !== "number")
   ) {
     throw new Error("invalid MAX community response checkpoint")
   }
@@ -194,7 +215,8 @@ export async function loadMaxCommunityResponseLedger(
 function checkpoint(
   episode: MaxCommunityResponseEpisode,
   targetSeconds: MaxCommunityCheckpointSeconds,
-  capturedAt: string
+  capturedAt: string,
+  asset?: MaxTrendingAsset
 ): MaxCommunityResponseCheckpoint {
   const targetAt = Date.parse(episode.triggeredAt) + targetSeconds * 1_000
   return {
@@ -203,12 +225,18 @@ function checkpoint(
     lagMs: Math.max(0, Date.parse(capturedAt) - targetAt),
     present: episode.currentPresent,
     position: episode.currentPosition,
+    price: asset?.price ?? null,
+    change24h: asset?.change24h ?? null,
+    liquidity: asset?.liquidity ?? null,
+    marketCap: asset?.marketCap ?? null,
+    volume24h: asset?.volume24h ?? null,
   }
 }
 
 function createEpisode(
   candidate: MaxTrendingOpportunityClassification["candidates"][number],
-  observedAt: string
+  observedAt: string,
+  asset?: MaxTrendingAsset
 ): MaxCommunityResponseEpisode {
   const base: MaxCommunityResponseEpisode = {
     candidateId: candidate.candidateId,
@@ -233,7 +261,7 @@ function createEpisode(
   }
   return {
     ...base,
-    checkpoints: [checkpoint(base, 0, observedAt)],
+    checkpoints: [checkpoint(base, 0, observedAt, asset)],
   }
 }
 
@@ -273,7 +301,8 @@ function applyCurrentState(
 
 function addDueCheckpoints(
   episode: MaxCommunityResponseEpisode,
-  observedAt: string
+  observedAt: string,
+  asset?: MaxTrendingAsset
 ) {
   const elapsedMs = Date.parse(observedAt) - Date.parse(episode.triggeredAt)
   const existing = new Set(
@@ -286,7 +315,7 @@ function addDueCheckpoints(
 
   const checkpoints = [
     ...episode.checkpoints,
-    ...due.map(seconds => checkpoint(episode, seconds, observedAt)),
+    ...due.map(seconds => checkpoint(episode, seconds, observedAt, asset)),
   ]
   return {
     ...episode,
@@ -322,9 +351,13 @@ function retainEpisodes(
 export async function coordinateMaxCommunityResponse(input: {
   store: MaxCommunityResponseStore
   opportunity: MaxTrendingOpportunityClassification
+  currentTrending: ReadonlyArray<MaxTrendingAsset>
 }) {
   const ledger = await loadMaxCommunityResponseLedger(input.store)
   const observedAt = input.opportunity.observedAt
+  const currentAssets = new Map(
+    input.currentTrending.map(asset => [asset.identityKey, asset])
+  )
   if (
     ledger.updatedAt !== null &&
     Date.parse(observedAt) < Date.parse(ledger.updatedAt)
@@ -352,7 +385,11 @@ export async function coordinateMaxCommunityResponse(input: {
     }
     episodes.set(
       candidate.candidateId,
-      createEpisode(candidate, observedAt)
+      createEpisode(
+        candidate,
+        observedAt,
+        currentAssets.get(candidate.identityKey)
+      )
     )
   }
 
@@ -360,7 +397,13 @@ export async function coordinateMaxCommunityResponse(input: {
     const current = applyCurrentState(episode, input.opportunity)
     episodes.set(
       candidateId,
-      addDueCheckpoints(current, observedAt)
+      addDueCheckpoints(
+        current,
+        observedAt,
+        current.currentPresent
+          ? currentAssets.get(current.identityKey)
+          : undefined
+      )
     )
   }
 
@@ -388,3 +431,4 @@ export async function coordinateMaxCommunityResponse(input: {
   }
   return { changed: true, ledger: next }
 }
+
