@@ -317,10 +317,234 @@ test("an unchanged cycle reuses definitive on-chain evidence", async () => {
     communityLedger.episodes[0].checkpoints.map(
       (checkpoint: { targetSeconds: number }) => checkpoint.targetSeconds
     ),
-    [0, 30, 60]
+    [0, 30]
   )
 })
 
+test("captures long community checkpoints through MAX token lookup with retry semantics", async () => {
+  const state = stores()
+  const start = "2026-09-17T03:00:00.000Z"
+
+  const baseline = snapshot(
+    "2026-09-17T02:59:00.000Z",
+    [asset(MINT_A, "BASE", 1)]
+  )
+  const candidate = snapshot(
+    start,
+    [
+      asset(MINT_A, "BASE", 1),
+      {
+        ...asset(MINT_B, "NEW", 2),
+        price: 1,
+        change24h: 5,
+        liquidity: 1_000_000,
+        marketCap: 10_000_000,
+        volume24h: 2_000_000,
+      },
+    ]
+  )
+
+  const validateMint = async (input: {
+    contractAddress: string
+    now?: () => Date
+  }) => validation(
+    input.contractAddress,
+    input.now!().toISOString()
+  )
+
+  await coordinateMaxTrendingOpportunityCycle({
+    ...state,
+    rpcUrl: "https://rpc.example.com",
+    observe: async () => baseline,
+    validateMint,
+    now: () => new Date("2026-09-17T02:59:01.000Z"),
+  })
+
+  await coordinateMaxTrendingOpportunityCycle({
+    ...state,
+    rpcUrl: "https://rpc.example.com",
+    observe: async () => candidate,
+    validateMint,
+    now: () => new Date("2026-09-17T03:00:01.000Z"),
+  })
+
+  for (const seconds of [30, 60, 120]) {
+    await coordinateMaxTrendingOpportunityCycle({
+      ...state,
+      rpcUrl: "https://rpc.example.com",
+      observe: async () => snapshot(
+        new Date(Date.parse(start) + seconds * 1_000).toISOString(),
+        candidate.trending
+      ),
+      validateMint,
+      now: () => new Date(
+        Date.parse(start) + seconds * 1_000 + 1_000
+      ),
+    })
+  }
+
+  let lookupCalls = 0
+
+  await coordinateMaxTrendingOpportunityCycle({
+    ...state,
+    rpcUrl: "https://rpc.example.com",
+    observe: async () => snapshot(
+      new Date(Date.parse(start) + 302 * 1_000).toISOString(),
+      candidate.trending
+    ),
+    observeToken: async contractAddress => {
+      lookupCalls += 1
+      assert.equal(contractAddress, MINT_B)
+      return {
+        ...asset(MINT_B, "NEW", 1),
+        price: 1.5,
+        change24h: 10,
+        liquidity: 1_500_000,
+        marketCap: 15_000_000,
+        volume24h: 2_500_000,
+      }
+    },
+    validateMint,
+    now: () => new Date(
+      Date.parse(start) + 303 * 1_000
+    ),
+  })
+
+  let ledger = JSON.parse(
+    state.communityResponseStore.serialized ?? "{}"
+  )
+  let episode = ledger.episodes[0]
+  let checkpoint = episode.checkpoints.at(-1)
+
+  assert.equal(lookupCalls, 1)
+  assert.equal(checkpoint.targetSeconds, 300)
+  assert.equal(checkpoint.marketObservation, "LOOKUP")
+  assert.equal(checkpoint.price, 1.5)
+
+  await coordinateMaxTrendingOpportunityCycle({
+    ...state,
+    rpcUrl: "https://rpc.example.com",
+    observe: async () => snapshot(
+      new Date(Date.parse(start) + 902 * 1_000).toISOString(),
+      candidate.trending
+    ),
+    observeToken: async contractAddress => {
+      lookupCalls += 1
+      assert.equal(contractAddress, MINT_B)
+      return null
+    },
+    validateMint,
+    now: () => new Date(
+      Date.parse(start) + 903 * 1_000
+    ),
+  })
+
+  ledger = JSON.parse(
+    state.communityResponseStore.serialized ?? "{}"
+  )
+  episode = ledger.episodes[0]
+  checkpoint = episode.checkpoints.at(-1)
+
+  assert.equal(lookupCalls, 2)
+  assert.equal(checkpoint.targetSeconds, 900)
+  assert.equal(checkpoint.marketObservation, "NOT_FOUND")
+  assert.equal(checkpoint.price, null)
+
+  await coordinateMaxTrendingOpportunityCycle({
+    ...state,
+    rpcUrl: "https://rpc.example.com",
+    observe: async () => snapshot(
+      new Date(Date.parse(start) + 1802 * 1_000).toISOString(),
+      candidate.trending
+    ),
+    observeToken: async () => {
+      lookupCalls += 1
+      throw new Error("temporary MAX lookup failure")
+    },
+    validateMint,
+    now: () => new Date(
+      Date.parse(start) + 1803 * 1_000
+    ),
+  })
+
+  ledger = JSON.parse(
+    state.communityResponseStore.serialized ?? "{}"
+  )
+  episode = ledger.episodes[0]
+
+  assert.equal(lookupCalls, 3)
+  assert.deepEqual(
+    episode.checkpoints.map(
+      (item: { targetSeconds: number }) => item.targetSeconds
+    ),
+    [0, 30, 60, 120, 300, 900]
+  )
+
+  await coordinateMaxTrendingOpportunityCycle({
+    ...state,
+    rpcUrl: "https://rpc.example.com",
+    observe: async () => snapshot(
+      new Date(Date.parse(start) + 1810 * 1_000).toISOString(),
+      candidate.trending
+    ),
+    observeToken: async contractAddress => {
+      lookupCalls += 1
+      assert.equal(contractAddress, MINT_B)
+      return {
+        ...asset(MINT_B, "NEW", 1),
+        price: 1.7,
+        change24h: 12,
+        liquidity: 1_700_000,
+        marketCap: 17_000_000,
+        volume24h: 2_700_000,
+      }
+    },
+    validateMint,
+    now: () => new Date(
+      Date.parse(start) + 1811 * 1_000
+    ),
+  })
+
+  ledger = JSON.parse(
+    state.communityResponseStore.serialized ?? "{}"
+  )
+  episode = ledger.episodes[0]
+  checkpoint = episode.checkpoints.at(-1)
+
+  assert.equal(lookupCalls, 4)
+  assert.equal(checkpoint.targetSeconds, 1800)
+  assert.equal(checkpoint.marketObservation, "LOOKUP")
+  assert.equal(checkpoint.price, 1.7)
+
+  await coordinateMaxTrendingOpportunityCycle({
+    ...state,
+    rpcUrl: "https://rpc.example.com",
+    observe: async () => snapshot(
+      new Date(Date.parse(start) + 3700 * 1_000).toISOString(),
+      candidate.trending
+    ),
+    observeToken: async () => {
+      lookupCalls += 1
+      throw new Error("lookup must not run after tolerance")
+    },
+    validateMint,
+    now: () => new Date(
+      Date.parse(start) + 3701 * 1_000
+    ),
+  })
+
+  ledger = JSON.parse(
+    state.communityResponseStore.serialized ?? "{}"
+  )
+  episode = ledger.episodes[0]
+  checkpoint = episode.checkpoints.at(-1)
+
+  assert.equal(lookupCalls, 4)
+  assert.equal(checkpoint.targetSeconds, 3600)
+  assert.equal(checkpoint.marketObservation, "MISSED")
+  assert.equal(checkpoint.price, null)
+  assert.notEqual(episode.completedAt, null)
+})
 test("fails visibly after preserving a recoverable inbox candidate", async () => {
   const state = stores()
   await coordinateMaxTrendingOpportunityCycle({

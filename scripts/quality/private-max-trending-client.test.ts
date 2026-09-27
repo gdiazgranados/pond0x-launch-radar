@@ -1,6 +1,7 @@
 import test from "node:test"
 import assert from "node:assert/strict"
 import {
+  observeMaxToken,
   observeMaxTrending,
   parseMaxTrendingPayload,
 } from "../../src/private-alpha/max-trending-client"
@@ -160,5 +161,133 @@ test("fails closed on HTTP, content type, JSON and size errors", async () => {
       }),
     }),
     /size limit/
+  )
+})
+
+test("looks up one MAX token by exact contract address", async () => {
+  let requestedUrl = ""
+  let requestedInit: RequestInit | undefined
+
+  const result = await observeMaxToken(solanaMint, {
+    fetcher: async (input, init) => {
+      requestedUrl = String(input)
+      requestedInit = init
+      return jsonResponse({
+        tokens: [{
+          address: solanaMint,
+          symbol: "TEST",
+          name: "Test Token",
+          network: "solana",
+          verified: true,
+          price: 2.5,
+          marketCap: 5000000,
+          volume24h: 750000,
+          liquidity: 250000,
+          change24h: 12.5,
+        }],
+        trending: [],
+      })
+    },
+  })
+
+  const url = new URL(requestedUrl)
+  assert.equal(url.origin, "https://www.pond0x.com")
+  assert.equal(url.pathname, "/api/max/search")
+  assert.equal(url.searchParams.get("q"), solanaMint)
+  assert.equal(url.searchParams.get("verified"), "false")
+  assert.equal(url.searchParams.get("network"), "all")
+  assert.equal(requestedInit?.method, "GET")
+  assert.equal(requestedInit?.redirect, "error")
+  assert.equal(requestedInit?.cache, "no-store")
+
+  assert.deepEqual(result, {
+    network: "solana",
+    contractAddress: solanaMint,
+    symbol: "TEST",
+    name: "Test Token",
+    position: 1,
+    price: 2.5,
+    change24h: 12.5,
+    liquidity: 250000,
+    marketCap: 5000000,
+    volume24h: 750000,
+    identityKey: `solana:${solanaMint}`,
+  })
+})
+
+test("returns null when MAX token lookup has no exact contract match", async () => {
+  const empty = await observeMaxToken(solanaMint, {
+    fetcher: async () => jsonResponse({
+      tokens: [],
+      trending: [],
+    }),
+  })
+  assert.equal(empty, null)
+
+  const otherMint = "So11111111111111111111111111111111111111112"
+  const mismatch = await observeMaxToken(solanaMint, {
+    fetcher: async () => jsonResponse({
+      tokens: [{
+        address: otherMint,
+        symbol: "OTHER",
+        name: "Other Token",
+        network: "solana",
+      }],
+      trending: [],
+    }),
+  })
+  assert.equal(mismatch, null)
+})
+
+test("fails closed on duplicate MAX token contract matches", async () => {
+  const token = {
+    address: solanaMint,
+    symbol: "TEST",
+    name: "Test Token",
+    network: "solana",
+  }
+
+  await assert.rejects(
+    () => observeMaxToken(solanaMint, {
+      fetcher: async () => jsonResponse({
+        tokens: [token, token],
+        trending: [],
+      }),
+    }),
+    /duplicate contract matches/
+  )
+})
+
+test("fails closed on malformed MAX token lookup responses", async () => {
+  await assert.rejects(
+    () => observeMaxToken(solanaMint, {
+      fetcher: async () => jsonResponse({}, 429),
+    }),
+    /HTTP 429/
+  )
+
+  await assert.rejects(
+    () => observeMaxToken(solanaMint, {
+      fetcher: async () => new Response("<html />", {
+        headers: { "content-type": "text/html" },
+      }),
+    }),
+    /non-JSON/
+  )
+
+  await assert.rejects(
+    () => observeMaxToken(solanaMint, {
+      fetcher: async () => new Response("not-json", {
+        headers: { "content-type": "application/json" },
+      }),
+    }),
+    /invalid JSON/
+  )
+
+  await assert.rejects(
+    () => observeMaxToken(solanaMint, {
+      fetcher: async () => jsonResponse({ trending: [] }),
+    }),
+    /tokens array/
   )
 })

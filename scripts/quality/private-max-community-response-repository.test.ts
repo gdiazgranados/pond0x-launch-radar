@@ -242,11 +242,190 @@ test("records T0 and the bounded 30, 60 and 120 second checkpoints", async () =>
     [2_000_000, 2_100_000, 2_200_000, 2_300_000]
   )
 
-  assert.equal(episode?.completedAt, "2026-09-17T00:02:00.000Z")
+  assert.equal(episode?.checkpointPlanVersion, 2)
+  assert.deepEqual(
+    episode?.checkpoints.map(item => item.marketObservation),
+    ["SNAPSHOT", "SNAPSHOT", "SNAPSHOT", "SNAPSHOT"]
+  )
+  assert.equal(episode?.completedAt, null)
   assert.equal(episode?.successProbability, null)
   assert.equal(episode?.investmentRecommendation, null)
   assert.equal(final.changed, false)
 })
+test("captures only the next due V2 checkpoint per cycle", async () => {
+  const ledgerStore = store()
+  const start = "2026-09-17T00:00:00.000Z"
+
+  await coordinateMaxCommunityResponse({
+    store: ledgerStore,
+    opportunity: opportunity({ observedAt: start, candidate: true }),
+    currentTrending: [trendingAsset()],
+  })
+
+  for (const seconds of [30, 60, 120]) {
+    await coordinateMaxCommunityResponse({
+      store: ledgerStore,
+      opportunity: opportunity({
+        observedAt: new Date(
+          Date.parse(start) + seconds * 1_000
+        ).toISOString(),
+      }),
+      currentTrending: [trendingAsset()],
+    })
+  }
+
+  const lookupAsset = trendingAsset({
+    price: 1.5,
+    change24h: 10,
+    liquidity: 1_500_000,
+    marketCap: 15_000_000,
+    volume24h: 2_500_000,
+  })
+
+  const at302 = await coordinateMaxCommunityResponse({
+    store: ledgerStore,
+    opportunity: opportunity({
+      observedAt: new Date(
+        Date.parse(start) + 302 * 1_000
+      ).toISOString(),
+    }),
+    currentTrending: [],
+    lookupObservations: [{
+      candidateId:
+        "max-attention:2026-09-17T00:00:00.000Z:solana:Mint1111111111111111111111111111111111111",
+      targetSeconds: 300,
+      marketObservation: "LOOKUP",
+      asset: lookupAsset,
+    }],
+  })
+
+  const episode = at302.ledger.episodes[0]
+  assert.deepEqual(
+    episode?.checkpoints.map(item => item.targetSeconds),
+    [0, 30, 60, 120, 300]
+  )
+  assert.equal(episode?.checkpoints[4]?.lagMs, 2_000)
+  assert.equal(episode?.checkpoints[4]?.marketObservation, "LOOKUP")
+  assert.equal(episode?.checkpoints[4]?.price, 1.5)
+  assert.equal(episode?.completedAt, null)
+})
+
+test("marks an overdue V2 checkpoint MISSED without backfilling later targets", async () => {
+  const ledgerStore = store()
+  const start = "2026-09-17T00:00:00.000Z"
+
+  await coordinateMaxCommunityResponse({
+    store: ledgerStore,
+    opportunity: opportunity({ observedAt: start, candidate: true }),
+    currentTrending: [trendingAsset()],
+  })
+
+  for (const seconds of [30, 60, 120]) {
+    await coordinateMaxCommunityResponse({
+      store: ledgerStore,
+      opportunity: opportunity({
+        observedAt: new Date(
+          Date.parse(start) + seconds * 1_000
+        ).toISOString(),
+      }),
+      currentTrending: [trendingAsset()],
+    })
+  }
+
+  const late = await coordinateMaxCommunityResponse({
+    store: ledgerStore,
+    opportunity: opportunity({
+      observedAt: new Date(
+        Date.parse(start) + 400 * 1_000
+      ).toISOString(),
+    }),
+    currentTrending: [
+      trendingAsset({
+        price: 9.99,
+        change24h: 99,
+        liquidity: 9_000_000,
+        marketCap: 90_000_000,
+        volume24h: 8_000_000,
+      }),
+    ],
+  })
+
+  const episode = late.ledger.episodes[0]
+  assert.deepEqual(
+    episode?.checkpoints.map(item => item.targetSeconds),
+    [0, 30, 60, 120, 300]
+  )
+
+  const missed = episode?.checkpoints[4]
+  assert.equal(missed?.lagMs, 100_000)
+  assert.equal(missed?.marketObservation, "MISSED")
+  assert.equal(missed?.price, null)
+  assert.equal(missed?.change24h, null)
+  assert.equal(missed?.liquidity, null)
+  assert.equal(missed?.marketCap, null)
+  assert.equal(missed?.volume24h, null)
+  assert.equal(episode?.completedAt, null)
+})
+
+test("keeps historical episodes without a plan version compatible with V1", () => {
+  const serialized = JSON.stringify({
+    schemaVersion: 1,
+    revision: 1,
+    updatedAt: "2026-09-17T00:02:00.000Z",
+    episodes: [{
+      candidateId:
+        "max-attention:2026-09-17T00:00:00.000Z:solana:Mint1111111111111111111111111111111111111",
+      identityKey:
+        "solana:Mint1111111111111111111111111111111111111",
+      network: "solana",
+      contractAddress:
+        "Mint1111111111111111111111111111111111111",
+      symbol: "TEST",
+      name: "Test Token",
+      trigger: "NEW",
+      triggeredAt: "2026-09-17T00:00:00.000Z",
+      initialPosition: 2,
+      currentPresent: true,
+      currentPosition: 2,
+      currentUpdatedAt: "2026-09-17T00:02:00.000Z",
+      checkpoints: [0, 30, 60, 120].map(targetSeconds => ({
+        targetSeconds,
+        capturedAt: new Date(
+          Date.parse("2026-09-17T00:00:00.000Z") +
+          targetSeconds * 1_000
+        ).toISOString(),
+        lagMs: 0,
+        present: true,
+        position: 2,
+        price: 1,
+        change24h: 5,
+        liquidity: 1_000_000,
+        marketCap: 10_000_000,
+        volume24h: 2_000_000,
+      })),
+      completedAt: "2026-09-17T00:02:00.000Z",
+      successProbability: null,
+      investmentRecommendation: null,
+      watchOnly: true,
+      approvalGranted: false,
+      transactionRequested: false,
+    }],
+  })
+
+  const ledger = parseMaxCommunityResponseLedger(serialized)
+  const episode = ledger.episodes[0]
+
+  assert.equal(episode?.checkpointPlanVersion, undefined)
+  assert.deepEqual(
+    episode?.checkpoints.map(item => item.targetSeconds),
+    [0, 30, 60, 120]
+  )
+  assert.equal(
+    episode?.completedAt,
+    "2026-09-17T00:02:00.000Z"
+  )
+})
+
 test("carries position and removal evidence into due checkpoints", async () => {
   const ledgerStore = store()
   const start = "2026-09-17T00:00:00.000Z"

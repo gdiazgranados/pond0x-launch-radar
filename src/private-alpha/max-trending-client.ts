@@ -271,3 +271,83 @@ export async function observeMaxTrending(
     (input.now ?? (() => new Date()))().toISOString()
   )
 }
+export async function observeMaxToken(
+  contractAddress: string,
+  input: {
+    fetcher?: FetchLike
+  } = {}
+): Promise<MaxTrendingAsset | null> {
+  const requested = contractAddress.trim()
+  if (!requested || requested.length > 128) {
+    throw new Error("MAX token lookup contract address is invalid")
+  }
+
+  const url = new URL(PONDOX_MAX_SEARCH_URL)
+  url.searchParams.set("q", requested)
+
+  const response = await (input.fetcher ?? fetch)(url, {
+    method: "GET",
+    headers: {
+      accept: "application/json",
+      "user-agent": "pond0x-launch-radar/1.0",
+    },
+    signal: AbortSignal.timeout(10_000),
+    cache: "no-store",
+    redirect: "error",
+  })
+
+  if (!response.ok) {
+    throw new Error(`Pond0x MAX returned HTTP ${response.status}`)
+  }
+
+  const contentType = response.headers.get("content-type") ?? ""
+  if (!contentType.toLowerCase().includes("application/json")) {
+    throw new Error("Pond0x MAX returned non-JSON content")
+  }
+
+  const contentLength = Number(response.headers.get("content-length"))
+  if (Number.isFinite(contentLength) && contentLength > MAX_RESPONSE_BYTES) {
+    throw new Error("Pond0x MAX response exceeds size limit")
+  }
+
+  const body = await response.text()
+  if (Buffer.byteLength(body, "utf8") > MAX_RESPONSE_BYTES) {
+    throw new Error("Pond0x MAX response exceeds size limit")
+  }
+
+  let payload: unknown
+  try {
+    payload = JSON.parse(body)
+  } catch {
+    throw new Error("Pond0x MAX returned invalid JSON")
+  }
+
+  const root = record(payload)
+  if (!root || !Array.isArray(root.tokens)) {
+    throw new Error("MAX token lookup payload must contain tokens array")
+  }
+
+  if (root.tokens.length === 0) {
+    return null
+  }
+
+  const matches = root.tokens
+    .map((value, index) => parseAsset(value, index + 1))
+    .filter(asset => {
+      const normalizedRequested = normalizeContract(
+        asset.network,
+        requested
+      )
+      return asset.contractAddress === normalizedRequested
+    })
+
+  if (matches.length === 0) {
+    return null
+  }
+
+  if (matches.length !== 1) {
+    throw new Error("MAX token lookup returned duplicate contract matches")
+  }
+
+  return matches[0]
+}

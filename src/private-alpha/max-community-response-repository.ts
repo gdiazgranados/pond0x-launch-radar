@@ -1,19 +1,52 @@
-﻿import type {
+import type {
   MaxTrendingOpportunityClassification,
 } from "./max-trending-opportunity-classifier"
 import type { MaxTrendingAsset } from "./max-trending-client"
 
 const MAX_EPISODES = 100
 const RETENTION_MS = 30 * 24 * 60 * 60 * 1_000
-export const MAX_COMMUNITY_CHECKPOINT_SECONDS = [0, 30, 60, 120] as const
+export const MAX_COMMUNITY_CHECKPOINT_SECONDS_V1 = [0, 30, 60, 120] as const
+export const MAX_COMMUNITY_CHECKPOINT_SECONDS_V2 = [
+  0,
+  30,
+  60,
+  120,
+  300,
+  900,
+  1800,
+  3600,
+] as const
 
+export type MaxCommunityCheckpointPlanVersion = 1 | 2
 export type MaxCommunityCheckpointSeconds =
-  (typeof MAX_COMMUNITY_CHECKPOINT_SECONDS)[number]
+  (typeof MAX_COMMUNITY_CHECKPOINT_SECONDS_V2)[number]
+
+function checkpointPlan(
+  version: MaxCommunityCheckpointPlanVersion
+): readonly MaxCommunityCheckpointSeconds[] {
+  return version === 1
+    ? MAX_COMMUNITY_CHECKPOINT_SECONDS_V1
+    : MAX_COMMUNITY_CHECKPOINT_SECONDS_V2
+}
+
+export type MaxCommunityMarketObservation =
+  | "SNAPSHOT"
+  | "LOOKUP"
+  | "NOT_FOUND"
+  | "MISSED"
+
+export type MaxCommunityLookupObservation = {
+  candidateId: string
+  targetSeconds: MaxCommunityCheckpointSeconds
+  marketObservation: "LOOKUP" | "NOT_FOUND"
+  asset: MaxTrendingAsset | null
+}
 
 export type MaxCommunityResponseCheckpoint = {
   targetSeconds: MaxCommunityCheckpointSeconds
   capturedAt: string
   lagMs: number
+  marketObservation?: MaxCommunityMarketObservation
   present: boolean
   position: number | null
   price?: number | null
@@ -33,6 +66,7 @@ export type MaxCommunityResponseEpisode = {
   trigger: "NEW" | "REAPPEARED"
   triggeredAt: string
   initialPosition: number
+  checkpointPlanVersion?: MaxCommunityCheckpointPlanVersion
   currentPresent: boolean
   currentPosition: number | null
   currentUpdatedAt: string
@@ -68,12 +102,18 @@ function timestamp(value: unknown): value is string {
   return typeof value === "string" && Number.isFinite(Date.parse(value))
 }
 
+function episodeCheckpointPlan(
+  episode: Pick<MaxCommunityResponseEpisode, "checkpointPlanVersion">
+) {
+  return checkpointPlan(episode.checkpointPlanVersion ?? 1)
+}
+
 function assertCheckpoint(
   value: unknown
 ): asserts value is MaxCommunityResponseCheckpoint {
   if (
     !record(value) ||
-    !MAX_COMMUNITY_CHECKPOINT_SECONDS.includes(
+    !MAX_COMMUNITY_CHECKPOINT_SECONDS_V2.includes(
       value.targetSeconds as MaxCommunityCheckpointSeconds
     ) ||
     !timestamp(value.capturedAt) ||
@@ -83,6 +123,11 @@ function assertCheckpoint(
     (value.position !== null &&
       (!Number.isInteger(value.position) || Number(value.position) < 1)) ||
     (value.present ? value.position === null : value.position !== null) ||
+    ("marketObservation" in value &&
+      value.marketObservation !== "SNAPSHOT" &&
+      value.marketObservation !== "LOOKUP" &&
+      value.marketObservation !== "NOT_FOUND" &&
+      value.marketObservation !== "MISSED") ||
     ("price" in value &&
       value.price !== null &&
       typeof value.price !== "number") ||
@@ -122,6 +167,9 @@ function assertEpisode(
     !timestamp(value.triggeredAt) ||
     !Number.isInteger(value.initialPosition) ||
     Number(value.initialPosition) < 1 ||
+    ("checkpointPlanVersion" in value &&
+      value.checkpointPlanVersion !== 1 &&
+      value.checkpointPlanVersion !== 2) ||
     typeof value.currentPresent !== "boolean" ||
     (value.currentPosition !== null &&
       (!Number.isInteger(value.currentPosition) ||
@@ -137,22 +185,28 @@ function assertEpisode(
     value.approvalGranted !== false ||
     value.transactionRequested !== false ||
     !Array.isArray(value.checkpoints) ||
-    value.checkpoints.length < 1 ||
-    value.checkpoints.length > MAX_COMMUNITY_CHECKPOINT_SECONDS.length
+    value.checkpoints.length < 1
   ) {
     throw new Error("invalid MAX community response episode")
+  }
+
+  const plan = episodeCheckpointPlan(value)
+  if (value.checkpoints.length > plan.length) {
+    throw new Error("invalid MAX community checkpoint count")
   }
 
   let previousTarget = -1
   for (const checkpoint of value.checkpoints) {
     assertCheckpoint(checkpoint)
-    if (checkpoint.targetSeconds <= previousTarget) {
+    if (
+      !plan.includes(checkpoint.targetSeconds) ||
+      checkpoint.targetSeconds <= previousTarget
+    ) {
       throw new Error("invalid MAX community checkpoint order")
     }
     previousTarget = checkpoint.targetSeconds
   }
-  const complete =
-    value.checkpoints.length === MAX_COMMUNITY_CHECKPOINT_SECONDS.length
+  const complete = value.checkpoints.length === plan.length
   if (complete !== (value.completedAt !== null)) {
     throw new Error("invalid MAX community completion state")
   }
@@ -216,13 +270,15 @@ function checkpoint(
   episode: MaxCommunityResponseEpisode,
   targetSeconds: MaxCommunityCheckpointSeconds,
   capturedAt: string,
-  asset?: MaxTrendingAsset
+  asset?: MaxTrendingAsset,
+  marketObservation: MaxCommunityMarketObservation = "SNAPSHOT"
 ): MaxCommunityResponseCheckpoint {
   const targetAt = Date.parse(episode.triggeredAt) + targetSeconds * 1_000
   return {
     targetSeconds,
     capturedAt,
     lagMs: Math.max(0, Date.parse(capturedAt) - targetAt),
+    marketObservation,
     present: episode.currentPresent,
     position: episode.currentPosition,
     price: asset?.price ?? null,
@@ -248,6 +304,7 @@ function createEpisode(
     trigger: candidate.trigger,
     triggeredAt: observedAt,
     initialPosition: candidate.position,
+    checkpointPlanVersion: 2,
     currentPresent: true,
     currentPosition: candidate.position,
     currentUpdatedAt: observedAt,
@@ -299,29 +356,120 @@ function applyCurrentState(
   return episode
 }
 
+const CHECKPOINT_CAPTURE_TOLERANCE_MS = 90_000
+
+export type MaxCommunityLookupRequest = {
+  candidateId: string
+  contractAddress: string
+  targetSeconds: MaxCommunityCheckpointSeconds
+}
+
+export function deriveDueMaxCommunityLookups(
+  ledger: MaxCommunityResponseLedger,
+  observedAt: string
+): ReadonlyArray<MaxCommunityLookupRequest> {
+  const observedAtMs = Date.parse(observedAt)
+
+  return ledger.episodes.flatMap(episode => {
+    if (episode.completedAt !== null) return []
+
+    const existing = new Set(
+      episode.checkpoints.map(item => item.targetSeconds)
+    )
+    const plan = episodeCheckpointPlan(episode)
+    const nextTarget = plan.find(
+      seconds => !existing.has(seconds)
+    )
+
+    if (nextTarget === undefined || nextTarget < 300) {
+      return []
+    }
+
+    const targetAt =
+      Date.parse(episode.triggeredAt) + nextTarget * 1_000
+    const lagMs = observedAtMs - targetAt
+
+    if (
+      lagMs < 0 ||
+      lagMs > CHECKPOINT_CAPTURE_TOLERANCE_MS
+    ) {
+      return []
+    }
+
+    return [{
+      candidateId: episode.candidateId,
+      contractAddress: episode.contractAddress,
+      targetSeconds: nextTarget,
+    }]
+  })
+}
+
 function addDueCheckpoints(
   episode: MaxCommunityResponseEpisode,
   observedAt: string,
-  asset?: MaxTrendingAsset
+  asset?: MaxTrendingAsset,
+  lookupObservation?: MaxCommunityLookupObservation
 ) {
   const elapsedMs = Date.parse(observedAt) - Date.parse(episode.triggeredAt)
   const existing = new Set(
     episode.checkpoints.map(item => item.targetSeconds)
   )
-  const due = MAX_COMMUNITY_CHECKPOINT_SECONDS.filter(
+  const plan = episodeCheckpointPlan(episode)
+  const nextTarget = plan.find(
     seconds => !existing.has(seconds) && elapsedMs >= seconds * 1_000
   )
-  if (due.length === 0) return episode
+  if (nextTarget === undefined) return episode
+
+  const targetAt =
+    Date.parse(episode.triggeredAt) + nextTarget * 1_000
+  const lagMs = Math.max(0, Date.parse(observedAt) - targetAt)
+  const missed = lagMs > CHECKPOINT_CAPTURE_TOLERANCE_MS
+  const requiresLookup = nextTarget >= 300
+
+  if (
+    requiresLookup &&
+    !missed &&
+    (
+      lookupObservation === undefined ||
+      lookupObservation.candidateId !== episode.candidateId ||
+      lookupObservation.targetSeconds !== nextTarget
+    )
+  ) {
+    return episode
+  }
+
+  const marketObservation: MaxCommunityMarketObservation =
+    missed
+      ? "MISSED"
+      : requiresLookup
+        ? lookupObservation!.marketObservation
+        : "SNAPSHOT"
+
+  const checkpointAsset =
+    missed
+      ? undefined
+      : requiresLookup
+        ? lookupObservation!.asset ?? undefined
+        : asset
+
+  const nextCheckpoint = checkpoint(
+    episode,
+    nextTarget,
+    observedAt,
+    checkpointAsset,
+    marketObservation
+  )
 
   const checkpoints = [
     ...episode.checkpoints,
-    ...due.map(seconds => checkpoint(episode, seconds, observedAt, asset)),
+    nextCheckpoint,
   ]
+
   return {
     ...episode,
     checkpoints,
     completedAt:
-      checkpoints.length === MAX_COMMUNITY_CHECKPOINT_SECONDS.length
+      checkpoints.length === plan.length
         ? observedAt
         : null,
   } satisfies MaxCommunityResponseEpisode
@@ -352,6 +500,7 @@ export async function coordinateMaxCommunityResponse(input: {
   store: MaxCommunityResponseStore
   opportunity: MaxTrendingOpportunityClassification
   currentTrending: ReadonlyArray<MaxTrendingAsset>
+  lookupObservations?: ReadonlyArray<MaxCommunityLookupObservation>
 }) {
   const ledger = await loadMaxCommunityResponseLedger(input.store)
   const observedAt = input.opportunity.observedAt
@@ -402,7 +551,11 @@ export async function coordinateMaxCommunityResponse(input: {
         observedAt,
         current.currentPresent
           ? currentAssets.get(current.identityKey)
-          : undefined
+          : undefined,
+        input.lookupObservations?.find(
+          observation =>
+            observation.candidateId === current.candidateId
+        )
       )
     )
   }
@@ -431,4 +584,3 @@ export async function coordinateMaxCommunityResponse(input: {
   }
   return { changed: true, ledger: next }
 }
-

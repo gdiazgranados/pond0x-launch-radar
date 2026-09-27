@@ -1,5 +1,7 @@
-import type {
-  MaxTrendingSnapshot,
+import {
+  observeMaxToken,
+  type MaxTrendingAsset,
+  type MaxTrendingSnapshot,
 } from "./max-trending-client"
 import {
   deriveMaxAttentionDecisionTickets,
@@ -35,6 +37,9 @@ import type {
 } from "./max-trending-snapshot-repository"
 import {
   coordinateMaxCommunityResponse,
+  deriveDueMaxCommunityLookups,
+  loadMaxCommunityResponseLedger,
+  type MaxCommunityLookupObservation,
   type MaxCommunityResponseStore,
 } from "./max-community-response-repository"
 import {
@@ -43,6 +48,9 @@ import {
 } from "./max-repopulation-repository"
 
 type ObserveMaxTrending = () => Promise<MaxTrendingSnapshot>
+type ObserveMaxToken = (
+  contractAddress: string
+) => Promise<MaxTrendingAsset | null>
 
 export type MaxTrendingOpportunityCycleResult =
   MaxTrendingAttentionObservationResult & {
@@ -74,6 +82,7 @@ export async function coordinateMaxTrendingOpportunityCycle(input: {
   repopulationStore: MaxRepopulationStore
   rpcUrl: string
   observe?: ObserveMaxTrending
+  observeToken?: ObserveMaxToken
   validateMint?: MaxAttentionMintValidator
   validateRoute?: MaxAttentionJupiterValidator
   diagnosticInputLamports?: string
@@ -101,10 +110,37 @@ export async function coordinateMaxTrendingOpportunityCycle(input: {
     persisted: repopulationResult.changed,
     totalEpisodes: repopulationResult.ledger.episodes.length,
   }
+  const communityLedger = await loadMaxCommunityResponseLedger(
+    input.communityResponseStore
+  )
+  const dueLookups = deriveDueMaxCommunityLookups(
+    communityLedger,
+    observation.opportunity.observedAt
+  )
+  const lookupObservations: MaxCommunityLookupObservation[] = []
+
+  for (const request of dueLookups) {
+    try {
+      const asset = await (input.observeToken ?? observeMaxToken)(
+        request.contractAddress
+      )
+      lookupObservations.push({
+        candidateId: request.candidateId,
+        targetSeconds: request.targetSeconds,
+        marketObservation: asset === null ? "NOT_FOUND" : "LOOKUP",
+        asset,
+      })
+    } catch {
+      // Transient lookup failure: leave the checkpoint pending so a later
+      // cycle can retry while it remains inside the capture tolerance.
+    }
+  }
+
   const communityResponseResult = await coordinateMaxCommunityResponse({
     store: input.communityResponseStore,
     opportunity: observation.opportunity,
     currentTrending: observation.rawSnapshot.trending,
+    lookupObservations,
   })
   const communityEpisodes = communityResponseResult.ledger.episodes
   const communityResponse = {
