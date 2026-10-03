@@ -1,20 +1,20 @@
 {
   "version": 1,
-  "generatedAt": "2026-10-03T07:33:32.173Z",
+  "generatedAt": "2026-10-03T08:33:27.789Z",
   "regime": "QUIET",
-  "confidence": 85,
+  "confidence": 60,
   "candidateRegime": "QUIET",
-  "candidateConfidence": 85,
+  "candidateConfidence": 60,
   "history": {
     "stage": "STRONG",
-    "exactSweepCount": 444,
+    "exactSweepCount": 445,
     "usableForRegimeClassification": true
   },
   "current": {
-    "snapshotId": "2026-10-03_073305",
-    "generatedAt": "2026-10-03T07:33:31.854Z",
-    "decisionState": "QUIET",
-    "activityScore": 0
+    "snapshotId": "2026-10-03_083259",
+    "generatedAt": "2026-10-03T08:33:27.502Z",
+    "decisionState": "WATCH",
+    "activityScore": 22
   },
   "baseline": {
     "recentWindowSweeps": 6,
@@ -23,13 +23,20 @@
     "previousSixSweepAverageActivity": 0
   },
   "trendContext": {
-    "status": "NORMAL",
-    "anomalyScore": 0,
-    "driverCount": 0,
-    "drivers": []
+    "status": "ELEVATED",
+    "anomalyScore": 89.5,
+    "driverCount": 1,
+    "drivers": [
+      {
+        "metric": "radar",
+        "value": 10,
+        "percentile": 99.2,
+        "trend": "FLAT"
+      }
+    ]
   },
   "reasons": [
-    "Current exact sweep has no meaningful activation, evidence, or historical-driver activity."
+    "Observed activity does not satisfy a stronger regime definition."
   ],
   "methodology": "Score-neutral regime classification derived from exact sweep history and Historical Trend Intelligence. Stronger regimes require corroborating historical or multi-domain evidence.",
   "caution": "Regime Detection is descriptive only. It does not modify Radar scoring, establish launch probability, predict rewards, or constitute trading advice."
