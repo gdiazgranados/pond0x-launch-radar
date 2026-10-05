@@ -1,36 +1,48 @@
 {
   "version": 1,
-  "generatedAt": "2026-10-05T17:22:57.830Z",
+  "generatedAt": "2026-10-05T17:34:05.651Z",
   "regime": "ELEVATED",
   "confidence": 80,
   "candidateRegime": "ELEVATED",
   "candidateConfidence": 80,
   "history": {
     "stage": "STRONG",
-    "exactSweepCount": 513,
+    "exactSweepCount": 514,
     "usableForRegimeClassification": true
   },
   "current": {
-    "snapshotId": "2026-10-05_172230",
-    "generatedAt": "2026-10-05T17:22:57.377Z",
+    "snapshotId": "2026-10-05_173336",
+    "generatedAt": "2026-10-05T17:34:05.202Z",
     "decisionState": "WATCH",
-    "activityScore": 22
+    "activityScore": 40
   },
   "baseline": {
     "recentWindowSweeps": 6,
     "previousWindowSweeps": 6,
-    "recentSixSweepAverageActivity": 3.67,
+    "recentSixSweepAverageActivity": 7.33,
     "previousSixSweepAverageActivity": 0
   },
   "trendContext": {
     "status": "EXTREME",
-    "anomalyScore": 90.6,
-    "driverCount": 3,
+    "anomalyScore": 93.3,
+    "driverCount": 4,
     "drivers": [
       {
         "metric": "radar",
-        "value": 10,
-        "percentile": 99,
+        "value": 25,
+        "percentile": 100,
+        "trend": "RISING"
+      },
+      {
+        "metric": "semantic",
+        "value": 2,
+        "percentile": 99.7,
+        "trend": "FLAT"
+      },
+      {
+        "metric": "decisionStrength",
+        "value": 5,
+        "percentile": 87.1,
         "trend": "RISING"
       },
       {
@@ -38,18 +50,12 @@
         "value": 8,
         "percentile": 86.5,
         "trend": "RISING"
-      },
-      {
-        "metric": "decisionStrength",
-        "value": 4,
-        "percentile": 86.3,
-        "trend": "RISING"
       }
     ]
   },
   "reasons": [
-    "Historical anomaly score is 90.6.",
-    "3 high-percentile historical drivers are active."
+    "Historical anomaly score is 93.3.",
+    "4 high-percentile historical drivers are active."
   ],
   "methodology": "Score-neutral regime classification derived from exact sweep history and Historical Trend Intelligence. Stronger regimes require corroborating historical or multi-domain evidence.",
   "caution": "Regime Detection is descriptive only. It does not modify Radar scoring, establish launch probability, predict rewards, or constitute trading advice."
