@@ -1,4 +1,3 @@
-
 import { randomUUID } from "node:crypto"
 import {
   mkdir,
@@ -86,6 +85,10 @@ export async function withSimulationFileLock<T>(
     throw error
   }
 
+  // Record the directory identity, not only the mutable owner.json contents.
+  // This detects replacement of the entire lock directory before cleanup.
+  const acquiredDirectory = await stat(lockPath, { bigint: true })
+
   const owner: SimulationLockOwner = {
     version: 1,
     pid: process.pid,
@@ -118,6 +121,17 @@ try {
 
   if (currentOwner?.lockId !== owner.lockId) {
     throw new Error("SIMULATION_LOCK_OWNERSHIP_LOST")
+  }
+
+  // A copied owner.json is not proof that this is still our directory.
+  // Fail closed if another process has replaced the lock directory.
+  const currentDirectory = await stat(lockPath, { bigint: true })
+  if (
+    !currentDirectory.isDirectory() ||
+    currentDirectory.dev !== acquiredDirectory.dev ||
+    currentDirectory.ino !== acquiredDirectory.ino
+  ) {
+    throw new Error("SIMULATION_LOCK_DIRECTORY_REPLACED")
   }
 
   await unlink(ownerPath)
