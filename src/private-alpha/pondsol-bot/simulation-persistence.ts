@@ -13,7 +13,7 @@ import { basename, dirname, join } from "node:path"
 
 import type { PositionEngine } from "./position-engine"
 
-const SNAPSHOT_VERSION = 2
+const SNAPSHOT_VERSION = 3
 
 type SimulationSnapshot = {
   version: number
@@ -93,6 +93,7 @@ export function validatePositionEngine(
     positions,
     dailyPnlCents,
     dailyRiskClock,
+    pendingReconciliationTradeId,
   } = value
 
   if (!isRecord(ledger) || !isRecord(positions)) {
@@ -107,6 +108,19 @@ export function validatePositionEngine(
     !isInteger(dailyPnlCents)
   ) {
     throw new Error("INVALID_LEDGER_STATE")
+  }
+
+  if (pendingReconciliationTradeId !== null &&
+      (typeof pendingReconciliationTradeId !== "string" || !pendingReconciliationTradeId.trim())) {
+    throw new Error("INVALID_RECONCILIATION_STATE")
+  }
+
+  const initialCents = 5000
+  const equity = ledger.operatingCapitalCents + ledger.reservedProfitCents
+  const expectedEquity = initialCents + ledger.totalRealizedPnlCents
+  if (!Number.isSafeInteger(equity) || !Number.isSafeInteger(expectedEquity) ||
+      equity !== expectedEquity) {
+    throw new Error("INVALID_LEDGER_BALANCE")
   }
 
   // Fail closed: a persisted engine must have a valid UTC clock.
@@ -147,6 +161,11 @@ export function validatePositionEngine(
   }
 
   const openPosition = positions.openPosition
+
+  if (pendingReconciliationTradeId !== null &&
+      (!isRecord(openPosition) || openPosition.tradeId !== pendingReconciliationTradeId)) {
+    throw new Error("INVALID_RECONCILIATION_STATE")
+  }
 
   if (openPosition !== null) {
     if (

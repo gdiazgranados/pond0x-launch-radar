@@ -37,6 +37,7 @@ export type PositionEngine = {
   positions: PositionState
   dailyPnlCents: number
   dailyRiskClock?: DailyRiskClock
+  pendingReconciliationTradeId: string | null
 }
 
 export function createPositionEngine(): PositionEngine {
@@ -44,6 +45,7 @@ export function createPositionEngine(): PositionEngine {
     ledger: createCompoundingLedger(),
     positions: createPositionState(),
     dailyPnlCents: 0,
+    pendingReconciliationTradeId: null,
   }
 }
 
@@ -54,6 +56,8 @@ export function enterSimulatedPosition(
   guard: Omit<GuardedTradeRequest, "state" | "tradeUsd">,
   openedAtUtc: string
 ): PositionEngine {
+  assertNoReconciliation(engine)
+  assertUtcTimestamp(openedAtUtc)
   const synchronizedEngine = synchronizeTradingDay(
     engine,
     new Date(openedAtUtc)
@@ -113,6 +117,8 @@ export function exitSimulatedPosition(
   exit: Omit<SimulatedTrade, "tradeUsd">,
   closedAtUtc?: string
 ): PositionEngine {
+  assertNoReconciliation(engine)
+  if (closedAtUtc !== undefined) assertUtcTimestamp(closedAtUtc)
   const synchronizedEngine = synchronizeTradingDay(
     engine,
     closedAtUtc
@@ -174,6 +180,7 @@ export function synchronizeTradingDay(
   engine: PositionEngine,
   now: Date
 ): PositionEngine {
+  assertNoReconciliation(engine)
   const clock = engine.dailyRiskClock
 
   if (!clock) {
@@ -199,5 +206,31 @@ export function synchronizeTradingDay(
     ...engine,
     dailyPnlCents: updatedClock.dailyPnlCents,
     dailyRiskClock: updatedClock,
+  }
+}
+export function markReconciliationRequired(
+  engine: PositionEngine,
+  tradeId: string
+): PositionEngine {
+  if (engine.pendingReconciliationTradeId !== null) {
+    throw new Error("SIMULATION_RECONCILIATION_REQUIRED")
+  }
+  if (!tradeId.trim() || engine.positions.openPosition?.tradeId !== tradeId) {
+    throw new Error("POSITION_NOT_FOUND")
+  }
+  return { ...engine, pendingReconciliationTradeId: tradeId }
+}
+
+function assertNoReconciliation(engine: PositionEngine): void {
+  if (engine.pendingReconciliationTradeId !== null) {
+    throw new Error("SIMULATION_RECONCILIATION_REQUIRED")
+  }
+}
+
+function assertUtcTimestamp(value: string): void {
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?Z$/.test(value) ||
+      !Number.isFinite(Date.parse(value)) ||
+      new Date(value).toISOString().slice(0, 19) !== value.slice(0, 19)) {
+    throw new Error("INVALID_UTC_TIMESTAMP")
   }
 }

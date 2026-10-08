@@ -9,6 +9,7 @@ import {
   createPositionEngine,
   enterSimulatedPosition,
   exitSimulatedPosition,
+  markReconciliationRequired,
   synchronizeTradingDay,
   type PositionEngine,
 } from "./position-engine"
@@ -185,12 +186,19 @@ export class PersistentPositionEngine {
     closedAtUtc?: string
   ): Promise<PositionEngine> {
     return this.enqueue(async () => {
-      const nextEngine = exitSimulatedPosition(
-        this.engine,
-        tradeId,
-        exit,
-        closedAtUtc
-      )
+      let nextEngine: PositionEngine
+      try {
+        nextEngine = exitSimulatedPosition(
+          this.engine, tradeId, exit, closedAtUtc
+        )
+      } catch (error) {
+        if (error instanceof Error &&
+            error.message === "INSUFFICIENT_OPERATING_CAPITAL") {
+          await this.commit(markReconciliationRequired(this.engine, tradeId))
+          throw new Error("SIMULATION_RECONCILIATION_REQUIRED")
+        }
+        throw error
+      }
 
       await this.commit(nextEngine)
 

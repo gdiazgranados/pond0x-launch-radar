@@ -48,7 +48,7 @@ async function withTemporaryState(
 async function writeSnapshot(
   filePath: string,
   engine: unknown,
-  version = 2
+  version = 3
 ): Promise<void> {
   await writeFile(
     filePath,
