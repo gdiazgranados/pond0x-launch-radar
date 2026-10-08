@@ -52,6 +52,21 @@ function Save-Manifest {
   $json = ConvertTo-Json -InputObject $manifest -Depth 10
   [IO.File]::WriteAllText($manifestPath, $json + "`n", (New-Object System.Text.UTF8Encoding($false)))
 }
+function Get-LockIdentity([string]$path) {
+  $item = Reject-Link $path
+  if (-not $item.PSIsContainer) {
+    throw "Lock is not a directory: $path"
+  }
+  $output = @(& fsutil.exe file queryfileid $path 2>&1)
+  if ($LASTEXITCODE -ne 0) {
+    throw "Cannot query lock identity: $path"
+  }
+  $value = ($output | Out-String)
+  if ($value -notmatch '(?i)0x[0-9a-f]{16,32}') {
+    throw "Invalid lock identity: $path"
+  }
+  return $Matches[0].ToUpperInvariant()
+}
 function File-Record([string]$path, [string]$dest) {
   $item = Reject-Link $path
   if ($item.PSIsContainer) { throw "Unexpected directory: $path" }
@@ -72,6 +87,7 @@ try {
   if (Test-Path -LiteralPath $source) { File-Record $source (Join-Path $run 'snapshot.json') }
   else { $manifest.absent += 'snapshot' }
   if (Test-Path -LiteralPath $lock) {
+    $lockIdentityBefore = Get-LockIdentity $lock
     $lockItem = Reject-Link $lock
     if (-not $lockItem.PSIsContainer) { throw 'Lock path is not a directory' }
     $entries = @(Get-ChildItem -LiteralPath $lock -Force -ErrorAction Stop)
@@ -96,7 +112,7 @@ try {
   # Re-enumerate to detect additions/removals and re-check every source hash.
   $currentLockEntries = if (Test-Path -LiteralPath $lock -PathType Container) { @(Get-ChildItem -LiteralPath $lock -Force | ForEach-Object FullName) } else { @() }
   $initialLockEntries = @($manifest.files | Where-Object { $_.source.StartsWith($lock + [IO.Path]::DirectorySeparatorChar, $comparison) } | ForEach-Object source)
-  if (($currentLockEntries | Sort-Object) -join '|') { }
+
   if ((($currentLockEntries | Sort-Object) -join '|') -cne (($initialLockEntries | Sort-Object) -join '|')) { throw 'Lock entries changed during backup' }
   $currentTemps = @(Get-ChildItem -LiteralPath $sourceParent -Force | Where-Object { $_.Name.StartsWith($prefix, [StringComparison]::Ordinal) -and $_.Name.EndsWith($suffix, [StringComparison]::Ordinal) } | ForEach-Object FullName)
   if ((($currentTemps | Sort-Object) -join '|') -cne ((@($tempFiles | ForEach-Object FullName) | Sort-Object) -join '|')) { throw 'Temporary entries changed during backup' }
@@ -105,6 +121,18 @@ try {
   }
   if ('snapshot' -in $manifest.absent -and (Test-Path -LiteralPath $source)) { throw 'Snapshot appeared during backup' }
   if ('lock directory' -in $manifest.absent -and (Test-Path -LiteralPath $lock)) { throw 'Lock appeared during backup' }
+  if ($lockIdentityBefore) {
+    if (-not (Test-Path -LiteralPath $lock -PathType Container)) {
+      throw 'Lock disappeared during backup'
+    }
+    $lockIdentityAfter = Get-LockIdentity $lock
+    if ($lockIdentityBefore -cne $lockIdentityAfter) {
+      throw 'Lock directory identity changed during backup'
+    }
+    foreach ($entry in @(Get-ChildItem -LiteralPath $lock -Force)) {
+      $null = Reject-Link $entry.FullName
+    }
+  }
   $manifest.status = 'EVIDENCE_COPIED_NOT_CONSISTENCY_GUARANTEED'
   Save-Manifest
   Write-Host "EVIDENCE BACKUP: $run"
