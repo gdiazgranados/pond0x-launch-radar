@@ -67,19 +67,40 @@ function Get-LockIdentity([string]$path) {
   }
   return $Matches[0].ToUpperInvariant()
 }
+function Get-FileIdentity([string]$path) {
+  $item = Reject-Link $path
+  if ($item.PSIsContainer) { throw "Expected file: $path" }
+
+  $output = @(& fsutil.exe file queryfileid $path 2>&1)
+  if ($LASTEXITCODE -ne 0) {
+    throw "Cannot query file identity: $path"
+  }
+
+  $value = ($output | Out-String)
+  if ($value -notmatch '(?i)0x[0-9a-f]{16,32}') {
+    throw "Invalid file identity: $path"
+  }
+
+  return $Matches[0].ToUpperInvariant()
+}
 function File-Record([string]$path, [string]$dest) {
   $item = Reject-Link $path
   if ($item.PSIsContainer) { throw "Unexpected directory: $path" }
+  $identityBefore = Get-FileIdentity $path
   $before = (Get-FileHash -LiteralPath $path -Algorithm SHA256 -ErrorAction Stop).Hash
   $bytesBefore = $item.Length
   Copy-Item -LiteralPath $path -Destination $dest -ErrorAction Stop
+  $identityAfter = Get-FileIdentity $path
+  if ($identityBefore -cne $identityAfter) {
+    throw "File identity changed during backup: $path"
+  }
   $after = (Get-FileHash -LiteralPath $path -Algorithm SHA256 -ErrorAction Stop).Hash
   $copied = (Get-FileHash -LiteralPath $dest -Algorithm SHA256 -ErrorAction Stop).Hash
   $bytesAfter = (Get-Item -LiteralPath $path -Force).Length
   if ($before -ne $after -or $before -ne $copied -or $bytesBefore -ne $bytesAfter) {
     throw "Changed during backup: $path"
   }
-  $manifest.files += [ordered]@{ source=$path; backup=$dest; sha256=$before; bytes=$bytesBefore }
+  $manifest.files += [ordered]@{ source=$path; backup=$dest; sha256=$before; bytes=$bytesBefore; fileId=$identityBefore }
 }
 try {
   Save-Manifest
@@ -117,6 +138,9 @@ try {
   $currentTemps = @(Get-ChildItem -LiteralPath $sourceParent -Force | Where-Object { $_.Name.StartsWith($prefix, [StringComparison]::Ordinal) -and $_.Name.EndsWith($suffix, [StringComparison]::Ordinal) } | ForEach-Object FullName)
   if ((($currentTemps | Sort-Object) -join '|') -cne ((@($tempFiles | ForEach-Object FullName) | Sort-Object) -join '|')) { throw 'Temporary entries changed during backup' }
   foreach ($record in $manifest.files) {
+    if ((Get-FileIdentity $record.source) -cne $record.fileId) {
+      throw "Source identity changed after copy: $($record.source)"
+    }
     if ((Get-FileHash -LiteralPath $record.source -Algorithm SHA256).Hash -ne $record.sha256) { throw "Source changed after copy: $($record.source)" }
   }
   if ('snapshot' -in $manifest.absent -and (Test-Path -LiteralPath $source)) { throw 'Snapshot appeared during backup' }

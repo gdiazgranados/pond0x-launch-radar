@@ -109,7 +109,26 @@ Copy-Item -LiteralPath $path -Destination $dest -ErrorAction Stop
   [IO.File]::WriteAllText((Join-Path ($f.source + '.lock') 'owner.json'), '{}')
   Run-Rejection 'lock directory replaced' $f.source $f.backup 'Lock directory identity changed' $swapScript
 
-  Write-Host "`nPASS: $passed/6 regression scenarios" -ForegroundColor Green
+  # Same-content replacement: SHA256 remains equal, File ID changes.
+  $identityNeedle = '  $identityAfter = Get-FileIdentity $path'
+  $identityReplacement = @"
+  if (`$path -eq `$source) {
+    `$oldPath = "`$path.original"
+    Rename-Item -LiteralPath `$path -NewName ([IO.Path]::GetFileName(`$oldPath))
+    Copy-Item -LiteralPath `$oldPath -Destination `$path
+  }
+  `$identityAfter = Get-FileIdentity `$path
+"@
+
+  $identityScript = Inject 'identity-injected' $identityNeedle $identityReplacement
+
+  $f = Fixture 'identity-swap'
+  [IO.File]::WriteAllText($f.source, '{"test":"identity"}')
+
+  Run-Rejection 'identical-content file replacement' `
+    $f.source $f.backup 'File identity changed during backup' $identityScript
+
+  Write-Host "`nPASS: $passed/7 regression scenarios" -ForegroundColor Green
   Write-Host 'SYMLINK: NOT TESTED (requires permitted link creation)' -ForegroundColor Yellow
   Write-Host 'RECOVERY AUTHORIZED: NO'
   Write-Host "FIXTURES: $base"
