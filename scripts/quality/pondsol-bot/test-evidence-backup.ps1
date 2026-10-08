@@ -50,6 +50,29 @@ function Inject([string]$name, [string]$needle, [string]$replacement) {
   return $path
 }
 try {
+  # 2C-C12: manifest safety contract regression.
+  $productionCode = [IO.File]::ReadAllText($scriptPath)
+
+  Assert ($productionCode -match 'recoveryAuthorized\s*=\s*\$false') `
+    'Recovery authorization must remain false'
+
+  Assert ($productionCode -match 'exclusiveAccessVerified\s*=\s*\$false') `
+    'Exclusive access must remain unverified'
+
+  Assert ($productionCode -match "'EVIDENCE_COPIED_NOT_CONSISTENCY_GUARANTEED'") `
+    'Successful evidence status must disclaim consistency'
+
+  Assert ($productionCode -match "'INCOMPLETE'") `
+    'Incomplete status must remain available'
+
+  Assert ($productionCode -notmatch 'recoveryAuthorized\s*=\s*\$true') `
+    'Recovery authorization must never be enabled'
+
+  Assert ($productionCode -notmatch 'exclusiveAccessVerified\s*=\s*\$true') `
+    'Exclusive access must never be asserted'
+
+  Write-Host 'PASS: manifest safety contract' -ForegroundColor Green
+  $passed++
   $f = Fixture 'normal'
   [IO.File]::WriteAllText($f.source, '{"test":"normal"}')
   New-Item -ItemType Directory -Path ($f.source + '.lock') | Out-Null
@@ -259,7 +282,7 @@ Copy-Item -LiteralPath $path -Destination $dest -ErrorAction Stop
   Write-Host 'PASS: backup root replaced and original error preserved' -ForegroundColor Green
   $passed++
 
-  Write-Host "`nPASS: $passed/10 regression scenarios" -ForegroundColor Green
+  Write-Host "`nPASS: $passed/11 regression scenarios" -ForegroundColor Green
   Write-Host 'SYMLINK: NOT TESTED (requires permitted link creation)' -ForegroundColor Yellow
   Write-Host 'RECOVERY AUTHORIZED: NO'
   Write-Host "FIXTURES: $base"
