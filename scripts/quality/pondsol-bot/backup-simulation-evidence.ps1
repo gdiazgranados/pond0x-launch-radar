@@ -50,7 +50,36 @@ $manifest = [ordered]@{
 }
 function Save-Manifest {
   $json = ConvertTo-Json -InputObject $manifest -Depth 10
-  [IO.File]::WriteAllText($manifestPath, $json + "`n", (New-Object System.Text.UTF8Encoding($false)))
+  $temporary = Join-Path $run ('manifest-' + [guid]::NewGuid().ToString('N') + '.tmp')
+
+  try {
+    [IO.File]::WriteAllText(
+      $temporary,
+      $json + "`n",
+      (New-Object System.Text.UTF8Encoding($false))
+    )
+
+    if (Test-Path -LiteralPath $manifestPath) {
+      $previous = Join-Path $run ('manifest-previous-' + [guid]::NewGuid().ToString('N') + '.bak')
+      [IO.File]::Replace($temporary, $manifestPath, $previous)
+      if (Test-Path -LiteralPath $previous) {
+        try {
+          Remove-Item -LiteralPath $previous -Force -ErrorAction Stop
+        }
+        catch {
+          Write-Warning "Previous manifest cleanup failed: $($_.Exception.Message)"
+        }
+      }
+    }
+    else {
+      [IO.File]::Move($temporary, $manifestPath)
+    }
+  }
+  finally {
+    if (Test-Path -LiteralPath $temporary) {
+      Remove-Item -LiteralPath $temporary -Force
+    }
+  }
 }
 function Get-LockIdentity([string]$path) {
   $item = Reject-Link $path
