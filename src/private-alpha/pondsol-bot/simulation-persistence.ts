@@ -2,7 +2,9 @@
 import { randomUUID } from "node:crypto"
 import {
   mkdir,
+  open,
   readFile,
+  readdir,
   rename,
   unlink,
   writeFile,
@@ -196,16 +198,19 @@ export async function saveSimulationState(
   )
 
   try {
-    await writeFile(
-      temporaryPath,
-      JSON.stringify(snapshot, null, 2) + "\n",
-      {
-        encoding: "utf8",
-        flag: "wx",
-      }
-    )
 
-    await rename(temporaryPath, filePath)
+await writeFile(
+  temporaryPath,
+  JSON.stringify(snapshot, null, 2) + "\n",
+  {
+    encoding: "utf8",
+    flag: "wx",
+    flush: true,
+  }
+)
+
+await rename(temporaryPath, filePath)
+
   } catch (error) {
     await unlink(temporaryPath).catch(
       () => undefined
@@ -260,4 +265,34 @@ export async function loadSimulationState(
   validatePositionEngine(parsed.engine)
 
   return parsed.engine
+}
+
+export async function inspectSimulationTemporaryFiles(
+  filePath: string
+): Promise<string[]> {
+  const directory = dirname(filePath)
+  const prefix = `.${basename(filePath)}.`
+
+  let entries: string[]
+
+  try {
+    entries = await readdir(directory)
+  } catch (error) {
+    if (
+      isRecord(error) &&
+      error.code === "ENOENT"
+    ) {
+      return []
+    }
+
+    throw error
+  }
+
+  return entries
+    .filter(
+      (name) =>
+        name.startsWith(prefix) &&
+        name.endsWith(".tmp")
+    )
+    .sort()
 }

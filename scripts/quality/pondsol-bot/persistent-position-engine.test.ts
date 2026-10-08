@@ -255,12 +255,65 @@ test("keeps memory unchanged when enter persistence fails", async () => {
       )
     )
 
-    // Failed persistence must not publish the position.
-    assert.deepEqual(engine.getState(), before)
 
-    // The original snapshot remains recoverable.
-    const recovered = await loadSimulationState(backupPath)
-    assert.deepEqual(recovered, before)
+      // Failed persistence must not publish the position.
+      assert.deepEqual(engine.getState(), before)
+
+      // Once persistence fails, this instance must stop
+      // accepting further state-changing operations.
+      await assert.rejects(
+        engine.enter(
+          "failed-write-002",
+          10,
+          GUARD,
+          "2026-10-07T20:06:00.000Z"
+        ),
+        /SIMULATION_PERSISTENCE_UNCERTAIN/
+      )
+
+      // Memory must remain unchanged after both attempts.
+      assert.deepEqual(engine.getState(), before)
+
+      // The original snapshot remains recoverable.
+      const recovered = await loadSimulationState(backupPath)
+      assert.deepEqual(recovered, before)
+
+      // Repair the snapshot destination.
+      const { rmdir } = await import("node:fs/promises")
+
+      await rmdir(filePath)
+      await rename(backupPath, filePath)
+
+      // A fresh instance must restore the verified snapshot.
+      const restored = await PersistentPositionEngine.restore(
+        filePath
+      )
+
+      assert.deepEqual(restored.getState(), before)
+
+      // The original instance must remain blocked.
+      await assert.rejects(
+        engine.synchronize(
+          new Date("2026-10-07T20:07:00.000Z")
+        ),
+        /SIMULATION_PERSISTENCE_UNCERTAIN/
+      )
+
+      // The restored instance can safely continue.
+      await restored.enter(
+        "recovered-write-001",
+        10,
+        GUARD,
+        "2026-10-07T20:08:00.000Z"
+      )
+
+      const persisted = await loadSimulationState(filePath)
+
+      assert.equal(
+        persisted.positions.openPosition?.tradeId,
+        "recovered-write-001"
+      )
+
   })
 })
 test("prevents initialization from resetting existing losses", async () => {

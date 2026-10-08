@@ -30,18 +30,10 @@ function isMissingFile(error: unknown): boolean {
   )
 }
 
-function isExistingFile(error: unknown): boolean {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "code" in error &&
-    error.code === "EEXIST"
-  )
-}
-
 export class PersistentPositionEngine {
   private engine: PositionEngine
   private pending: Promise<void> = Promise.resolve()
+  private persistenceUncertain = false
 
   private constructor(
     private readonly filePath: string,
@@ -50,12 +42,12 @@ export class PersistentPositionEngine {
     this.engine = engine
   }
 
-  private static async withFileLock<T>(
-  filePath: string,
-  operation: () => Promise<T>
-): Promise<T> {
-  return withSimulationFileLock(filePath, operation)
-}
+    private static async withFileLock<T>(
+    filePath: string,
+    operation: () => Promise<T>
+  ): Promise<T> {
+    return withSimulationFileLock(filePath, operation)
+  }
 
   static async initialize(
     filePath: string,
@@ -110,32 +102,45 @@ export class PersistentPositionEngine {
     return structuredClone(this.engine)
   }
 
-  private async commit(
+
+    private async commit(
     nextEngine: PositionEngine
   ): Promise<void> {
-    await PersistentPositionEngine.withFileLock(
-      this.filePath,
-      async () => {
-        const diskState = await loadSimulationState(
-          this.filePath
-        )
+    if (this.persistenceUncertain) {
+      throw new Error("SIMULATION_PERSISTENCE_UNCERTAIN")
+    }
 
-        if (
-          JSON.stringify(diskState) !==
-          JSON.stringify(this.engine)
-        ) {
-          throw new Error("SIMULATION_STATE_CONFLICT")
+    try {
+      await PersistentPositionEngine.withFileLock(
+        this.filePath,
+        async () => {
+          const diskState = await loadSimulationState(
+            this.filePath
+          )
+
+          if (
+            JSON.stringify(diskState) !==
+            JSON.stringify(this.engine)
+          ) {
+            throw new Error("SIMULATION_STATE_CONFLICT")
+          }
+
+          await saveSimulationState(
+            this.filePath,
+            nextEngine
+          )
         }
+      )
 
-        await saveSimulationState(
-          this.filePath,
-          nextEngine
-        )
-      }
-    )
-
-    this.engine = nextEngine
+      this.engine = nextEngine
+    } catch (error) {
+      // A failed commit may have persisted data before
+      // reporting an error. Require a fresh restore.
+      this.persistenceUncertain = true
+      throw error
+    }
   }
+
 
   private enqueue<T>(
     operation: () => Promise<T>

@@ -13,6 +13,7 @@ import {
 } from "../../../src/private-alpha/pondsol-bot/position-engine"
 
 import {
+  inspectSimulationTemporaryFiles,
   loadSimulationState,
   saveSimulationState,
 } from "../../../src/private-alpha/pondsol-bot/simulation-persistence"
@@ -388,4 +389,135 @@ test("resets daily loss but preserves total loss on next UTC day", async () => {
       -200
     )
   })
+})
+
+test("ignores an abandoned temporary file during restore", async () => {
+  const { mkdtemp, writeFile, rm } =
+    await import("node:fs/promises")
+  const { tmpdir } = await import("node:os")
+  const { join } = await import("node:path")
+
+  const directory = await mkdtemp(
+    join(tmpdir(), "pondsol-abandoned-temp-")
+  )
+
+  const filePath = join(directory, "state.json")
+  const temporaryPath = join(
+    directory,
+    ".state.json.interrupted.tmp"
+  )
+
+  try {
+    const original = synchronizeTradingDay(
+      createPositionEngine(),
+      new Date("2026-10-07T20:00:00.000Z")
+    )
+
+    await saveSimulationState(filePath, original)
+
+    // Simulate a crash before rename().
+    await writeFile(
+      temporaryPath,
+      '{"version":2,"engine":'
+    )
+
+    const restored = await loadSimulationState(filePath)
+
+    assert.deepEqual(restored, original)
+  } finally {
+    await rm(directory, {
+      recursive: true,
+      force: true,
+    })
+  }
+})
+
+test("detects abandoned temporary files without changing the snapshot", async () => {
+  const directory = await mkdtemp(
+    join(tmpdir(), "pondsol-temp-diagnostic-")
+  )
+
+  const filePath = join(directory, "state.json")
+
+  try {
+    const original = synchronizeTradingDay(
+      createPositionEngine(),
+      new Date("2026-10-07T20:00:00.000Z")
+    )
+
+    await saveSimulationState(filePath, original)
+
+    await writeFile(
+      join(directory, ".state.json.abandoned-1.tmp"),
+      '{"incomplete":'
+    )
+
+    await writeFile(
+      join(directory, ".state.json.abandoned-2.tmp"),
+      "partial snapshot"
+    )
+
+    // Unrelated files must not appear in the diagnosis.
+    await writeFile(
+      join(directory, "unrelated.tmp"),
+      "unrelated"
+    )
+
+    const temporaryFiles =
+      await inspectSimulationTemporaryFiles(filePath)
+
+    assert.deepEqual(temporaryFiles, [
+      ".state.json.abandoned-1.tmp",
+      ".state.json.abandoned-2.tmp",
+    ])
+
+    const restored = await loadSimulationState(filePath)
+
+    assert.deepEqual(restored, original)
+  } finally {
+    await rm(directory, {
+      recursive: true,
+      force: true,
+    })
+  }
+})
+
+test("preserves existing snapshot when a new save is rejected", async () => {
+  const directory = await mkdtemp(
+    join(tmpdir(), "pondsol-failed-save-")
+  )
+
+  const filePath = join(directory, "state.json")
+
+  try {
+    const original = synchronizeTradingDay(
+      createPositionEngine(),
+      new Date("2026-10-07T20:00:00.000Z")
+    )
+
+    await saveSimulationState(filePath, original)
+
+    const before = await readFile(filePath, "utf8")
+
+    const invalid = structuredClone(original)
+    invalid.ledger.completedTrades = 999
+
+    await assert.rejects(
+      saveSimulationState(filePath, invalid),
+      /TRADE_COUNT_MISMATCH/
+    )
+
+    const after = await readFile(filePath, "utf8")
+
+    assert.equal(after, before)
+    assert.deepEqual(
+      await loadSimulationState(filePath),
+      original
+    )
+  } finally {
+    await rm(directory, {
+      recursive: true,
+      force: true,
+    })
+  }
 })
