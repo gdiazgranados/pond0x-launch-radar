@@ -1,5 +1,9 @@
 
-import { mkdir, rmdir, stat } from "node:fs/promises"
+import { stat } from "node:fs/promises"
+
+import {
+  withSimulationFileLock,
+} from "./simulation-file-lock"
 
 import {
   createPositionEngine,
@@ -47,26 +51,11 @@ export class PersistentPositionEngine {
   }
 
   private static async withFileLock<T>(
-    filePath: string,
-    operation: () => Promise<T>
-  ): Promise<T> {
-    const lockPath = `${filePath}.lock`
-
-    try {
-      await mkdir(lockPath)
-    } catch (error) {
-      if (isExistingFile(error)) {
-        throw new Error("SIMULATION_STATE_LOCKED")
-      }
-      throw error
-    }
-
-    try {
-      return await operation()
-    } finally {
-      await rmdir(lockPath)
-    }
-  }
+  filePath: string,
+  operation: () => Promise<T>
+): Promise<T> {
+  return withSimulationFileLock(filePath, operation)
+}
 
   static async initialize(
     filePath: string,
