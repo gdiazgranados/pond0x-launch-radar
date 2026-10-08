@@ -119,22 +119,14 @@ export function exitSimulatedPosition(
 ): PositionEngine {
   assertNoReconciliation(engine)
   if (closedAtUtc !== undefined) assertUtcTimestamp(closedAtUtc)
-  const synchronizedEngine = synchronizeTradingDay(
-    engine,
-    closedAtUtc
-      ? new Date(closedAtUtc)
-      : new Date()
-  )
+  const closingTime = closedAtUtc ? new Date(closedAtUtc) : new Date()
+  const synchronizedEngine = synchronizeTradingDay(engine, closingTime)
 
   const position = synchronizedEngine.positions.openPosition
 
   if (!position || position.tradeId !== tradeId) {
     throw new Error("POSITION_NOT_FOUND")
   }
-
-    const closingTime = closedAtUtc
-    ? new Date(closedAtUtc)
-    : new Date()
 
   if (!Number.isFinite(closingTime.getTime())) {
     throw new Error("INVALID_CLOSE_TIME")
@@ -227,10 +219,10 @@ function assertNoReconciliation(engine: PositionEngine): void {
   }
 }
 
+import { isCanonicalUtcTimestamp } from "./utc-timestamp"
+
 function assertUtcTimestamp(value: string): void {
-  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?Z$/.test(value) ||
-      !Number.isFinite(Date.parse(value)) ||
-      new Date(value).toISOString().slice(0, 19) !== value.slice(0, 19)) {
+  if (!isCanonicalUtcTimestamp(value)) {
     throw new Error("INVALID_UTC_TIMESTAMP")
   }
 }

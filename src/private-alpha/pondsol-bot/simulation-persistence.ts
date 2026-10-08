@@ -12,6 +12,7 @@ import {
 import { basename, dirname, join } from "node:path"
 
 import type { PositionEngine } from "./position-engine"
+import { isCanonicalUtcTimestamp } from "./utc-timestamp"
 
 const SNAPSHOT_VERSION = 3
 
@@ -63,22 +64,8 @@ function isValidUtcDay(value: unknown): value is string {
   )
 }
 
-function isValidUtcTimestamp(
-  value: unknown
-): value is string {
-  if (typeof value !== "string") {
-    return false
-  }
-
-  if (
-    !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?Z$/.test(
-      value
-    )
-  ) {
-    return false
-  }
-
-  return Number.isFinite(Date.parse(value))
+function isValidUtcTimestamp(value: unknown): value is string {
+  return typeof value === "string" && isCanonicalUtcTimestamp(value)
 }
 
 export function validatePositionEngine(
