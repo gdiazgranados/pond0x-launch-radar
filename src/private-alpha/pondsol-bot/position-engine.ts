@@ -26,10 +26,17 @@ import {
   calculateCapitalSnapshot,
 } from "./capital-accounting"
 
+import {
+  advanceDailyRiskClock,
+  createDailyRiskClock,
+  type DailyRiskClock,
+} from "./daily-risk-clock"
+
 export type PositionEngine = {
   ledger: CompoundingLedger
   positions: PositionState
   dailyPnlCents: number
+  dailyRiskClock?: DailyRiskClock
 }
 
 export function createPositionEngine(): PositionEngine {
@@ -47,22 +54,29 @@ export function enterSimulatedPosition(
   guard: Omit<GuardedTradeRequest, "state" | "tradeUsd">,
   openedAtUtc: string
 ): PositionEngine {
+  const synchronizedEngine = synchronizeTradingDay(
+    engine,
+    new Date(openedAtUtc)
+  )
   const decision = evaluateTradeGuard({
-    ...guard,
-    tradeUsd,
-    state: {
-availableCapitalUsd:
-  calculateCapitalSnapshot(
-    engine.ledger,
-    engine.positions
-  ).availableCapitalCents / 100,
-      dailyPnlUsd: engine.dailyPnlCents / 100,
-      totalPnlUsd:
-        engine.ledger.totalRealizedPnlCents / 100,
-      openPositions:
-        engine.positions.openPosition === null ? 0 : 1,
-    },
-  })
+  ...guard,
+  tradeUsd,
+  state: {
+    availableCapitalUsd:
+      calculateCapitalSnapshot(
+        synchronizedEngine.ledger,
+        synchronizedEngine.positions
+      ).availableCapitalCents / 100,
+    dailyPnlUsd:
+      synchronizedEngine.dailyPnlCents / 100,
+    totalPnlUsd:
+      synchronizedEngine.ledger.totalRealizedPnlCents / 100,
+    openPositions:
+      synchronizedEngine.positions.openPosition === null
+        ? 0
+        : 1,
+  },
+})
 
   if (!decision.allowed) {
     throw new Error(
@@ -79,25 +93,52 @@ availableCapitalUsd:
     throw new Error("INVALID_POSITION_PRECISION")
   }
 
-  return {
-    ...engine,
-    positions: openPosition(engine.positions, {
-      tradeId,
-      investedCents,
-      openedAtUtc,
-    }),
+    return {
+    ...synchronizedEngine,
+    positions: openPosition(
+      synchronizedEngine.positions,
+      {
+        tradeId,
+        investedCents,
+        openedAtUtc,
+      }
+    ),
   }
 }
+
 
 export function exitSimulatedPosition(
   engine: PositionEngine,
   tradeId: string,
-  exit: Omit<SimulatedTrade, "tradeUsd">
+  exit: Omit<SimulatedTrade, "tradeUsd">,
+  closedAtUtc?: string
 ): PositionEngine {
-  const position = engine.positions.openPosition
+  const synchronizedEngine = synchronizeTradingDay(
+    engine,
+    closedAtUtc
+      ? new Date(closedAtUtc)
+      : new Date()
+  )
+
+  const position = synchronizedEngine.positions.openPosition
 
   if (!position || position.tradeId !== tradeId) {
     throw new Error("POSITION_NOT_FOUND")
+  }
+
+    const closingTime = closedAtUtc
+    ? new Date(closedAtUtc)
+    : new Date()
+
+  if (!Number.isFinite(closingTime.getTime())) {
+    throw new Error("INVALID_CLOSE_TIME")
+  }
+
+  if (
+    closingTime.getTime() <
+    Date.parse(position.openedAtUtc)
+  ) {
+    throw new Error("CLOSE_BEFORE_OPEN")
   }
 
   const result = simulateClosedTrade({
@@ -106,15 +147,57 @@ export function exitSimulatedPosition(
   })
 
   const updatedLedger = recordClosedTrade(
-    engine.ledger,
+    synchronizedEngine.ledger,
     result.netPnlUsd
   )
 
+  const updatedDailyPnlCents =
+    synchronizedEngine.dailyPnlCents +
+    Math.round(result.netPnlUsd * 100)
+
   return {
+    ...synchronizedEngine,
     ledger: updatedLedger,
-    positions: closePosition(engine.positions, tradeId),
-    dailyPnlCents:
-      engine.dailyPnlCents +
-      Math.round(result.netPnlUsd * 100),
+    positions: closePosition(
+      synchronizedEngine.positions,
+      tradeId
+    ),
+    dailyPnlCents: updatedDailyPnlCents,
+    dailyRiskClock: {
+      tradingDayUtc:
+        synchronizedEngine.dailyRiskClock!.tradingDayUtc,
+      dailyPnlCents: updatedDailyPnlCents,
+    },
+  }
+}
+export function synchronizeTradingDay(
+  engine: PositionEngine,
+  now: Date
+): PositionEngine {
+  const clock = engine.dailyRiskClock
+
+  if (!clock) {
+    if (engine.dailyPnlCents !== 0) {
+      throw new Error("MISSING_DAILY_RISK_CLOCK")
+    }
+
+    const initialClock = createDailyRiskClock(now)
+
+    return {
+      ...engine,
+      dailyRiskClock: initialClock,
+    }
+  }
+
+  if (clock.dailyPnlCents !== engine.dailyPnlCents) {
+    throw new Error("DAILY_PNL_CLOCK_MISMATCH")
+  }
+
+  const updatedClock = advanceDailyRiskClock(clock, now)
+
+  return {
+    ...engine,
+    dailyPnlCents: updatedClock.dailyPnlCents,
+    dailyRiskClock: updatedClock,
   }
 }
