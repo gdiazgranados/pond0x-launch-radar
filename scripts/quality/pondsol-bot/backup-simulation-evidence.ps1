@@ -81,6 +81,24 @@ function Save-Manifest {
     }
   }
 }
+function Get-DirectoryIdentity([string]$path) {
+  $item = Reject-Link $path
+  if (-not $item.PSIsContainer) {
+    throw "Expected directory: $path"
+  }
+
+  $output = @(& fsutil.exe file queryfileid $path 2>&1)
+  if ($LASTEXITCODE -ne 0) {
+    throw "Cannot query directory identity: $path"
+  }
+
+  $value = ($output | Out-String)
+  if ($value -notmatch '(?i)0x[0-9a-f]{16,32}') {
+    throw "Invalid directory identity: $path"
+  }
+
+  return $Matches[0].ToUpperInvariant()
+}
 function Get-LockIdentity([string]$path) {
   $item = Reject-Link $path
   if (-not $item.PSIsContainer) {
@@ -132,6 +150,12 @@ function File-Record([string]$path, [string]$dest) {
   $manifest.files += [ordered]@{ source=$path; backup=$dest; sha256=$before; bytes=$bytesBefore; fileId=$identityBefore }
 }
 try {
+  $directoryIdentities = @(
+    @{ Path = $sourceParent; Id = (Get-DirectoryIdentity $sourceParent) }
+    @{ Path = $root; Id = (Get-DirectoryIdentity $root) }
+    @{ Path = $run; Id = (Get-DirectoryIdentity $run) }
+  )
+
   Save-Manifest
   $snapshotName = [IO.Path]::GetFileName($source)
   if (Test-Path -LiteralPath $source) { File-Record $source (Join-Path $run 'snapshot.json') }
@@ -186,14 +210,42 @@ try {
       $null = Reject-Link $entry.FullName
     }
   }
+  foreach ($directory in $directoryIdentities) {
+    $currentId = Get-DirectoryIdentity $directory.Path
+    if ($currentId -cne $directory.Id) {
+      throw "Directory identity changed during backup: $($directory.Path)"
+    }
+  }
+
   $manifest.status = 'EVIDENCE_COPIED_NOT_CONSISTENCY_GUARANTEED'
   Save-Manifest
   Write-Host "EVIDENCE BACKUP: $run"
   Write-Host "STATUS: $($manifest.status)"
   Write-Host 'RECOVERY AUTHORIZED: NO'
 } catch {
+  $originalError = $_.Exception.Message
   $manifest.status = 'INCOMPLETE'
-  $manifest.errors += $_.Exception.Message
-  Save-Manifest
-  throw "Evidence backup incomplete ($run): $($_.Exception.Message)"
+  $manifest.errors += $originalError
+
+  $manifestWriteError = $null
+
+  try {
+    foreach ($directory in $directoryIdentities) {
+      $currentId = Get-DirectoryIdentity $directory.Path
+      if ($currentId -cne $directory.Id) {
+        throw "Directory identity changed during backup: $($directory.Path)"
+      }
+    }
+
+    Save-Manifest
+  }
+  catch {
+    $manifestWriteError = $_.Exception.Message
+  }
+
+  if ($manifestWriteError) {
+    throw "Evidence backup incomplete ($run): $originalError; INCOMPLETE manifest not persisted: $manifestWriteError"
+  }
+
+  throw "Evidence backup incomplete ($run): $originalError"
 }
