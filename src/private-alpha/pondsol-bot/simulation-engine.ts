@@ -19,6 +19,7 @@ export type SimulationEngineState = {
   ledger: CompoundingLedger
   dailyPnlCents: number
   processedTradeIds: string[]
+  pendingReconciliationTradeId?: string
 }
 
 export type SimulationOutcome = {
@@ -42,6 +43,11 @@ export function processSimulatedTrade(
   trade: SimulatedTrade,
   guard: Omit<GuardedTradeRequest, "state" | "tradeUsd">
 ): SimulationOutcome {
+  // Fail closed when a previous settlement requires reconciliation.
+  if (state.pendingReconciliationTradeId !== undefined) {
+    return reject(state, "SIMULATION_RECONCILIATION_REQUIRED")
+  }
+
   if (!tradeId.trim()) {
     return reject(state, "INVALID_TRADE_ID")
   }
@@ -85,9 +91,25 @@ export function processSimulatedTrade(
         ledger: settled.ledger,
         dailyPnlCents: state.dailyPnlCents + pnlCents,
         processedTradeIds: [...state.processedTradeIds, tradeId],
+        pendingReconciliationTradeId:
+          state.pendingReconciliationTradeId,
       },
     }
-  } catch {
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      error.message === "INSUFFICIENT_OPERATING_CAPITAL"
+    ) {
+      return {
+        accepted: false,
+        reasons: ["SIMULATION_CAPITAL_EXCEEDED"],
+        state: {
+          ...state,
+          pendingReconciliationTradeId: tradeId,
+        },
+      }
+    }
+
     return reject(state, "SIMULATION_SETTLEMENT_FAILED")
   }
 }

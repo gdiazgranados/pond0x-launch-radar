@@ -193,3 +193,47 @@ test("blocks new trades when total loss budget is exhausted", () => {
   assert.deepEqual(outcome.state, state)
   assert.equal(outcome.state.ledger.completedTrades, 0)
 })
+
+
+test("blocks subsequent trades after an insolvent settlement", () => {
+  const initial = createSimulationEngine()
+
+  const outcome = processSimulatedTrade(
+    initial,
+    "insolvent-001",
+    {
+      tradeUsd: 10,
+      exitValueUsd: 0,
+      entryFeeUsd: 20,
+      exitFeeUsd: 20,
+      networkCostUsd: 15,
+    },
+    guard
+  )
+
+  assert.equal(outcome.accepted, false)
+  assert.deepEqual(outcome.reasons, [
+    "SIMULATION_CAPITAL_EXCEEDED",
+  ])
+
+  assert.deepEqual(outcome.state.ledger, initial.ledger)
+  assert.equal(outcome.state.dailyPnlCents, 0)
+  assert.deepEqual(outcome.state.processedTradeIds, [])
+  assert.equal(
+    outcome.state.pendingReconciliationTradeId,
+    "insolvent-001"
+  )
+
+  const next = processSimulatedTrade(
+    outcome.state,
+    "trade-after-insolvency",
+    profitableTrade,
+    guard
+  )
+
+  assert.equal(next.accepted, false)
+  assert.deepEqual(next.reasons, [
+    "SIMULATION_RECONCILIATION_REQUIRED",
+  ])
+  assert.deepEqual(next.state, outcome.state)
+})
