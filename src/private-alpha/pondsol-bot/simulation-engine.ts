@@ -77,14 +77,6 @@ export function processSimulatedTrade(
     const settled = settleSimulatedTrade(state.ledger, trade)
     const pnlCents = Math.round(settled.result.netPnlUsd * 100)
 
-    // Reject outcomes that exceed the configured loss budget.
-    if (
-      pnlCents < 0 &&
-      -pnlCents > Math.round(guard.worstCaseLossUsd * 100)
-    ) {
-      return reject(state, "LOSS_EXCEEDS_ESTIMATE")
-    }
-
     return {
       accepted: true,
       reasons: [],
