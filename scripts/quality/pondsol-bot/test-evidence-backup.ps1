@@ -128,7 +128,138 @@ Copy-Item -LiteralPath $path -Destination $dest -ErrorAction Stop
   Run-Rejection 'identical-content file replacement' `
     $f.source $f.backup 'File identity changed during backup' $identityScript
 
-  Write-Host "`nPASS: $passed/7 regression scenarios" -ForegroundColor Green
+  # 2C-C10A: replace source directory with identical content.
+  $directoryNeedle = '  foreach ($directory in $directoryIdentities) {'
+  $originalCode = [IO.File]::ReadAllText($scriptPath)
+  $first = $originalCode.IndexOf($directoryNeedle, [StringComparison]::Ordinal)
+  Assert ($first -ge 0) 'Source directory validation anchor missing'
+  $second = $originalCode.IndexOf($directoryNeedle, $first + $directoryNeedle.Length, [StringComparison]::Ordinal)
+  Assert ($second -ge 0) 'Catch directory validation anchor missing'
+  Assert ($originalCode.IndexOf($directoryNeedle, $second + $directoryNeedle.Length, [StringComparison]::Ordinal) -lt 0) 'Unexpected extra anchor'
+
+  $replacement = @(
+    '  [IO.Directory]::Move($sourceParent, ($sourceParent + "-original"))'
+    '  [IO.Directory]::CreateDirectory($sourceParent) | Out-Null'
+    '  [IO.File]::Copy((Join-Path ($sourceParent + "-original") "state.json"), $source)'
+    '  foreach ($directory in $directoryIdentities) {'
+  ) -join "`n"
+
+  $injectedCode = $originalCode.Substring(0, $first) + $replacement + $originalCode.Substring($first + $directoryNeedle.Length)
+  $sourceScript = Join-Path $base 'directory-source-swap.ps1'
+  [IO.File]::WriteAllText($sourceScript, $injectedCode, (New-Object Text.UTF8Encoding($false)))
+  $tokens = $null; $parseErrors = $null
+  [System.Management.Automation.Language.Parser]::ParseFile($sourceScript, [ref]$tokens, [ref]$parseErrors) | Out-Null
+  Assert ($parseErrors.Count -eq 0) 'Source swap injection syntax'
+
+  $f = Fixture 'directory-source'
+  [IO.File]::WriteAllText($f.source, '{"test":"source-swap"}')
+  Run-Rejection 'source directory replaced' $f.source $f.backup 'Directory identity changed during backup' $sourceScript
+
+  # 2C-C10B: replace the run directory before final identity validation.
+  $runReplacement = @(
+    '  [IO.Directory]::Move($run, ($run + "-original"))'
+    '  [IO.Directory]::CreateDirectory($run) | Out-Null'
+    '  foreach ($directory in $directoryIdentities) {'
+  ) -join "`n"
+
+  $runCode = [IO.File]::ReadAllText($scriptPath)
+  $runNeedle = '  foreach ($directory in $directoryIdentities) {'
+  $runFirst = $runCode.IndexOf($runNeedle, [StringComparison]::Ordinal)
+  Assert ($runFirst -ge 0) 'Run validation anchor missing'
+  $runSecond = $runCode.IndexOf($runNeedle, $runFirst + $runNeedle.Length, [StringComparison]::Ordinal)
+  Assert ($runSecond -ge 0) 'Run catch anchor missing'
+  Assert ($runCode.IndexOf($runNeedle, $runSecond + $runNeedle.Length, [StringComparison]::Ordinal) -lt 0) 'Unexpected run anchor'
+
+  $runCode = $runCode.Substring(0, $runFirst) + $runReplacement + $runCode.Substring($runFirst + $runNeedle.Length)
+  $runScript = Join-Path $base 'directory-run-swap.ps1'
+  [IO.File]::WriteAllText($runScript, $runCode, (New-Object Text.UTF8Encoding($false)))
+
+  $tokens = $null; $parseErrors = $null
+  [System.Management.Automation.Language.Parser]::ParseFile($runScript, [ref]$tokens, [ref]$parseErrors) | Out-Null
+  Assert ($parseErrors.Count -eq 0) 'Run swap injection syntax'
+
+  $f = Fixture 'directory-run'
+  [IO.File]::WriteAllText($f.source, '{"test":"run-swap"}')
+
+  $runError = $null
+  try {
+    & $runScript -SnapshotPath $f.source -BackupRoot $f.backup | Out-Null
+  } catch {
+    $runError = $_.Exception.Message
+  }
+
+  Assert ($runError -match 'Directory identity changed during backup') 'Run replacement not detected'
+  Assert ($runError -match 'INCOMPLETE manifest not persisted') 'Run manifest persistence failure not reported'
+
+  $runDirs = @(Get-ChildItem -LiteralPath $f.backup -Directory)
+  Assert ($runDirs.Count -eq 2) 'Run replacement directory count'
+
+  foreach ($dir in $runDirs) {
+    $manifestPath = Join-Path $dir.FullName 'manifest.json'
+    if (Test-Path -LiteralPath $manifestPath -PathType Leaf) {
+      $m = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
+      Assert ($m.status -eq 'INCOMPLETE') 'Run replacement manifest status'
+      Assert ($m.recoveryAuthorized -eq $false) 'Run replacement recovery flag'
+      Assert ($m.exclusiveAccessVerified -eq $false) 'Run replacement exclusive flag'
+    } else {
+      Assert ($dir.Name -notlike '*-original') 'Original run manifest missing'
+    }
+  }
+
+  Write-Host 'PASS: run directory replaced' -ForegroundColor Green
+  $passed++
+
+  # 2C-C10C: replace backup root before final identity validation.
+  $rootReplacement = @(
+    '  [IO.Directory]::Move($root, ($root + "-original"))'
+    '  [IO.Directory]::CreateDirectory($root) | Out-Null'
+    '  foreach ($directory in $directoryIdentities) {'
+  ) -join "`n"
+
+  $rootCode = [IO.File]::ReadAllText($scriptPath)
+  $rootNeedle = '  foreach ($directory in $directoryIdentities) {'
+  $rootFirst = $rootCode.IndexOf($rootNeedle, [StringComparison]::Ordinal)
+  Assert ($rootFirst -ge 0) 'Root validation anchor missing'
+  $rootSecond = $rootCode.IndexOf($rootNeedle, $rootFirst + $rootNeedle.Length, [StringComparison]::Ordinal)
+  Assert ($rootSecond -ge 0) 'Root catch anchor missing'
+  Assert ($rootCode.IndexOf($rootNeedle, $rootSecond + $rootNeedle.Length, [StringComparison]::Ordinal) -lt 0) 'Unexpected extra root anchor'
+
+  $rootCode = $rootCode.Substring(0, $rootFirst) + $rootReplacement + $rootCode.Substring($rootFirst + $rootNeedle.Length)
+  $rootScript = Join-Path $base 'directory-root-swap.ps1'
+  [IO.File]::WriteAllText($rootScript, $rootCode, (New-Object Text.UTF8Encoding($false)))
+
+  $tokens = $null; $parseErrors = $null
+  [System.Management.Automation.Language.Parser]::ParseFile($rootScript, [ref]$tokens, [ref]$parseErrors) | Out-Null
+  Assert ($parseErrors.Count -eq 0) 'Root swap injection syntax'
+
+  $f = Fixture 'directory-root'
+  [IO.File]::WriteAllText($f.source, '{"test":"root-swap"}')
+
+  $rootError = $null
+  try {
+    & $rootScript -SnapshotPath $f.source -BackupRoot $f.backup | Out-Null
+  } catch {
+    $rootError = $_.Exception.Message
+  }
+
+  Assert ($rootError -match 'Directory identity changed during backup') 'Root replacement not detected'
+  Assert ($rootError -match 'INCOMPLETE manifest not persisted') 'Root persistence failure not reported'
+
+  $originalRoot = $f.backup + "-original"
+  Assert (Test-Path -LiteralPath $originalRoot -PathType Container) 'Original backup root missing'
+
+  $m = Manifest $originalRoot
+  Assert ($m.status -eq 'INCOMPLETE') 'Root replacement manifest status'
+  Assert ($m.recoveryAuthorized -eq $false) 'Root replacement recovery flag'
+  Assert ($m.exclusiveAccessVerified -eq $false) 'Root replacement exclusive flag'
+
+  $replacementDirs = @(Get-ChildItem -LiteralPath $f.backup -Force)
+  Assert ($replacementDirs.Count -eq 0) 'Replacement root unexpectedly populated'
+
+  Write-Host 'PASS: backup root replaced and original error preserved' -ForegroundColor Green
+  $passed++
+
+  Write-Host "`nPASS: $passed/10 regression scenarios" -ForegroundColor Green
   Write-Host 'SYMLINK: NOT TESTED (requires permitted link creation)' -ForegroundColor Yellow
   Write-Host 'RECOVERY AUTHORIZED: NO'
   Write-Host "FIXTURES: $base"
