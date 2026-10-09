@@ -1,20 +1,20 @@
 {
   "version": 1,
-  "generatedAt": "2026-10-09T01:33:47.576Z",
-  "regime": "QUIET",
-  "confidence": 85,
-  "candidateRegime": "QUIET",
-  "candidateConfidence": 85,
+  "generatedAt": "2026-10-09T02:32:32.367Z",
+  "regime": "ELEVATED",
+  "confidence": 80,
+  "candidateRegime": "ELEVATED",
+  "candidateConfidence": 80,
   "history": {
     "stage": "STRONG",
-    "exactSweepCount": 605,
+    "exactSweepCount": 606,
     "usableForRegimeClassification": true
   },
   "current": {
-    "snapshotId": "2026-10-09_013319",
-    "generatedAt": "2026-10-09T01:33:47.201Z",
-    "decisionState": "QUIET",
-    "activityScore": 0
+    "snapshotId": "2026-10-09_023204",
+    "generatedAt": "2026-10-09T02:32:31.913Z",
+    "decisionState": "WATCH",
+    "activityScore": 22
   },
   "baseline": {
     "recentWindowSweeps": 6,
@@ -23,13 +23,33 @@
     "previousSixSweepAverageActivity": 0
   },
   "trendContext": {
-    "status": "NORMAL",
-    "anomalyScore": 0,
-    "driverCount": 0,
-    "drivers": []
+    "status": "EXTREME",
+    "anomalyScore": 91.2,
+    "driverCount": 3,
+    "drivers": [
+      {
+        "metric": "radar",
+        "value": 10,
+        "percentile": 98.3,
+        "trend": "FLAT"
+      },
+      {
+        "metric": "correlation",
+        "value": 8,
+        "percentile": 87.8,
+        "trend": "FLAT"
+      },
+      {
+        "metric": "decisionStrength",
+        "value": 4,
+        "percentile": 87.5,
+        "trend": "FLAT"
+      }
+    ]
   },
   "reasons": [
-    "Current exact sweep has no meaningful activation, evidence, or historical-driver activity."
+    "Historical anomaly score is 91.2.",
+    "3 high-percentile historical drivers are active."
   ],
   "methodology": "Score-neutral regime classification derived from exact sweep history and Historical Trend Intelligence. Stronger regimes require corroborating historical or multi-domain evidence.",
   "caution": "Regime Detection is descriptive only. It does not modify Radar scoring, establish launch probability, predict rewards, or constitute trading advice."
