@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-10-10T06:33:58.997Z",
+  "generatedAt": "2026-10-10T07:34:17.670Z",
   "status": "LIVE_OBSERVATION",
   "state": "ISSUANCE_OBSERVED",
   "scoreNeutral": true,
@@ -26,22 +26,36 @@
   },
   "routes": {
     "portalPaper": "HISTORICAL_QUOTE",
-    "usdcToPaper": "NOT_TESTED",
-    "paperToUsdc": "NOT_TESTED",
+    "usdcToPaper": "QUOTE_AVAILABLE",
+    "paperToUsdc": "QUOTE_AVAILABLE",
     "usdcToCcpu": "NOT_TESTED",
     "ccpuToUsdc": "NOT_TESTED",
     "quotes": {
       "usdcToPaper": {
-        "error": "HTTP_503"
+        "inputMint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+        "outputMint": "PAPERu8xjrqfjBLj8XG6FCiokuk7pG1GzUbRTYwX1nU",
+        "inAmount": "1000000",
+        "outAmount": "999000",
+        "priceImpactPct": "0.0018643547337103042383690643",
+        "routeLabels": [
+          "Meteora DLMM"
+        ]
       },
       "paperToUsdc": {
-        "error": "HTTP_503"
+        "inputMint": "PAPERu8xjrqfjBLj8XG6FCiokuk7pG1GzUbRTYwX1nU",
+        "outputMint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+        "inAmount": "1000000",
+        "outAmount": "999000",
+        "priceImpactPct": "0.0001348967617059444300248696",
+        "routeLabels": [
+          "Meteora DLMM"
+        ]
       },
       "usdcToCcpu": {
-        "error": "HTTP_503"
+        "error": "HTTP_400"
       },
       "ccpuToUsdc": {
-        "error": "HTTP_503"
+        "error": "HTTP_400"
       }
     }
   },
@@ -74,7 +88,7 @@
     {
       "id": "market",
       "label": "Material secondary liquidity",
-      "state": "UNPROVEN"
+      "state": "OBSERVED"
     },
     {
       "id": "farm",
