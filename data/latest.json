@@ -1,6 +1,6 @@
 {
-  "id": "2026-10-13_053313__2026-10-13T05:33:38.620Z",
-  "snapshotId": "2026-10-13_053313",
+  "id": "2026-10-13_063350__2026-10-13T06:34:17.544Z",
+  "snapshotId": "2026-10-13_063350",
   "totalFiles": 64,
   "added": 0,
   "changed": 0,
@@ -36,7 +36,7 @@
   "summary": "No changes detected across 64 analyzed files.",
   "note": "No strong signals at this time.",
   "changedFiles": [],
-  "generatedAt": "2026-10-13T05:33:38.620Z",
+  "generatedAt": "2026-10-13T06:34:17.544Z",
   "trend": 0,
   "trendDirection": "FLAT",
   "breakdown": {
@@ -180,7 +180,7 @@
     "hasVisibleCTAChange": false
   },
   "evidenceCorrelation": {
-    "apiResponseDrift": false,
+    "apiResponseDrift": true,
     "newApiRoute": false,
     "newLiveApiRoute": false,
     "backendSignal": false,
@@ -193,10 +193,10 @@
     "rewardActivity": false,
     "externalClaimTransfer": false,
     "newRecipient": false,
-    "evidenceCount": 0,
-    "domainCount": 0,
+    "evidenceCount": 1,
+    "domainCount": 1,
     "domains": {
-      "api": false,
+      "api": true,
       "backend": false,
       "semantic": false,
       "webSurface": false,
@@ -204,10 +204,10 @@
       "distributor": false,
       "recipients": false
     },
-    "score": 0,
-    "level": "NONE",
+    "score": 12,
+    "level": "LOW",
     "componentScores": {
-      "api": 0,
+      "api": 12,
       "backend": 0,
       "semantic": 0,
       "webSurface": 0,
@@ -221,16 +221,25 @@
     "semanticClassification": null,
     "newExternalTransfers": 0,
     "newExternalRecipients": 0,
-    "classification": "NONE"
+    "classification": "ISOLATED"
   },
   "temporalCorrelation": {
     "windowMinutes": 60,
-    "domainCount": 0,
-    "sequence": [],
-    "events": [],
-    "firstSeenAt": null,
-    "lastSeenAt": null,
-    "spanMinutes": null,
+    "domainCount": 1,
+    "sequence": [
+      "api"
+    ],
+    "events": [
+      {
+        "domain": "api",
+        "seenAt": "2026-10-13T06:34:17.544Z",
+        "source": "current",
+        "detail": null
+      }
+    ],
+    "firstSeenAt": "2026-10-13T06:34:17.544Z",
+    "lastSeenAt": "2026-10-13T06:34:17.544Z",
+    "spanMinutes": 0,
     "observedSequencePattern": null,
     "classification": "NONE",
     "interpretation": "No strong cross-domain temporal sequence is established yet."
@@ -361,7 +370,7 @@
     },
     "drift": {
       "comparable": true,
-      "baselineSnapshotId": "2026-10-13_043334",
+      "baselineSnapshotId": "2026-10-13_053313",
       "status": "STABLE",
       "newSurfaceCount": 0,
       "missingSurfaceCount": 0,
@@ -386,9 +395,9 @@
     "firstPartyApiCount": 4
   },
   "discovery": {
-    "checkedAt": "2026-10-13T05:33:31.628Z",
-    "sourceSnapshotId": "2026-10-13_053313",
-    "snapshotDir": "2026-10-13_053313",
+    "checkedAt": "2026-10-13T06:34:10.477Z",
+    "sourceSnapshotId": "2026-10-13_063350",
+    "snapshotDir": "2026-10-13_063350",
     "newUnknownChange": false,
     "keyFunctionCandidate": null,
     "newLabels": [],
@@ -398,9 +407,65 @@
     "newKeywords": [],
     "criticalKeywords": [],
     "apiResponseDrift": {
-      "detected": false,
-      "changedRouteCount": 0,
-      "changedRoutes": []
+      "detected": true,
+      "changedRouteCount": 1,
+      "changedRoutes": [
+        {
+          "route": "/api/max/search",
+          "previousFingerprint": "b033be8910c912395de110294e92411bb1f4c18fded5eeea530d9eb83a88859c",
+          "currentFingerprint": "ca00fccfb408989eddc401062c4d1219a6aceb6b9b55412357f1790862e8f178",
+          "previousSize": 3227,
+          "currentSize": 45,
+          "sizeDelta": -3182,
+          "addedPaths": [
+            "error"
+          ],
+          "removedPaths": [
+            "availability",
+            "availability.markets",
+            "availability.tokens",
+            "availability.wallets",
+            "markets",
+            "markets[]",
+            "markets[].category",
+            "markets[].icon",
+            "markets[].kind",
+            "markets[].slug",
+            "markets[].title",
+            "network",
+            "query",
+            "tokens",
+            "tokens[]",
+            "tokens[].address",
+            "tokens[].change24h",
+            "tokens[].icon",
+            "tokens[].liquidity",
+            "tokens[].marketCap",
+            "tokens[].name",
+            "tokens[].network",
+            "tokens[].price",
+            "tokens[].symbol",
+            "tokens[].verified",
+            "tokens[].volume24h",
+            "trending",
+            "trending[]",
+            "trending[].address",
+            "trending[].change24h",
+            "trending[].icon",
+            "trending[].liquidity",
+            "trending[].marketCap",
+            "trending[].name",
+            "trending[].network",
+            "trending[].price",
+            "trending[].symbol",
+            "trending[].verified",
+            "trending[].volume24h",
+            "wallets",
+            "wallets[]",
+            "wallets[]:EMPTY_ARRAY"
+          ]
+        }
+      ]
     }
   },
   "whyItMatters": "",
