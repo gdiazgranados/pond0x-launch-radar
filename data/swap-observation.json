@@ -9,7 +9,7 @@
     "target": "https://www.pond0x.com/swap/solana",
     "scope": "Visible controls and first-party fetch/XHR responses during initial page load; no clicks or extra requests. Numbers in labels are normalized. Missing requests may reflect timing or caching, not removed endpoints.",
     "latest": {
-      "checkedAt": "2026-10-16T04:33:30.959Z",
+      "checkedAt": "2026-10-16T05:33:52.639Z",
       "status": "OBSERVED",
       "controls": [
         "{\"role\":\"button\",\"label\":\"\",\"disabled\":false,\"selected\":null}",
@@ -24,7 +24,7 @@
       "responses": [
         "GET / → 200",
         "GET /api/auth/session → 200",
-        "GET /api/max/search → 502",
+        "GET /api/max/search → 200",
         "GET /api/rewards/feed → 200",
         "GET /api/solana → 200",
         "GET /api/version → 200",
@@ -35,22 +35,22 @@
     },
     "comparison": {
       "state": "CHANGED",
-      "baselineAt": "2026-10-16T03:33:47.654Z",
+      "baselineAt": "2026-10-16T04:33:30.959Z",
       "controls": {
         "added": [],
         "removed": []
       },
       "responses": {
         "added": [
-          "GET /api/max/search → 502"
+          "GET /api/max/search → 200"
         ],
         "removed": [
-          "GET /api/max/search → 200"
+          "GET /api/max/search → 502"
         ]
       }
     },
     "lastSuccessful": {
-      "checkedAt": "2026-10-16T04:33:30.959Z",
+      "checkedAt": "2026-10-16T05:33:52.639Z",
       "status": "OBSERVED",
       "controls": [
         "{\"role\":\"button\",\"label\":\"\",\"disabled\":false,\"selected\":null}",
@@ -65,7 +65,7 @@
       "responses": [
         "GET / → 200",
         "GET /api/auth/session → 200",
-        "GET /api/max/search → 502",
+        "GET /api/max/search → 200",
         "GET /api/rewards/feed → 200",
         "GET /api/solana → 200",
         "GET /api/version → 200",
@@ -75,45 +75,6 @@
       "truncated": false
     },
     "history": [
-      {
-        "latest": {
-          "checkedAt": "2026-10-14T14:00:44.855Z",
-          "status": "OBSERVED",
-          "controls": [
-            "{\"role\":\"button\",\"label\":\"\",\"disabled\":false,\"selected\":null}",
-            "{\"role\":\"button\",\"label\":\"#JgF…qUoq\",\"disabled\":false,\"selected\":null}",
-            "{\"role\":\"button\",\"label\":\"Connect\",\"disabled\":false,\"selected\":null}",
-            "{\"role\":\"button\",\"label\":\"Open search modal\",\"disabled\":false,\"selected\":null}",
-            "{\"role\":\"button\",\"label\":\"So#…#\",\"disabled\":false,\"selected\":null}",
-            "{\"role\":\"button\",\"label\":\"Solana\",\"disabled\":false,\"selected\":null}",
-            "{\"role\":\"button\",\"label\":\"Swap now\",\"disabled\":false,\"selected\":null}",
-            "{\"role\":\"button\",\"label\":\"Swap\",\"disabled\":false,\"selected\":null}"
-          ],
-          "responses": [
-            "GET / → 200",
-            "GET /api/auth/session → 200",
-            "GET /api/max/search → 200",
-            "GET /api/rewards/feed → 200",
-            "GET /api/solana → 200",
-            "GET /api/version → 200",
-            "GET /swap → 200",
-            "POST /swap/solana → 200"
-          ],
-          "truncated": false
-        },
-        "comparison": {
-          "state": "UNCHANGED",
-          "baselineAt": "2026-10-14T13:33:44.006Z",
-          "controls": {
-            "added": [],
-            "removed": []
-          },
-          "responses": {
-            "added": [],
-            "removed": []
-          }
-        }
-      },
       {
         "latest": {
           "checkedAt": "2026-10-14T14:34:00.478Z",
@@ -1950,6 +1911,49 @@
             ]
           }
         }
+      },
+      {
+        "latest": {
+          "checkedAt": "2026-10-16T05:33:52.639Z",
+          "status": "OBSERVED",
+          "controls": [
+            "{\"role\":\"button\",\"label\":\"\",\"disabled\":false,\"selected\":null}",
+            "{\"role\":\"button\",\"label\":\"#JgF…qUoq\",\"disabled\":false,\"selected\":null}",
+            "{\"role\":\"button\",\"label\":\"Connect\",\"disabled\":false,\"selected\":null}",
+            "{\"role\":\"button\",\"label\":\"Open search modal\",\"disabled\":false,\"selected\":null}",
+            "{\"role\":\"button\",\"label\":\"So#…#\",\"disabled\":false,\"selected\":null}",
+            "{\"role\":\"button\",\"label\":\"Solana\",\"disabled\":false,\"selected\":null}",
+            "{\"role\":\"button\",\"label\":\"Swap now\",\"disabled\":false,\"selected\":null}",
+            "{\"role\":\"button\",\"label\":\"Swap\",\"disabled\":false,\"selected\":null}"
+          ],
+          "responses": [
+            "GET / → 200",
+            "GET /api/auth/session → 200",
+            "GET /api/max/search → 200",
+            "GET /api/rewards/feed → 200",
+            "GET /api/solana → 200",
+            "GET /api/version → 200",
+            "GET /swap → 200",
+            "POST /swap/solana → 200"
+          ],
+          "truncated": false
+        },
+        "comparison": {
+          "state": "CHANGED",
+          "baselineAt": "2026-10-16T04:33:30.959Z",
+          "controls": {
+            "added": [],
+            "removed": []
+          },
+          "responses": {
+            "added": [
+              "GET /api/max/search → 200"
+            ],
+            "removed": [
+              "GET /api/max/search → 502"
+            ]
+          }
+        }
       }
     ],
     "changes": [
@@ -2081,11 +2085,30 @@
             ]
           }
         }
+      },
+      {
+        "observedAt": "2026-10-16T05:33:52.639Z",
+        "comparison": {
+          "state": "CHANGED",
+          "baselineAt": "2026-10-16T04:33:30.959Z",
+          "controls": {
+            "added": [],
+            "removed": []
+          },
+          "responses": {
+            "added": [
+              "GET /api/max/search → 200"
+            ],
+            "removed": [
+              "GET /api/max/search → 502"
+            ]
+          }
+        }
       }
     ]
   },
   "latest": {
-    "checkedAt": "2026-10-16T04:33:30.959Z",
+    "checkedAt": "2026-10-16T05:33:52.639Z",
     "target": "https://www.pond0x.com/swap/solana",
     "status": "OBSERVED",
     "view": "SWAP_COMPONENT",
@@ -2116,7 +2139,7 @@
   },
   "comparison": {
     "state": "UNCHANGED",
-    "baselineAt": "2026-10-16T03:33:47.654Z",
+    "baselineAt": "2026-10-16T04:33:30.959Z",
     "viewChanged": false,
     "markers": {
       "added": [],
@@ -2132,7 +2155,7 @@
     }
   },
   "lastSuccessful": {
-    "checkedAt": "2026-10-16T04:33:30.959Z",
+    "checkedAt": "2026-10-16T05:33:52.639Z",
     "target": "https://www.pond0x.com/swap/solana",
     "status": "OBSERVED",
     "view": "SWAP_COMPONENT",
@@ -2162,55 +2185,6 @@
     "signature": "bf13a2c2d4b574fe2df123bb9bcfb2ad4021f93c42937afa69074558b50e1230"
   },
   "history": [
-    {
-      "observation": {
-        "checkedAt": "2026-10-14T14:00:44.855Z",
-        "target": "https://www.pond0x.com/swap/solana",
-        "status": "OBSERVED",
-        "view": "SWAP_COMPONENT",
-        "httpStatus": 200,
-        "finalUrl": "https://www.pond0x.com/swap/solana",
-        "markers": [
-          "aquaGiga",
-          "aquaModes",
-          "aquaShell",
-          "aquaSolstage",
-          "aquaswap"
-        ],
-        "labels": [
-          "earnRewards",
-          "gigaRewards",
-          "megaWins",
-          "swapHard",
-          "swapNow"
-        ],
-        "links": [
-          "/",
-          "/max/solana/3JgFwoYV74f6LwWjQWnr3YDPFnmBdwQfNyubv99jqUoq",
-          "/max/solana/So11111111111111111111111111111111111111112",
-          "/swap"
-        ],
-        "error": null,
-        "signature": "bf13a2c2d4b574fe2df123bb9bcfb2ad4021f93c42937afa69074558b50e1230"
-      },
-      "comparison": {
-        "state": "UNCHANGED",
-        "baselineAt": "2026-10-14T13:33:44.006Z",
-        "viewChanged": false,
-        "markers": {
-          "added": [],
-          "removed": []
-        },
-        "labels": {
-          "added": [],
-          "removed": []
-        },
-        "links": {
-          "added": [],
-          "removed": []
-        }
-      }
-    },
     {
       "observation": {
         "checkedAt": "2026-10-14T14:34:00.478Z",
@@ -4499,6 +4473,55 @@
       "comparison": {
         "state": "UNCHANGED",
         "baselineAt": "2026-10-16T03:33:47.654Z",
+        "viewChanged": false,
+        "markers": {
+          "added": [],
+          "removed": []
+        },
+        "labels": {
+          "added": [],
+          "removed": []
+        },
+        "links": {
+          "added": [],
+          "removed": []
+        }
+      }
+    },
+    {
+      "observation": {
+        "checkedAt": "2026-10-16T05:33:52.639Z",
+        "target": "https://www.pond0x.com/swap/solana",
+        "status": "OBSERVED",
+        "view": "SWAP_COMPONENT",
+        "httpStatus": 200,
+        "finalUrl": "https://www.pond0x.com/swap/solana",
+        "markers": [
+          "aquaGiga",
+          "aquaModes",
+          "aquaShell",
+          "aquaSolstage",
+          "aquaswap"
+        ],
+        "labels": [
+          "earnRewards",
+          "gigaRewards",
+          "megaWins",
+          "swapHard",
+          "swapNow"
+        ],
+        "links": [
+          "/",
+          "/max/solana/3JgFwoYV74f6LwWjQWnr3YDPFnmBdwQfNyubv99jqUoq",
+          "/max/solana/So11111111111111111111111111111111111111112",
+          "/swap"
+        ],
+        "error": null,
+        "signature": "bf13a2c2d4b574fe2df123bb9bcfb2ad4021f93c42937afa69074558b50e1230"
+      },
+      "comparison": {
+        "state": "UNCHANGED",
+        "baselineAt": "2026-10-16T04:33:30.959Z",
         "viewChanged": false,
         "markers": {
           "added": [],
