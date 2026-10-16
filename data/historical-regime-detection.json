@@ -1,35 +1,55 @@
 {
   "version": 1,
-  "generatedAt": "2026-10-16T17:33:30.967Z",
-  "regime": "COOLING",
-  "confidence": 65,
-  "candidateRegime": "COOLING",
-  "candidateConfidence": 65,
+  "generatedAt": "2026-10-16T18:34:00.410Z",
+  "regime": "ELEVATED",
+  "confidence": 80,
+  "candidateRegime": "ELEVATED",
+  "candidateConfidence": 80,
   "history": {
     "stage": "STRONG",
     "exactSweepCount": 720,
     "usableForRegimeClassification": true
   },
   "current": {
-    "snapshotId": "2026-10-16_173305",
-    "generatedAt": "2026-10-16T17:33:30.664Z",
-    "decisionState": "QUIET",
-    "activityScore": 0
+    "snapshotId": "2026-10-16_183332",
+    "generatedAt": "2026-10-16T18:34:00.029Z",
+    "decisionState": "WATCH",
+    "activityScore": 81.75
   },
   "baseline": {
     "recentWindowSweeps": 6,
     "previousWindowSweeps": 6,
     "recentSixSweepAverageActivity": 0,
-    "previousSixSweepAverageActivity": 4.17
+    "previousSixSweepAverageActivity": 0
   },
   "trendContext": {
-    "status": "NORMAL",
-    "anomalyScore": 0,
-    "driverCount": 0,
-    "drivers": []
+    "status": "EXTREME",
+    "anomalyScore": 96.4,
+    "driverCount": 3,
+    "drivers": [
+      {
+        "metric": "radar",
+        "value": 67.75,
+        "percentile": 100,
+        "trend": "FLAT"
+      },
+      {
+        "metric": "correlation",
+        "value": 9,
+        "percentile": 94.7,
+        "trend": "FLAT"
+      },
+      {
+        "metric": "decisionStrength",
+        "value": 5,
+        "percentile": 94.5,
+        "trend": "FLAT"
+      }
+    ]
   },
   "reasons": [
-    "Recent activity has materially declined from the preceding baseline."
+    "Historical anomaly score is 96.4.",
+    "3 high-percentile historical drivers are active."
   ],
   "methodology": "Score-neutral regime classification derived from exact sweep history and Historical Trend Intelligence. Stronger regimes require corroborating historical or multi-domain evidence.",
   "caution": "Regime Detection is descriptive only. It does not modify Radar scoring, establish launch probability, predict rewards, or constitute trading advice."
