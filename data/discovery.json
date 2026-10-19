@@ -1,7 +1,7 @@
 {
-  "checkedAt": "2026-10-19T17:45:12.771Z",
-  "sourceSnapshotId": "2026-10-19_174454",
-  "snapshotDir": "2026-10-19_174454",
+  "checkedAt": "2026-10-19T18:34:09.018Z",
+  "sourceSnapshotId": "2026-10-19_183349",
+  "snapshotDir": "2026-10-19_183349",
   "newUnknownChange": false,
   "keyFunctionCandidate": null,
   "newLabels": [],
@@ -32,10 +32,10 @@
     "/pondsol"
   ],
   "liveApiRoutes": [
-    "/api/auth/session",
     "/api/version",
-    "/api/max/search",
-    "/api/rewards/feed"
+    "/api/auth/session",
+    "/api/rewards/feed",
+    "/api/max/search"
   ],
   "newLiveApiRoutes": [],
   "declaredApiRoutes": [
@@ -75,11 +75,19 @@
     "/api/mp/build",
     "/api/mp/fund-build",
     "/api/stats/memes_new",
-    "/api/auth/session",
     "/api/version",
+    "/api/auth/session",
     "/api/rewards/feed"
   ],
   "observedApiSchemas": {
+    "/api/version": {
+      "schemaFingerprint": "afb74bdaa0d230ecc9dcfd4f70f632a369f194037173b709990f58b85ea07037",
+      "schemaPaths": [
+        "buildId"
+      ],
+      "size": 27,
+      "status": 200
+    },
     "/api/auth/session": {
       "schemaFingerprint": "8fea01e1c363a1f4270e487d656ce760aea198c8d8919aa00d35488220949998",
       "schemaPaths": [
@@ -88,12 +96,14 @@
       "size": 2,
       "status": 200
     },
-    "/api/version": {
-      "schemaFingerprint": "afb74bdaa0d230ecc9dcfd4f70f632a369f194037173b709990f58b85ea07037",
+    "/api/rewards/feed": {
+      "schemaFingerprint": "6b0c26f18f3156518d69a8e6d6252f254375d9bbfbf2ed05227e475e86476402",
       "schemaPaths": [
-        "buildId"
+        "rewards",
+        "rewards[]",
+        "rewards[]:EMPTY_ARRAY"
       ],
-      "size": 27,
+      "size": 14,
       "status": 200
     },
     "/api/max/search": {
@@ -144,16 +154,6 @@
       ],
       "size": 3227,
       "status": 200
-    },
-    "/api/rewards/feed": {
-      "schemaFingerprint": "6b0c26f18f3156518d69a8e6d6252f254375d9bbfbf2ed05227e475e86476402",
-      "schemaPaths": [
-        "rewards",
-        "rewards[]",
-        "rewards[]:EMPTY_ARRAY"
-      ],
-      "size": 14,
-      "status": 200
     }
   },
   "apiResponseDrift": {
@@ -188,7 +188,7 @@
     "rewards"
   ],
   "diagnostics": {
-    "previousSnapshotId": "2026-10-19_173348",
+    "previousSnapshotId": "2026-10-19_174454",
     "freshCounts": {
       "labels": 0,
       "routes": 0,
