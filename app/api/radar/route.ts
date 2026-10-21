@@ -3,7 +3,7 @@ import clearResearchBaseline from "../../../public/data/clear-intelligence.json"
 
 const RADAR_DATA_BASE = process.env.NEXT_PUBLIC_RADAR_DATA_BASE || "https://raw.githubusercontent.com/gdiazgranados/pond0x-launch-radar/radar-data/data"
 function remoteJsonUrl(file: string) { return `${RADAR_DATA_BASE}/${file.replace(/^\/+/, "")}` }
-async function loadRemoteJson(file: string) { try { const res = await fetch(remoteJsonUrl(file), { next: { revalidate: 60 } }); if (!res.ok) throw new Error(`${file} failed (${res.status})`); return await res.json() } catch (err) { console.error(`Error loading ${file}:`, err); return null } }
+async function loadRemoteJson(file: string) { try { const res = await fetch(remoteJsonUrl(file), file === "history.json" ? { cache: "no-store" } : { next: { revalidate: 60 } }); if (!res.ok) throw new Error(`${file} failed (${res.status})`); return await res.json() } catch (err) { console.error(`Error loading ${file}:`, err); return null } }
 function clampPercent(value: number) { const n = Number(value || 0); return !Number.isFinite(n) ? 0 : Math.max(0, Math.min(100, Math.round(n * 100) / 100)) }
 function normalizeScoreToPercent(rawScore: number) { const n = Number(rawScore || 0); return !Number.isFinite(n) || n <= 0 ? 0 : clampPercent(Math.log10(n + 1) * 50) }
 function classifyIntensity(rawScore: number) { const n = Number(rawScore || 0); if (n >= 100) return "EXTREME"; if (n >= 70) return "VERY HIGH"; if (n >= 40) return "HIGH"; if (n >= 15) return "MEDIUM"; return "LOW" }
