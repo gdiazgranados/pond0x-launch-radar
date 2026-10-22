@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-10-22T04:33:34.964Z",
+  "generatedAt": "2026-10-22T05:34:23.338Z",
   "history": {
     "stage": "STRONG",
     "exactSweepCount": 720,
@@ -12,12 +12,12 @@
     }
   },
   "current": {
-    "snapshotId": "2026-10-22_043309",
-    "generatedAt": "2026-10-22T04:33:34.709Z",
-    "decisionState": "QUIET"
+    "snapshotId": "2026-10-22_053357",
+    "generatedAt": "2026-10-22T05:34:22.969Z",
+    "decisionState": "WATCH"
   },
-  "status": "NORMAL",
-  "anomalyScore": 0,
+  "status": "EXTREME",
+  "anomalyScore": 98.6,
   "metrics": {
     "radar": {
       "current": 0,
@@ -36,11 +36,11 @@
       "shortTrend": "FLAT"
     },
     "correlation": {
-      "current": 0,
+      "current": 12,
       "historicalAverage": 0.62,
       "historicalMax": 20,
-      "percentile": 46.9,
-      "percentileClass": "NORMAL",
+      "percentile": 98.6,
+      "percentileClass": "EXTREME",
       "shortTrend": "FLAT"
     },
     "evidenceConfidence": {
@@ -60,11 +60,11 @@
       "shortTrend": "FLAT"
     },
     "decisionStrength": {
-      "current": 0,
+      "current": 7,
       "historicalAverage": 0.34,
       "historicalMax": 11,
-      "percentile": 46.9,
-      "percentileClass": "NORMAL",
+      "percentile": 98.6,
+      "percentileClass": "EXTREME",
       "shortTrend": "FLAT"
     },
     "domainCount": {
@@ -116,7 +116,20 @@
       "shortTrend": "FLAT"
     }
   },
-  "drivers": [],
+  "drivers": [
+    {
+      "metric": "correlation",
+      "value": 12,
+      "percentile": 98.6,
+      "trend": "FLAT"
+    },
+    {
+      "metric": "decisionStrength",
+      "value": 7,
+      "percentile": 98.6,
+      "trend": "FLAT"
+    }
+  ],
   "methodology": "Score-neutral historical comparison of the latest exact sweep against prior exact sweeps. Percentiles and short trends are descriptive only and do not modify Radar scoring.",
   "caution": "Historical Trend Intelligence must not be interpreted as launch probability, reward probability, causal evidence, or trading advice. Low sample counts remain explicitly classified as learning or preliminary."
 }
