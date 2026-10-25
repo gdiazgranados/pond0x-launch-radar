@@ -11,7 +11,12 @@ test("radar API uses stable upstream URLs and shared CDN caching", () => {
   const route = source("app/api/radar/route.ts")
 
   assert.equal(route.includes("?t=${Date.now()}"), false)
-  assert.equal(route.includes('cache: "no-store"'), false)
+  // Only history.json bypasses the Next.js Data Cache.
+  // Other radar artifacts retain 60-second revalidation.
+  assert.match(
+    route,
+    /file === "history\.json"\s*\?\s*\{\s*cache: "no-store"\s*\}\s*:\s*\{\s*next: \{\s*revalidate: 60\s*\}\s*\}/
+  )
   assert.match(route, /next: \{ revalidate: 60 \}/)
   assert.match(
     route,
