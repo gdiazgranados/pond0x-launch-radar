@@ -1,7 +1,7 @@
 {
-  "checkedAt": "2026-11-19T23:34:57.693Z",
-  "sourceSnapshotId": "2026-11-19_233436",
-  "snapshotDir": "2026-11-19_233436",
+  "checkedAt": "2026-11-20T00:35:01.681Z",
+  "sourceSnapshotId": "2026-11-20_003441",
+  "snapshotDir": "2026-11-20_003441",
   "newUnknownChange": false,
   "keyFunctionCandidate": null,
   "newLabels": [],
@@ -34,9 +34,12 @@
   "liveApiRoutes": [
     "/api/version",
     "/api/auth/session",
+    "/api/max/search",
     "/api/rewards/feed"
   ],
-  "newLiveApiRoutes": [],
+  "newLiveApiRoutes": [
+    "/api/max/search"
+  ],
   "declaredApiRoutes": [
     "/api/ai/context/memory/v2",
     "/api/ai/trigger",
@@ -57,7 +60,6 @@
     "/api/chat",
     "/api/chat/health",
     "/api/geoff/pair",
-    "/api/max/search",
     "/api/mp/broadcast",
     "/api/mp/build",
     "/api/mp/fund-build",
@@ -94,6 +96,55 @@
         "ROOT:EMPTY_OBJECT"
       ],
       "size": 2,
+      "status": 200
+    },
+    "/api/max/search": {
+      "schemaFingerprint": "b033be8910c912395de110294e92411bb1f4c18fded5eeea530d9eb83a88859c",
+      "schemaPaths": [
+        "availability",
+        "availability.markets",
+        "availability.tokens",
+        "availability.wallets",
+        "markets",
+        "markets[]",
+        "markets[].category",
+        "markets[].icon",
+        "markets[].kind",
+        "markets[].slug",
+        "markets[].title",
+        "network",
+        "query",
+        "tokens",
+        "tokens[]",
+        "tokens[].address",
+        "tokens[].change24h",
+        "tokens[].icon",
+        "tokens[].liquidity",
+        "tokens[].marketCap",
+        "tokens[].name",
+        "tokens[].network",
+        "tokens[].price",
+        "tokens[].symbol",
+        "tokens[].verified",
+        "tokens[].volume24h",
+        "trending",
+        "trending[]",
+        "trending[].address",
+        "trending[].change24h",
+        "trending[].icon",
+        "trending[].liquidity",
+        "trending[].marketCap",
+        "trending[].name",
+        "trending[].network",
+        "trending[].price",
+        "trending[].symbol",
+        "trending[].verified",
+        "trending[].volume24h",
+        "wallets",
+        "wallets[]",
+        "wallets[]:EMPTY_ARRAY"
+      ],
+      "size": 3251,
       "status": 200
     },
     "/api/rewards/feed": {
@@ -139,12 +190,12 @@
     "rewards"
   ],
   "diagnostics": {
-    "previousSnapshotId": "2026-11-19_223445",
+    "previousSnapshotId": "2026-11-19_233436",
     "freshCounts": {
       "labels": 0,
       "routes": 0,
       "apiRoutes": 0,
-      "liveApiRoutes": 0,
+      "liveApiRoutes": 1,
       "keywords": 0,
       "criticalKeywords": 0
     },

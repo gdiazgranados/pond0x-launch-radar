@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-11-19T23:35:01.903Z",
+  "generatedAt": "2026-11-20T00:35:08.195Z",
   "history": {
     "stage": "STRONG",
     "exactSweepCount": 720,
@@ -12,20 +12,20 @@
     }
   },
   "current": {
-    "snapshotId": "2026-11-19_233436",
-    "generatedAt": "2026-11-19T23:35:01.661Z",
-    "decisionState": "QUIET"
+    "snapshotId": "2026-11-20_003441",
+    "generatedAt": "2026-11-20T00:35:07.944Z",
+    "decisionState": "WATCH"
   },
-  "status": "NORMAL",
-  "anomalyScore": 0,
+  "status": "EXTREME",
+  "anomalyScore": 97.8,
   "metrics": {
     "radar": {
-      "current": 0,
+      "current": 8,
       "historicalAverage": 0.73,
       "historicalMax": 65.25,
-      "percentile": 46.7,
-      "percentileClass": "NORMAL",
-      "shortTrend": "RISING"
+      "percentile": 93.5,
+      "percentileClass": "HIGH",
+      "shortTrend": "FLAT"
     },
     "semantic": {
       "current": 0,
@@ -36,12 +36,12 @@
       "shortTrend": "FLAT"
     },
     "correlation": {
-      "current": 0,
+      "current": 12,
       "historicalAverage": 0.52,
       "historicalMax": 8,
-      "percentile": 46.7,
-      "percentileClass": "NORMAL",
-      "shortTrend": "RISING"
+      "percentile": 100,
+      "percentileClass": "EXTREME",
+      "shortTrend": "FLAT"
     },
     "evidenceConfidence": {
       "current": 0,
@@ -60,12 +60,12 @@
       "shortTrend": "FLAT"
     },
     "decisionStrength": {
-      "current": 0,
+      "current": 7,
       "historicalAverage": 0.26,
       "historicalMax": 5,
-      "percentile": 46.7,
-      "percentileClass": "NORMAL",
-      "shortTrend": "RISING"
+      "percentile": 100,
+      "percentileClass": "EXTREME",
+      "shortTrend": "FLAT"
     },
     "domainCount": {
       "current": 0,
@@ -116,7 +116,26 @@
       "shortTrend": "FLAT"
     }
   },
-  "drivers": [],
+  "drivers": [
+    {
+      "metric": "correlation",
+      "value": 12,
+      "percentile": 100,
+      "trend": "FLAT"
+    },
+    {
+      "metric": "decisionStrength",
+      "value": 7,
+      "percentile": 100,
+      "trend": "FLAT"
+    },
+    {
+      "metric": "radar",
+      "value": 8,
+      "percentile": 93.5,
+      "trend": "FLAT"
+    }
+  ],
   "methodology": "Score-neutral historical comparison of the latest exact sweep against prior exact sweeps. Percentiles and short trends are descriptive only and do not modify Radar scoring.",
   "caution": "Historical Trend Intelligence must not be interpreted as launch probability, reward probability, causal evidence, or trading advice. Low sample counts remain explicitly classified as learning or preliminary."
 }
