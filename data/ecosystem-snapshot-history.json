@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-11-23T12:35:11.092Z",
+  "generatedAt": "2026-11-23T13:35:19.670Z",
   "retention": {
     "maxObservations": 720,
     "intendedCadenceMinutes": 60
@@ -1209,6 +1209,342 @@
           "comparison": {
             "state": "UNCHANGED",
             "baselineAt": "2026-11-23T11:35:02.236Z",
+            "viewChanged": false,
+            "markers": {
+              "added": [],
+              "removed": []
+            },
+            "labels": {
+              "added": [],
+              "removed": []
+            },
+            "links": {
+              "added": [],
+              "removed": []
+            }
+          },
+          "view": null
+        },
+        "mining": {
+          "status": "UNKNOWN",
+          "activityState": "QUIET",
+          "scoreNeutral": true
+        }
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "generatedAt": "2026-11-23T13:35:19.670Z",
+      "status": "LIVE",
+      "scoreNeutral": true,
+      "purpose": "Timestamp-aligned factual Pond0x ecosystem snapshot for downstream research. No prediction, trading recommendation, strategy selection, or execution.",
+      "boundaries": {
+        "prediction": "NOT_INCLUDED",
+        "tradingSignal": "NOT_INCLUDED",
+        "strategy": "NOT_INCLUDED",
+        "execution": "NOT_INCLUDED",
+        "executableMarketQuotes": "PRESERVE_SOURCE_STATUS"
+      },
+      "coverage": {
+        "required": 6,
+        "availableRequired": 6,
+        "optionalMiningAvailable": true,
+        "ethereumTokens": [
+          "PNDC",
+          "PORK"
+        ],
+        "solanaTokens": [
+          "wPOND",
+          "PAPER"
+        ]
+      },
+      "sources": {
+        "tokenMarket": {
+          "file": "token-market-latest.json",
+          "available": true,
+          "generatedAt": "2026-11-23T13:35:14.114Z",
+          "status": "LIVE"
+        },
+        "tokenMarketTrends": {
+          "file": "token-market-trends-latest.json",
+          "available": true,
+          "generatedAt": "2026-11-23T13:35:14.114Z",
+          "status": "LIVE"
+        },
+        "chainIntelligence": {
+          "file": "chain-intelligence.json",
+          "available": true,
+          "generatedAt": "2026-11-23T13:35:19.050Z",
+          "status": "LIVE"
+        },
+        "clearIntelligence": {
+          "file": "clear-intelligence.json",
+          "available": true,
+          "generatedAt": "2026-11-23T13:35:19.128Z",
+          "status": "LIVE_OBSERVATION"
+        },
+        "swapSurface": {
+          "file": "swap-observation.json",
+          "available": true,
+          "generatedAt": "2026-11-23T13:35:14.062Z",
+          "status": "OBSERVED"
+        },
+        "heartbeat": {
+          "file": "heartbeat.json",
+          "available": true,
+          "generatedAt": "2026-11-23T13:34:54.174Z",
+          "status": "running"
+        },
+        "miningIntelligence": {
+          "file": "mining-intelligence.json",
+          "available": true,
+          "generatedAt": "2026-11-23T11:35:06.718Z",
+          "status": "UNKNOWN"
+        }
+      },
+      "tokens": {
+        "PNDC": {
+          "status": "OBSERVED",
+          "chain": "ethereum",
+          "address": "0x423f4e6138E475D85CF7Ea071AC92097Ed631eea",
+          "family": "core",
+          "observationQuality": "MARKET_SNAPSHOT",
+          "primaryMarket": {
+            "dexId": "uniswap",
+            "pairAddress": "0xc64350c0eab6faeD8f17CC2CDff0761C53fb4152",
+            "quoteSymbol": "WETH",
+            "priceUsd": 4.089e-8,
+            "priceNative": 2.371e-11,
+            "liquidityUsd": 45675.19,
+            "volume24hUsd": 1125.16,
+            "priceChange24hPct": 7.65
+          },
+          "aggregateObservedLiquidityUsd": 83195.70999999998,
+          "aggregateObservedVolume24hUsd": 4609.839999999999,
+          "executableQuotes": {
+            "status": "NOT_MEASURED_V1",
+            "note": "DEX market snapshots are not executable quotes. Size-aware buy/sell quotes will be added separately."
+          },
+          "trends": {
+            "1h": {
+              "status": "OBSERVED",
+              "requestedHours": 1,
+              "baselineAt": "2026-11-23T12:35:06.009Z",
+              "actualHours": 1.0022513888888889,
+              "baselineQuality": "ALIGNED",
+              "marketContinuity": {
+                "state": "SAME_PRIMARY_PAIR",
+                "currentPairAddress": "0xc64350c0eab6faeD8f17CC2CDff0761C53fb4152",
+                "previousPrimaryPairAddress": "0xc64350c0eab6faeD8f17CC2CDff0761C53fb4152",
+                "samePairObserved": true
+              },
+              "changes": {
+                "samePairPriceUsdPct": 0.8882309400444065,
+                "aggregateObservedLiquidityUsdPct": 0.7291129775208696,
+                "aggregateObservedVolume24hUsdPct": 22.15962391549757
+              },
+              "anomalies": []
+            },
+            "6h": {
+              "status": "INSUFFICIENT_HISTORY",
+              "requestedHours": 6,
+              "baselineAt": null,
+              "actualHours": null
+            },
+            "24h": {
+              "status": "INSUFFICIENT_HISTORY",
+              "requestedHours": 24,
+              "baselineAt": null,
+              "actualHours": null
+            }
+          }
+        },
+        "PORK": {
+          "status": "OBSERVED",
+          "chain": "ethereum",
+          "address": "0xb9f599ce614feb2e1bbe58f180f370d05b39344e",
+          "family": "core",
+          "observationQuality": "MARKET_SNAPSHOT",
+          "primaryMarket": {
+            "dexId": "uniswap",
+            "pairAddress": "0x331399c614cA67DEe86733E5A2FBA40DbB16827c",
+            "quoteSymbol": "WETH",
+            "priceUsd": 9.976e-9,
+            "priceNative": 5.786e-12,
+            "liquidityUsd": 193581.55,
+            "volume24hUsd": 512.92,
+            "priceChange24hPct": 1.98
+          },
+          "aggregateObservedLiquidityUsd": 325186.31,
+          "aggregateObservedVolume24hUsd": 4422.42,
+          "executableQuotes": {
+            "status": "NOT_MEASURED_V1",
+            "note": "DEX market snapshots are not executable quotes. Size-aware buy/sell quotes will be added separately."
+          },
+          "trends": {
+            "1h": {
+              "status": "OBSERVED",
+              "requestedHours": 1,
+              "baselineAt": "2026-11-23T12:35:06.009Z",
+              "actualHours": 1.0022513888888889,
+              "baselineQuality": "ALIGNED",
+              "marketContinuity": {
+                "state": "SAME_PRIMARY_PAIR",
+                "currentPairAddress": "0x331399c614cA67DEe86733E5A2FBA40DbB16827c",
+                "previousPrimaryPairAddress": "0x331399c614cA67DEe86733E5A2FBA40DbB16827c",
+                "samePairObserved": true
+              },
+              "changes": {
+                "samePairPriceUsdPct": 1.1662103234965997,
+                "aggregateObservedLiquidityUsdPct": 1.035891404463326,
+                "aggregateObservedVolume24hUsdPct": 28.531445361885417
+              },
+              "anomalies": []
+            },
+            "6h": {
+              "status": "INSUFFICIENT_HISTORY",
+              "requestedHours": 6,
+              "baselineAt": null,
+              "actualHours": null
+            },
+            "24h": {
+              "status": "INSUFFICIENT_HISTORY",
+              "requestedHours": 24,
+              "baselineAt": null,
+              "actualHours": null
+            }
+          }
+        },
+        "wPOND": {
+          "status": "OBSERVED",
+          "chain": "solana",
+          "address": "3JgFwoYV74f6LwWjQWnr3YDPFnmBdwQfNyubv99jqUoq",
+          "family": "core",
+          "observationQuality": "MARKET_SNAPSHOT",
+          "primaryMarket": {
+            "dexId": "raydium",
+            "pairAddress": "HdM9481g5mXApUUsMSMxwVcRVcTde7nqLjGsgqMMf4P2",
+            "quoteSymbol": "SOL",
+            "priceUsd": 6.413e-8,
+            "priceNative": 8.887e-10,
+            "liquidityUsd": 32432.63,
+            "volume24hUsd": 1611.12,
+            "priceChange24hPct": 8.22
+          },
+          "aggregateObservedLiquidityUsd": 36513.15999999999,
+          "aggregateObservedVolume24hUsd": 1730.7699999999998,
+          "executableQuotes": {
+            "status": "NOT_MEASURED_V1",
+            "note": "DEX market snapshots are not executable quotes. Size-aware buy/sell quotes will be added separately."
+          },
+          "trends": {
+            "1h": {
+              "status": "OBSERVED",
+              "requestedHours": 1,
+              "baselineAt": "2026-11-23T12:35:06.009Z",
+              "actualHours": 1.0022513888888889,
+              "baselineQuality": "ALIGNED",
+              "marketContinuity": {
+                "state": "SAME_PRIMARY_PAIR",
+                "currentPairAddress": "HdM9481g5mXApUUsMSMxwVcRVcTde7nqLjGsgqMMf4P2",
+                "previousPrimaryPairAddress": "HdM9481g5mXApUUsMSMxwVcRVcTde7nqLjGsgqMMf4P2",
+                "samePairObserved": true
+              },
+              "changes": {
+                "samePairPriceUsdPct": -1.7315353968740386,
+                "aggregateObservedLiquidityUsdPct": -1.1651541362633409,
+                "aggregateObservedVolume24hUsdPct": 6.638858424418677
+              },
+              "anomalies": []
+            },
+            "6h": {
+              "status": "INSUFFICIENT_HISTORY",
+              "requestedHours": 6,
+              "baselineAt": null,
+              "actualHours": null
+            },
+            "24h": {
+              "status": "INSUFFICIENT_HISTORY",
+              "requestedHours": 24,
+              "baselineAt": null,
+              "actualHours": null
+            }
+          }
+        },
+        "PAPER": {
+          "status": "OBSERVED",
+          "chain": "solana",
+          "address": "PAPERu8xjrqfjBLj8XG6FCiokuk7pG1GzUbRTYwX1nU",
+          "family": "event",
+          "observationQuality": "MARKET_SNAPSHOT",
+          "primaryMarket": {
+            "dexId": "raydium",
+            "pairAddress": "A6X1QPdZU1PsRnKG7GaYZvAsBHUNyd14T3oz2wFuWspG",
+            "quoteSymbol": "USDC",
+            "priceUsd": 0.9859,
+            "priceNative": 0.9859,
+            "liquidityUsd": 199.18,
+            "volume24hUsd": 28.82,
+            "priceChange24hPct": null
+          },
+          "aggregateObservedLiquidityUsd": 199.18,
+          "aggregateObservedVolume24hUsd": 28.82,
+          "executableQuotes": {
+            "status": "NOT_MEASURED_V1",
+            "note": "DEX market snapshots are not executable quotes. Size-aware buy/sell quotes will be added separately."
+          },
+          "trends": {
+            "1h": {
+              "status": "OBSERVED",
+              "requestedHours": 1,
+              "baselineAt": "2026-11-23T12:35:06.009Z",
+              "actualHours": 1.0022513888888889,
+              "baselineQuality": "ALIGNED",
+              "marketContinuity": {
+                "state": "SAME_PRIMARY_PAIR",
+                "currentPairAddress": "A6X1QPdZU1PsRnKG7GaYZvAsBHUNyd14T3oz2wFuWspG",
+                "previousPrimaryPairAddress": "A6X1QPdZU1PsRnKG7GaYZvAsBHUNyd14T3oz2wFuWspG",
+                "samePairObserved": true
+              },
+              "changes": {
+                "samePairPriceUsdPct": 0,
+                "aggregateObservedLiquidityUsdPct": 0,
+                "aggregateObservedVolume24hUsdPct": 0
+              },
+              "anomalies": []
+            },
+            "6h": {
+              "status": "INSUFFICIENT_HISTORY",
+              "requestedHours": 6,
+              "baselineAt": null,
+              "actualHours": null
+            },
+            "24h": {
+              "status": "INSUFFICIENT_HISTORY",
+              "requestedHours": 24,
+              "baselineAt": null,
+              "actualHours": null
+            }
+          }
+        }
+      },
+      "ecosystem": {
+        "chain": {
+          "status": "LIVE",
+          "confidence": "VERY HIGH",
+          "activityState": "QUIET",
+          "predictorStatus": "INSUFFICIENT_DATA"
+        },
+        "clear": {
+          "status": "LIVE_OBSERVATION",
+          "state": "ISSUANCE_OBSERVED",
+          "scoreNeutral": true
+        },
+        "swapSurface": {
+          "status": "OBSERVED",
+          "comparison": {
+            "state": "UNCHANGED",
+            "baselineAt": "2026-11-23T12:35:05.962Z",
             "viewChanged": false,
             "markers": {
               "added": [],
