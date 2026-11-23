@@ -1,13 +1,13 @@
 {
   "version": 1,
-  "generatedAt": "2026-11-23T08:36:01.777Z",
+  "generatedAt": "2026-11-23T09:39:47.485Z",
   "mode": "EXACT_SWEEPS_ONLY",
   "groundTruthSource": "AUTO_LABELED_RUNTIME_REGISTRY",
   "automaticThresholdChanges": false,
-  "exactSweepCount": 720,
+  "exactSweepCount": 1,
   "exactCoverage": {
-    "firstObservedAt": "2026-10-28T06:33:43.035Z",
-    "lastObservedAt": "2026-11-23T08:36:00.962Z"
+    "firstObservedAt": "2026-11-23T09:39:47.090Z",
+    "lastObservedAt": "2026-11-23T09:39:47.090Z"
   },
   "groundTruth": {
     "registryEventCount": 4,
@@ -16,7 +16,7 @@
   "readiness": {
     "minExactSweepsForTuning": 72,
     "minCoveredEventsForTuning": 3,
-    "enoughExactSweeps": true,
+    "enoughExactSweeps": false,
     "enoughCoveredEvents": false,
     "readyForThresholdReview": false
   },
@@ -47,14 +47,14 @@
         "strongSemantic": -10
       },
       "metrics": {
-        "exactSweepCount": 720,
+        "exactSweepCount": 1,
         "coveredGroundTruthEvents": 0,
-        "signalCount": 52,
+        "signalCount": 1,
         "detectedCoveredEvents": 0,
-        "falseSignalCount": 52,
+        "falseSignalCount": 1,
         "precision": 0,
         "recall": null,
-        "falseSignalRate": 7.22,
+        "falseSignalRate": 100,
         "medianLeadMinutes": null,
         "eventResults": []
       }
@@ -85,14 +85,14 @@
         "strongSemantic": 0
       },
       "metrics": {
-        "exactSweepCount": 720,
+        "exactSweepCount": 1,
         "coveredGroundTruthEvents": 0,
-        "signalCount": 52,
+        "signalCount": 1,
         "detectedCoveredEvents": 0,
-        "falseSignalCount": 52,
+        "falseSignalCount": 1,
         "precision": 0,
         "recall": null,
-        "falseSignalRate": 7.22,
+        "falseSignalRate": 100,
         "medianLeadMinutes": null,
         "eventResults": []
       }
@@ -123,14 +123,14 @@
         "strongSemantic": 10
       },
       "metrics": {
-        "exactSweepCount": 720,
+        "exactSweepCount": 1,
         "coveredGroundTruthEvents": 0,
-        "signalCount": 52,
+        "signalCount": 1,
         "detectedCoveredEvents": 0,
-        "falseSignalCount": 52,
+        "falseSignalCount": 1,
         "precision": 0,
         "recall": null,
-        "falseSignalRate": 7.22,
+        "falseSignalRate": 100,
         "medianLeadMinutes": null,
         "eventResults": []
       }
@@ -142,7 +142,7 @@
     "sensitiveRecallDelta": null,
     "conservativeRecallDelta": null
   },
-  "recommendation": "COLLECT_NEW_GROUND_TRUTH_WITHIN_EXACT_ARCHIVE",
+  "recommendation": "ACCUMULATE_EXACT_SWEEPS",
   "interpretation": "This report compares threshold profiles using only exact archived sweeps and the runtime auto-labeled ground-truth registry when available. It never changes live thresholds automatically. Old compatibility-replay rows are excluded from learning metrics.",
   "caution": "Performance metrics are meaningful only for ground-truth events covered by the exact archive window. Absence of covered events is not evidence that a profile is accurate or inaccurate."
 }
