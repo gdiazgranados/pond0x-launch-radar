@@ -1,20 +1,20 @@
 {
   "version": 1,
-  "generatedAt": "2026-11-24T12:55:49.569Z",
-  "regime": "COOLING",
-  "confidence": 65,
-  "candidateRegime": "COOLING",
-  "candidateConfidence": 65,
+  "generatedAt": "2026-11-24T13:35:18.421Z",
+  "regime": "ELEVATED",
+  "confidence": 80,
+  "candidateRegime": "ELEVATED",
+  "candidateConfidence": 80,
   "history": {
     "stage": "PRELIMINARY",
-    "exactSweepCount": 31,
+    "exactSweepCount": 32,
     "usableForRegimeClassification": true
   },
   "current": {
-    "snapshotId": "2026-11-24_125521",
-    "generatedAt": "2026-11-24T12:55:49.294Z",
-    "decisionState": "QUIET",
-    "activityScore": 0
+    "snapshotId": "2026-11-24_133449",
+    "generatedAt": "2026-11-24T13:35:18.173Z",
+    "decisionState": "WATCH",
+    "activityScore": 22
   },
   "baseline": {
     "recentWindowSweeps": 6,
@@ -24,12 +24,32 @@
   },
   "trendContext": {
     "status": "PRELIMINARY_BASELINE",
-    "anomalyScore": 0,
-    "driverCount": 0,
-    "drivers": []
+    "anomalyScore": 90.3,
+    "driverCount": 3,
+    "drivers": [
+      {
+        "metric": "radar",
+        "value": 10,
+        "percentile": 90.3,
+        "trend": "FALLING"
+      },
+      {
+        "metric": "correlation",
+        "value": 8,
+        "percentile": 90.3,
+        "trend": "FALLING"
+      },
+      {
+        "metric": "decisionStrength",
+        "value": 4,
+        "percentile": 90.3,
+        "trend": "FALLING"
+      }
+    ]
   },
   "reasons": [
-    "Recent activity has materially declined from the preceding baseline."
+    "Historical anomaly score is 90.3.",
+    "3 high-percentile historical drivers are active."
   ],
   "methodology": "Score-neutral regime classification derived from exact sweep history and Historical Trend Intelligence. Stronger regimes require corroborating historical or multi-domain evidence.",
   "caution": "Regime Detection is descriptive only. It does not modify Radar scoring, establish launch probability, predict rewards, or constitute trading advice."
