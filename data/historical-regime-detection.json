@@ -1,20 +1,20 @@
 {
   "version": 1,
-  "generatedAt": "2026-11-25T11:35:23.187Z",
-  "regime": "QUIET",
-  "confidence": 85,
-  "candidateRegime": "QUIET",
-  "candidateConfidence": 85,
+  "generatedAt": "2026-11-25T12:35:20.548Z",
+  "regime": "ELEVATED",
+  "confidence": 80,
+  "candidateRegime": "ELEVATED",
+  "candidateConfidence": 80,
   "history": {
     "stage": "PRELIMINARY",
-    "exactSweepCount": 56,
+    "exactSweepCount": 57,
     "usableForRegimeClassification": true
   },
   "current": {
-    "snapshotId": "2026-11-25_113455",
-    "generatedAt": "2026-11-25T11:35:22.954Z",
-    "decisionState": "QUIET",
-    "activityScore": 0
+    "snapshotId": "2026-11-25_123453",
+    "generatedAt": "2026-11-25T12:35:20.304Z",
+    "decisionState": "WATCH",
+    "activityScore": 22
   },
   "baseline": {
     "recentWindowSweeps": 6,
@@ -24,12 +24,32 @@
   },
   "trendContext": {
     "status": "PRELIMINARY_BASELINE",
-    "anomalyScore": 0,
-    "driverCount": 0,
-    "drivers": []
+    "anomalyScore": 91.1,
+    "driverCount": 3,
+    "drivers": [
+      {
+        "metric": "radar",
+        "value": 10,
+        "percentile": 91.1,
+        "trend": "RISING"
+      },
+      {
+        "metric": "correlation",
+        "value": 8,
+        "percentile": 91.1,
+        "trend": "RISING"
+      },
+      {
+        "metric": "decisionStrength",
+        "value": 4,
+        "percentile": 91.1,
+        "trend": "RISING"
+      }
+    ]
   },
   "reasons": [
-    "Current exact sweep has no meaningful activation, evidence, or historical-driver activity."
+    "Historical anomaly score is 91.1.",
+    "3 high-percentile historical drivers are active."
   ],
   "methodology": "Score-neutral regime classification derived from exact sweep history and Historical Trend Intelligence. Stronger regimes require corroborating historical or multi-domain evidence.",
   "caution": "Regime Detection is descriptive only. It does not modify Radar scoring, establish launch probability, predict rewards, or constitute trading advice."
